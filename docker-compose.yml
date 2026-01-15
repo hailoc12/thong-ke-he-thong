@@ -21,23 +21,18 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --reload"
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000"
     volumes:
       - ./backend:/app
       - media_data:/app/media
       - static_data:/app/staticfiles
     ports:
       - "8000:8000"
+    env_file:
+      - ./backend/.env
     environment:
-      - DEBUG=True
-      - SECRET_KEY=django-insecure-dev-key-change-in-production
-      - DB_NAME=system_reports
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
       - DB_HOST=postgres
       - DB_PORT=5432
-      - ALLOWED_HOSTS=localhost,127.0.0.1,backend,thongkehethong.mindmaid.ai
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost,https://thongkehethong.mindmaid.ai
     depends_on:
       postgres:
         condition: service_healthy

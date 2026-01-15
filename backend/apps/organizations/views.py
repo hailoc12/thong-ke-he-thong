@@ -26,13 +26,13 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     - GET /api/organizations/tree/ - Get organization tree
     """
 
-    queryset = Organization.objects.select_related('parent').all()
+    queryset = Organization.objects.all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['org_type', 'level', 'is_active', 'parent']
+    filterset_fields = []
     search_fields = ['code', 'name', 'contact_person', 'contact_email']
-    ordering_fields = ['created_at', 'code', 'name', 'level']
-    ordering = ['level', 'code']
+    ordering_fields = ['created_at', 'code', 'name']
+    ordering = ['name']
 
     def get_serializer_class(self):
         """Return appropriate serializer based on action"""
@@ -41,27 +41,6 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         elif self.action in ['create', 'update', 'partial_update']:
             return OrganizationCreateUpdateSerializer
         return OrganizationDetailSerializer
-
-    @action(detail=False, methods=['get'])
-    def tree(self, request):
-        """Get organization tree structure"""
-        # Get root organizations (no parent)
-        roots = Organization.objects.filter(parent__isnull=True, is_active=True)
-
-        def build_tree(org):
-            """Recursively build organization tree"""
-            children = Organization.objects.filter(parent=org, is_active=True)
-            return {
-                'id': org.id,
-                'code': org.code,
-                'name': org.name,
-                'org_type': org.org_type,
-                'level': org.level,
-                'children': [build_tree(child) for child in children]
-            }
-
-        tree = [build_tree(root) for root in roots]
-        return Response(tree)
 
     @action(detail=True, methods=['get'])
     def systems(self, request, pk=None):

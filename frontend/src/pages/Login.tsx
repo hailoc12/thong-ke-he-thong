@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Form, Input, Button, Card, Typography, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import type { LoginRequest } from '../types';
 
@@ -87,6 +87,15 @@ const Login = () => {
             </Button>
           </Form.Item>
         </Form>
+
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <Typography.Text type="secondary">
+            Chưa có tài khoản?{' '}
+            <Link to="/register" style={{ fontWeight: 'bold' }}>
+              Đăng ký ngay
+            </Link>
+          </Typography.Text>
+        </div>
 
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>

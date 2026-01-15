@@ -1,0 +1,45 @@
+{
+  "subagents": {
+    "research": {
+      "description": "Research and information gathering",
+      "instructions": "Focus on gathering information and saving findings to 03-research/ folder"
+    },
+    "problem_analysis": {
+      "description": "Problem analysis and task definition",
+      "instructions": "Analyze problems and create task definitions in 04-task-definition/ folder"
+    },
+    "question_analyst": {
+      "description": "Question identification and status tracking",
+      "instructions": "Identify important questions and track them in 06-good-question/ folder with proper status"
+    },
+    "idea_brainstorm": {
+      "description": "Creative ideation",
+      "instructions": "Generate and document ideas in 05-ideas/ folder"
+    },
+    "answer": {
+      "description": "Answer questions with research backing",
+      "instructions": "Create well-researched answers in 09-good-answer/ and update linked question status"
+    },
+    "planner": {
+      "description": "Task planning and backlog management",
+      "instructions": "Create and manage tasks in 08-backlog-plan/ using kanban workflow (todo/doing/done)"
+    },
+    "implementer": {
+      "description": "Solution implementation",
+      "instructions": "Implement solutions in 12-quick-solution/ or 13-quality-solution/ based on workflow type"
+    },
+    "learner": {
+      "description": "Learning capture and principle extraction",
+      "instructions": "Capture lessons in 11-lesson-learned/ and extract principles to 10-principles/"
+    },
+    "ai_curator": {
+      "description": "AI usage management and prompt curation",
+      "instructions": "Manage AI-related content in 17-AI/ including prompts, conversations, and agent configs"
+    }
+  },
+  "structured_thinking": {
+    "enabled": true,
+    "workflow": "deep",
+    "folders": 17
+  }
+}

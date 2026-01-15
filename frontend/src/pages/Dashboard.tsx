@@ -7,7 +7,7 @@ import {
   TeamOutlined,
 } from '@ant-design/icons';
 import api from '../config/api';
-import { SystemStatistics } from '../types';
+import type { SystemStatistics } from '../types';
 
 const { Title } = Typography;
 

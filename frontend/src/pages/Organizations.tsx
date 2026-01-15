@@ -3,7 +3,7 @@ import { Table, Button, Space, Typography, Input } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../config/api';
-import { Organization, ApiResponse } from '../types';
+import type { Organization, ApiResponse } from '../types';
 
 const { Title } = Typography;
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import api from '../config/api';
-import { User, LoginRequest, TokenResponse } from '../types';
+import type { User, LoginRequest, TokenResponse } from '../types';
 
 interface AuthState {
   user: User | null;

@@ -1,4 +1,4 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
 // API Base URL - will be set via environment variable in production
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://thongkehethong.mindmaid.ai/api';

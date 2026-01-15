@@ -1,16 +1,13 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:14-alpine
     environment:
       POSTGRES_DB: system_reports
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: thongke_secure_pass_2026
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # Port not exposed externally for security
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s

@@ -105,7 +105,7 @@ const Register = () => {
               prefix={<BankOutlined />}
               showSearch
               filterOption={(input, option) =>
-                (option?.children as string).toLowerCase().includes(input.toLowerCase())
+                String(option?.children || '').toLowerCase().includes(input.toLowerCase())
               }
             >
               {organizations.map(org => (

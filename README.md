@@ -87,6 +87,7 @@ See `backend/README.md` and `frontend/README.md` for detailed instructions.
 
 | File | Description |
 |------|-------------|
+| `API_DOCUMENTATION.md` | **REST API complete reference** |
 | `04-task-definition/01-requirements.md` | Full requirements (Level 1 & 2 forms) |
 | `03-research/architecture-design.md` | Architecture design |
 | `02-principle-processes/tech-stack.md` | Tech stack decisions |
@@ -100,14 +101,23 @@ See `backend/README.md` and `frontend/README.md` for detailed instructions.
 **Phase 1: Core Setup** - ✅ COMPLETED & DEPLOYED!
 
 - ✅ Project structure created
-- ✅ Django models (User, Organization)
+- ✅ Django models (User, Organization, 11 System models)
 - ✅ Django Admin configured
 - ✅ Docker setup
 - ✅ Deployed to production server
 - ✅ Nginx reverse proxy configured
 - ✅ DNS & SSL configured (Cloudflare)
 - ✅ **LIVE**: https://thongkehethong.mindmaid.ai/admin/
-- ⏳ REST API (next)
+
+**Phase 2: REST API** - ✅ COMPLETED & DEPLOYED!
+
+- ✅ Serializers for all models (nested serializers)
+- ✅ ViewSets with CRUD operations
+- ✅ JWT authentication
+- ✅ Filtering, search, pagination
+- ✅ Custom actions (save_draft, submit, statistics)
+- ✅ Swagger UI documentation
+- ✅ **LIVE**: https://thongkehethong.mindmaid.ai/api/docs/
 - ⏳ Frontend init (next)
 
 See `DEPLOYMENT_STATUS.md` for deployment details and `08-backlog-plan/MASTER_TASKLIST.md` for roadmap.

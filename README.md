@@ -21,7 +21,15 @@ Hệ thống cho phép các đơn vị trong Bộ nhập thông tin về hệ th
 
 ## 🚀 QUICK START
 
-### Using Docker (Recommended)
+### Production Site (LIVE NOW!)
+
+**URL**: https://thongkehethong.mindmaid.ai/admin/
+
+**Admin Login**: See `ADMIN_CREDENTIALS.md` (in .gitignore - credentials in Dropbox only)
+
+### Local Development
+
+#### Using Docker (Recommended)
 
 ```bash
 # Start all services
@@ -35,7 +43,7 @@ docker-compose exec backend python manage.py createsuperuser
 # http://localhost:8000/api/token/ - API
 ```
 
-### Manual Setup
+#### Manual Setup
 
 See `backend/README.md` and `frontend/README.md` for detailed instructions.
 
@@ -89,17 +97,20 @@ See `backend/README.md` and `frontend/README.md` for detailed instructions.
 
 ## 🎯 CURRENT STATUS
 
-**Phase 1: Core Setup** - In Progress
+**Phase 1: Core Setup** - ✅ COMPLETED & DEPLOYED!
 
 - ✅ Project structure created
 - ✅ Django models (User, Organization)
 - ✅ Django Admin configured
 - ✅ Docker setup
+- ✅ Deployed to production server
+- ✅ Nginx reverse proxy configured
+- ✅ DNS & SSL configured (Cloudflare)
+- ✅ **LIVE**: https://thongkehethong.mindmaid.ai/admin/
 - ⏳ REST API (next)
 - ⏳ Frontend init (next)
-- ⏳ Deployment (next)
 
-See `08-backlog-plan/MASTER_TASKLIST.md` for detailed progress.
+See `DEPLOYMENT_STATUS.md` for deployment details and `08-backlog-plan/MASTER_TASKLIST.md` for roadmap.
 
 ---
 
@@ -160,9 +171,11 @@ git push origin main
 
 ## 📞 DEPLOYMENT INFO
 
-- **Server**: 34.142.152.104
-- **Domain**: https://thongkehethong.mindmaid.ai
-- **Credentials**: See `07-resources/deploy-credentials.md`
+- **Production URL**: https://thongkehethong.mindmaid.ai/admin/ ✅ LIVE
+- **Server IP**: 34.142.152.104
+- **Server Credentials**: See `07-resources/deploy-credentials.md`
+- **Admin Credentials**: See `ADMIN_CREDENTIALS.md`
+- **Deployment Details**: See `DEPLOYMENT_STATUS.md`
 
 ---
 

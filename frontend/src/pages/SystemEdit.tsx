@@ -33,7 +33,7 @@ const SystemEdit = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [formLevel, setFormLevel] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
-  const [loadingData, setLoadingData] = useState(true);
+  const [_loadingData, setLoadingData] = useState(true);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [formData, setFormData] = useState<Partial<SystemCreatePayload>>({});
 
@@ -1145,4 +1145,4 @@ const SystemEdit = () => {
   );
 };
 
-export default SystemCreate;
+export default SystemEdit;

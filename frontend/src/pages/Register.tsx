@@ -80,9 +80,19 @@ const Register = () => {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <img
+            src="/logo-khcn.jpeg"
+            alt="Bộ Khoa học và Công nghệ"
+            style={{
+              width: 120,
+              height: 'auto',
+              marginBottom: 16,
+              borderRadius: 8
+            }}
+          />
           <Title level={3}>ĐĂNG KÝ TÀI KHOẢN</Title>
           <Text type="secondary">
-            Hệ thống Báo cáo Thống kê Hệ thống CNTT
+            Bộ Khoa học và Công nghệ
           </Text>
         </div>
 

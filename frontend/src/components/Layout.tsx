@@ -89,10 +89,21 @@ const MainLayout = () => {
             alignItems: 'center',
             justifyContent: 'center',
             background: 'rgba(255, 255, 255, 0.1)',
+            padding: '0 16px',
+            gap: 12,
           }}
         >
+          <img
+            src="/logo-khcn.jpeg"
+            alt="Bộ KH&CN"
+            style={{
+              width: collapsed ? 32 : 40,
+              height: 'auto',
+              borderRadius: 4,
+            }}
+          />
           {!collapsed && (
-            <Text strong style={{ color: 'white', fontSize: 16 }}>
+            <Text strong style={{ color: 'white', fontSize: 14 }}>
               HỆ THỐNG BÁO CÁO
             </Text>
           )}

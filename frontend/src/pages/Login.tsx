@@ -42,9 +42,19 @@ const Login = () => {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <img
+            src="/logo-khcn.jpeg"
+            alt="Bộ Khoa học và Công nghệ"
+            style={{
+              width: 120,
+              height: 'auto',
+              marginBottom: 16,
+              borderRadius: 8
+            }}
+          />
           <Title level={3}>HỆ THỐNG BÁO CÁO THỐNG KÊ</Title>
           <Typography.Text type="secondary">
-            Quản lý thông tin hệ thống CNTT
+            Bộ Khoa học và Công nghệ
           </Typography.Text>
         </div>
 

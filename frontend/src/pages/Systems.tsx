@@ -130,12 +130,12 @@ const Systems = () => {
       key: 'action',
       width: 120,
       fixed: 'right',
-      render: () => (
+      render: (_: any, record: System) => (
         <Space>
-          <Button type="link" size="small">
+          <Button type="link" size="small" onClick={() => navigate(`/systems/${record.id}`)}>
             Xem
           </Button>
-          <Button type="link" size="small">
+          <Button type="link" size="small" onClick={() => navigate(`/systems/${record.id}/edit`)}>
             Sửa
           </Button>
         </Space>

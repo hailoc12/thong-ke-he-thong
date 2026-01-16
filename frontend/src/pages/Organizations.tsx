@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Table, Button, Space, Typography, Input, Modal, Form, message } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../config/api';
 import type { Organization, ApiResponse, OrganizationCreatePayload } from '../types';
@@ -9,6 +10,7 @@ const { Title } = Typography;
 const { TextArea } = Input;
 
 const Organizations = () => {
+  const navigate = useNavigate();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -119,12 +121,12 @@ const Organizations = () => {
       key: 'action',
       width: 150,
       fixed: 'right',
-      render: () => (
+      render: (_: any, record: Organization) => (
         <Space>
-          <Button type="link" size="small">
+          <Button type="link" size="small" onClick={() => navigate(`/organizations/${record.id}`)}>
             Xem
           </Button>
-          <Button type="link" size="small">
+          <Button type="link" size="small" onClick={() => navigate(`/organizations/${record.id}/edit`)}>
             Sửa
           </Button>
         </Space>

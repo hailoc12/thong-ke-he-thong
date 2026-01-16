@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, Typography, Input } from 'antd';
+import { Table, Button, Space, Typography, Input, Modal, Form, message } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../config/api';
-import type { Organization, ApiResponse } from '../types';
+import type { Organization, ApiResponse, OrganizationCreatePayload } from '../types';
 
 const { Title } = Typography;
+const { TextArea } = Input;
 
 const Organizations = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -15,6 +16,9 @@ const Organizations = () => {
     pageSize: 20,
     total: 0,
   });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [form] = Form.useForm();
 
   useEffect(() => {
     fetchOrganizations();
@@ -44,6 +48,31 @@ const Organizations = () => {
 
   const handleTableChange = (pagination: any) => {
     fetchOrganizations(pagination.current);
+  };
+
+  const showModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    form.resetFields();
+  };
+
+  const handleCreateOrganization = async (values: OrganizationCreatePayload) => {
+    setModalLoading(true);
+    try {
+      await api.post('/organizations/', values);
+      message.success('Tạo đơn vị thành công!');
+      setIsModalOpen(false);
+      form.resetFields();
+      fetchOrganizations(1);
+    } catch (error: any) {
+      console.error('Failed to create organization:', error);
+      message.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn vị');
+    } finally {
+      setModalLoading(false);
+    }
   };
 
   const columns: ColumnsType<Organization> = [
@@ -109,7 +138,7 @@ const Organizations = () => {
         <Title level={2} style={{ margin: 0 }}>
           Danh sách Đơn vị
         </Title>
-        <Button type="primary" icon={<PlusOutlined />}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>
           Thêm đơn vị
         </Button>
       </div>
@@ -132,6 +161,73 @@ const Organizations = () => {
         onChange={handleTableChange}
         scroll={{ x: 1000 }}
       />
+
+      <Modal
+        title="Thêm đơn vị mới"
+        open={isModalOpen}
+        onCancel={handleCancel}
+        footer={null}
+        width={600}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleCreateOrganization}
+        >
+          <Form.Item
+            name="name"
+            label="Tên đơn vị"
+            rules={[{ required: true, message: 'Vui lòng nhập tên đơn vị' }]}
+          >
+            <Input placeholder="Nhập tên đơn vị" />
+          </Form.Item>
+
+          <Form.Item
+            name="code"
+            label="Mã đơn vị"
+          >
+            <Input placeholder="Nhập mã đơn vị (tùy chọn)" />
+          </Form.Item>
+
+          <Form.Item
+            name="description"
+            label="Mô tả"
+          >
+            <TextArea rows={3} placeholder="Mô tả đơn vị" />
+          </Form.Item>
+
+          <Form.Item
+            name="contact_person"
+            label="Người liên hệ"
+          >
+            <Input placeholder="Họ tên người liên hệ" />
+          </Form.Item>
+
+          <Form.Item
+            name="contact_email"
+            label="Email"
+            rules={[{ type: 'email', message: 'Email không hợp lệ' }]}
+          >
+            <Input type="email" placeholder="Email liên hệ" />
+          </Form.Item>
+
+          <Form.Item
+            name="contact_phone"
+            label="Số điện thoại"
+          >
+            <Input placeholder="Số điện thoại liên hệ" />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+            <Space>
+              <Button onClick={handleCancel}>Hủy</Button>
+              <Button type="primary" htmlType="submit" loading={modalLoading}>
+                Tạo đơn vị
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

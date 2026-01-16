@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Systems from './pages/Systems';
+import SystemCreate from './pages/SystemCreate';
 import Organizations from './pages/Organizations';
 import MainLayout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -29,6 +30,7 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="systems" element={<Systems />} />
+            <Route path="systems/create" element={<SystemCreate />} />
             <Route path="organizations" element={<Organizations />} />
           </Route>
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Table, Button, Space, Typography, Tag, Input } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../config/api';
 import type { System, ApiResponse } from '../types';
@@ -8,6 +9,7 @@ import type { System, ApiResponse } from '../types';
 const { Title } = Typography;
 
 const Systems = () => {
+  const navigate = useNavigate();
   const [systems, setSystems] = useState<System[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -147,7 +149,7 @@ const Systems = () => {
         <Title level={2} style={{ margin: 0 }}>
           Danh sách Hệ thống
         </Title>
-        <Button type="primary" icon={<PlusOutlined />}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/systems/create')}>
           Thêm hệ thống
         </Button>
       </div>

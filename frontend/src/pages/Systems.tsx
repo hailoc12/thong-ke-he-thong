@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, Typography, Tag, Input } from 'antd';
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Typography, Tag, Input, Empty } from 'antd';
+import { PlusOutlined, SearchOutlined, InboxOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../config/api';
@@ -61,12 +61,25 @@ const Systems = () => {
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       active: 'green',
+      operating: 'green',
       inactive: 'red',
       maintenance: 'orange',
       planning: 'blue',
       draft: 'default',
     };
-    return colors[status] || 'default';
+    return colors[status.toLowerCase()] || 'default';
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, { full: string; short: string }> = {
+      active: { full: 'Hoạt động', short: 'Hoạt động' },
+      operating: { full: 'Hoạt động', short: 'Hoạt động' },
+      inactive: { full: 'Ngưng', short: 'Ngưng' },
+      maintenance: { full: 'Bảo trì', short: 'Bảo trì' },
+      planning: { full: 'Lập kế hoạch', short: 'Kế hoạch' },
+      draft: { full: 'Bản nháp', short: 'Nháp' },
+    };
+    return labels[status.toLowerCase()] || { full: status, short: status };
   };
 
   const getCriticalityColor = (level: string) => {
@@ -93,25 +106,33 @@ const Systems = () => {
       dataIndex: 'system_name',
       key: 'system_name',
       width: isMobile ? undefined : 250,
-      ellipsis: true,
+      ellipsis: {
+        showTitle: true,
+      },
     },
     {
       title: 'Đơn vị',
       dataIndex: 'org_name',
       key: 'org_name',
       width: 180,
+      ellipsis: {
+        showTitle: true,
+      },
       responsive: ['lg'] as any, // Hide on mobile and tablet
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      width: isMobile ? 100 : 120,
-      render: (status: string) => (
-        <Tag color={getStatusColor(status)}>
-          {isMobile ? status.substring(0, 3).toUpperCase() : status.toUpperCase()}
-        </Tag>
-      ),
+      width: isMobile ? 90 : 120,
+      render: (status: string) => {
+        const label = getStatusLabel(status);
+        return (
+          <Tag color={getStatusColor(status)}>
+            {isMobile ? label.short : label.full}
+          </Tag>
+        );
+      },
     },
     {
       title: 'Mức độ',
@@ -191,6 +212,22 @@ const Systems = () => {
         dataSource={systems}
         rowKey="id"
         loading={loading}
+        locale={{
+          emptyText: (
+            <Empty
+              image={<InboxOutlined style={{ fontSize: 48, color: '#bfbfbf' }} />}
+              description={
+                <span style={{ color: '#8c8c8c' }}>
+                  Chưa có hệ thống nào
+                </span>
+              }
+            >
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/systems/create')}>
+                Thêm hệ thống mới
+              </Button>
+            </Empty>
+          ),
+        }}
         pagination={{
           ...pagination,
           ...(isMobile && { size: 'small' as const }),

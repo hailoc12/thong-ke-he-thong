@@ -284,6 +284,82 @@ input, textarea, select {
   border-width: 0;
 }
 
+/* ============================================
+   Ant Design Component Overrides
+   ============================================ */
+
+/* Table Improvements */
+.ant-table-thead > tr > th {
+  background-color: var(--bg-gray) !important;
+  font-weight: var(--font-weight-semibold) !important;
+  color: var(--text-primary) !important;
+  border-bottom: 2px solid var(--border-color) !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background-color: var(--bg-hover) !important;
+}
+
+.ant-table-cell {
+  transition: background-color var(--transition-fast) var(--easing-out);
+}
+
+/* Button Hover/Focus States */
+.ant-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast) var(--easing-out);
+}
+
+.ant-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.ant-btn-link:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Input Focus States */
+.ant-input:focus,
+.ant-input-focused,
+.ant-select-focused .ant-select-selector {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 2px rgba(0, 102, 230, 0.1) !important;
+}
+
+/* Card Hover Effect */
+.ant-card:hover {
+  box-shadow: var(--shadow-md);
+  transition: box-shadow var(--transition-base) var(--easing-out);
+}
+
+/* Tag Improvements */
+.ant-tag {
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-base);
+  padding: 2px 8px;
+}
+
+/* Link Hover States */
+a.ant-typography,
+.ant-btn-link {
+  transition: color var(--transition-fast) var(--easing-out);
+}
+
+a.ant-typography:hover,
+.ant-btn-link:hover {
+  color: var(--color-primary-dark) !important;
+}
+
+/* Improve text truncation with ellipsis */
+.ant-table-cell-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Mobile-specific adjustments */
 @media (max-width: 768px) {
   html {

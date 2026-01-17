@@ -30,8 +30,11 @@ class IsOrgUserOrAdmin(permissions.BasePermission):
             return True
 
         # Org user can only access objects from their organization
+        # Check both 'organization' and 'org' field names
         if hasattr(obj, 'organization'):
             return obj.organization == request.user.organization
+        elif hasattr(obj, 'org'):
+            return obj.org == request.user.organization
 
         # If object doesn't have organization field, deny access
         return False
@@ -53,7 +56,9 @@ class CanManageOrgSystems(permissions.BasePermission):
             return True
 
         # Org user can only manage systems in their organization
+        # Check both 'organization' and 'org' field names
         if request.user.role == 'org_user':
-            return obj.organization == request.user.organization
+            org_field = getattr(obj, 'organization', None) or getattr(obj, 'org', None)
+            return org_field == request.user.organization
 
         return False

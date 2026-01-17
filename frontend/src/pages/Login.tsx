@@ -50,7 +50,8 @@ const Login = () => {
             style={{
               width: window.innerWidth < 768 ? 80 : 120,
               height: 'auto',
-              marginBottom: 16,
+              display: 'block',
+              margin: '0 auto 16px',
               borderRadius: 8
             }}
           />

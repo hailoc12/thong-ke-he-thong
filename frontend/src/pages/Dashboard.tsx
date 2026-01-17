@@ -148,9 +148,6 @@ const Dashboard = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleExport = () => {
-    exportToJSON();
-  };
 
   const handleDateRangeChange = useCallback((dates: any) => {
     setDateRange(dates);
@@ -785,7 +782,7 @@ const Dashboard = () => {
                     outerRadius={isMobile ? 80 : 100}
                     paddingAngle={3}
                     dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    label={({ name, percent }: { name: string; percent: number }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
                     {statusChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
@@ -797,7 +794,7 @@ const Dashboard = () => {
                   <Legend
                     verticalAlign="bottom"
                     height={36}
-                    formatter={(value, entry: any) => `${value} (${entry.payload.value})`}
+                    formatter={(value: string, entry: { payload: { value: number } }) => `${value} (${entry.payload.value})`}
                   />
                 </PieChart>
               </ResponsiveContainer>

@@ -274,6 +274,7 @@ export interface OrganizationCreatePayload {
 // Statistics
 export interface SystemStatistics {
   total: number;
+  users_total?: number;
   by_status: {
     active: number;
     inactive: number;

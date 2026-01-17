@@ -62,8 +62,12 @@ const Users = () => {
 
   const fetchOrganizations = async () => {
     try {
-      const response = await api.get<Organization[]>('/organizations/');
-      setOrganizations(response.data);
+      const response = await api.get<any>('/organizations/');
+      // Handle both array and paginated response
+      const orgs = Array.isArray(response.data)
+        ? response.data
+        : response.data.results || [];
+      setOrganizations(orgs);
     } catch (error) {
       message.error('Lỗi khi tải danh sách đơn vị');
     }

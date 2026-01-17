@@ -11,6 +11,7 @@ import SystemEdit from './pages/SystemEdit';
 import Organizations from './pages/Organizations';
 import OrganizationDetail from './pages/OrganizationDetail';
 import OrganizationEdit from './pages/OrganizationEdit';
+import Users from './pages/Users';
 import MainLayout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -40,6 +41,7 @@ function App() {
             <Route path="organizations" element={<Organizations />} />
             <Route path="organizations/:id" element={<OrganizationDetail />} />
             <Route path="organizations/:id/edit" element={<OrganizationEdit />} />
+            <Route path="users" element={<Users />} />
           </Route>
 
           {/* Catch all */}

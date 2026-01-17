@@ -5,6 +5,7 @@ import type { User, LoginRequest, TokenResponse } from '../types';
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   isLoading: boolean;
   error: string | null;
   login: (credentials: LoginRequest) => Promise<void>;
@@ -15,6 +16,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
+  isAdmin: false,
   isLoading: false,
   error: null,
 
@@ -23,32 +25,31 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       // Get tokens
       const response = await api.post<TokenResponse>('/token/', credentials);
-      const { access, refresh } = response.data;
+      const { access, refresh, user } = response.data;
 
       // Save tokens
       localStorage.setItem('access_token', access);
       localStorage.setItem('refresh_token', refresh);
 
-      // For now, we don't have a /me endpoint, so we'll decode the token or use username
-      // In production, add a /api/users/me/ endpoint
-      const user: User = {
-        id: 1,
-        username: credentials.username,
-        email: '',
-        is_superuser: false,
-      };
-
-      set({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-      });
+      // Save user data (now included in response)
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user));
+        set({
+          user,
+          isAuthenticated: true,
+          isAdmin: user.role === 'admin',
+          isLoading: false,
+          error: null,
+        });
+      } else {
+        throw new Error('User data not found in response');
+      }
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 'Login failed';
       set({
         user: null,
         isAuthenticated: false,
+        isAdmin: false,
         isLoading: false,
         error: errorMessage,
       });
@@ -59,29 +60,44 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
     set({
       user: null,
       isAuthenticated: false,
+      isAdmin: false,
       error: null,
     });
   },
 
   checkAuth: () => {
     const token = localStorage.getItem('access_token');
-    if (token) {
-      // Token exists, assume authenticated
-      // In production, validate token with backend
-      set({
-        isAuthenticated: true,
-        user: {
-          id: 1,
-          username: 'admin',
-          email: '',
-          is_superuser: false,
-        },
-      });
+    const userStr = localStorage.getItem('user');
+
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr) as User;
+        set({
+          isAuthenticated: true,
+          isAdmin: user.role === 'admin',
+          user,
+        });
+      } catch (error) {
+        // Invalid user data, clear everything
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        set({
+          isAuthenticated: false,
+          isAdmin: false,
+          user: null
+        });
+      }
     } else {
-      set({ isAuthenticated: false, user: null });
+      set({
+        isAuthenticated: false,
+        isAdmin: false,
+        user: null
+      });
     }
   },
 }));

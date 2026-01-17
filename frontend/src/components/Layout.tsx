@@ -20,8 +20,9 @@ const MainLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user, isAdmin, logout } = useAuthStore();
 
+  // Build menu items based on user role
   const menuItems: MenuProps['items'] = [
     {
       key: '/',
@@ -33,11 +34,18 @@ const MainLayout = () => {
       icon: <AppstoreOutlined />,
       label: 'Hệ thống',
     },
-    {
+    // Organizations menu - admin only
+    ...(isAdmin ? [{
       key: '/organizations',
       icon: <TeamOutlined />,
       label: 'Đơn vị',
-    },
+    }] : []),
+    // Users menu - admin only
+    ...(isAdmin ? [{
+      key: '/users',
+      icon: <UserOutlined />,
+      label: 'Người dùng',
+    }] : []),
   ];
 
   const handleMenuClick = ({ key }: { key: string }) => {

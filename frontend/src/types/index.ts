@@ -17,14 +17,21 @@ export interface LoginRequest {
 export interface TokenResponse {
   access: string;
   refresh: string;
+  user?: User;
 }
 
 export interface User {
   id: number;
   username: string;
   email: string;
-  is_superuser: boolean;
+  role: 'admin' | 'org_user';
   organization?: number;
+  organization_name?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  is_active?: boolean;
+  is_superuser?: boolean;
 }
 
 // Organization types

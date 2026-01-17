@@ -203,7 +203,6 @@ const Dashboard = () => {
       y: 0,
       transition: {
         duration: 0.4,
-        ease: [0.4, 0, 0.2, 1], // easeOut cubic-bezier
       },
     },
   };
@@ -782,7 +781,7 @@ const Dashboard = () => {
                     outerRadius={isMobile ? 80 : 100}
                     paddingAngle={3}
                     dataKey="value"
-                    label={({ name, percent }: { name: string; percent: number }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    label={(props: any) => `${props.name}: ${((props.percent || 0) * 100).toFixed(0)}%`}
                   >
                     {statusChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
@@ -794,7 +793,7 @@ const Dashboard = () => {
                   <Legend
                     verticalAlign="bottom"
                     height={36}
-                    formatter={(value: string, entry: { payload: { value: number } }) => `${value} (${entry.payload.value})`}
+                    formatter={(value: any, entry: any) => `${value} (${entry?.payload?.value || 0})`}
                   />
                 </PieChart>
               </ResponsiveContainer>

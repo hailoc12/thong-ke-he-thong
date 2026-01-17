@@ -203,7 +203,7 @@ const Dashboard = () => {
       y: 0,
       transition: {
         duration: 0.4,
-        ease: 'easeOut',
+        ease: [0.4, 0, 0.2, 1], // easeOut cubic-bezier
       },
     },
   };
@@ -789,7 +789,7 @@ const Dashboard = () => {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => [`${value} hệ thống`, 'Số lượng']}
+                    formatter={(value: number | undefined) => [`${value || 0} hệ thống`, 'Số lượng']}
                   />
                   <Legend
                     verticalAlign="bottom"
@@ -822,7 +822,7 @@ const Dashboard = () => {
                     tick={{ fontSize: isMobile ? 11 : 14 }}
                   />
                   <Tooltip
-                    formatter={(value: number) => [`${value} hệ thống`, 'Số lượng']}
+                    formatter={(value: number | undefined) => [`${value || 0} hệ thống`, 'Số lượng']}
                   />
                   <Bar dataKey="value" radius={[0, 8, 8, 0]}>
                     {criticalityChartData.map((entry, index) => (

@@ -84,13 +84,15 @@ const Register = () => {
             src="/logo-khcn.jpeg"
             alt="Bộ Khoa học và Công nghệ"
             style={{
-              width: 120,
+              width: window.innerWidth < 768 ? 80 : 120,
               height: 'auto',
               marginBottom: 16,
               borderRadius: 8
             }}
           />
-          <Title level={3}>ĐĂNG KÝ TÀI KHOẢN</Title>
+          <Title level={window.innerWidth < 768 ? 4 : 3} style={{ marginBottom: 8 }}>
+            ĐĂNG KÝ TÀI KHOẢN
+          </Title>
           <Text type="secondary">
             Bộ Khoa học và Công nghệ
           </Text>

@@ -17,6 +17,16 @@ const Systems = () => {
     pageSize: 20,
     total: 0,
   });
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetchSystems();
@@ -75,28 +85,31 @@ const Systems = () => {
       dataIndex: 'system_code',
       key: 'system_code',
       width: 120,
-      fixed: 'left',
+      fixed: isMobile ? undefined : 'left',
+      responsive: ['md'] as any, // Hide on mobile
     },
     {
       title: 'Tên hệ thống',
       dataIndex: 'system_name',
       key: 'system_name',
-      width: 250,
+      width: isMobile ? undefined : 250,
+      ellipsis: true,
     },
     {
       title: 'Đơn vị',
       dataIndex: 'org_name',
       key: 'org_name',
       width: 180,
+      responsive: ['lg'] as any, // Hide on mobile and tablet
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      width: 120,
+      width: isMobile ? 100 : 120,
       render: (status: string) => (
         <Tag color={getStatusColor(status)}>
-          {status.toUpperCase()}
+          {isMobile ? status.substring(0, 3).toUpperCase() : status.toUpperCase()}
         </Tag>
       ),
     },
@@ -105,6 +118,7 @@ const Systems = () => {
       dataIndex: 'criticality_level',
       key: 'criticality_level',
       width: 120,
+      responsive: ['lg'] as any, // Hide on mobile and tablet
       render: (level: string, record: System) => (
         <Tag color={getCriticalityColor(level)}>
           {record.criticality_display}
@@ -116,6 +130,7 @@ const Systems = () => {
       dataIndex: 'business_owner',
       key: 'business_owner',
       width: 150,
+      responsive: ['lg'] as any, // Hide on mobile and tablet
     },
     {
       title: 'Số người dùng',
@@ -123,15 +138,16 @@ const Systems = () => {
       key: 'users_total',
       width: 120,
       align: 'right',
+      responsive: ['md'] as any, // Hide on mobile
       render: (value: number) => value?.toLocaleString() || 0,
     },
     {
       title: 'Thao tác',
       key: 'action',
-      width: 120,
-      fixed: 'right',
+      width: isMobile ? 100 : 120,
+      fixed: isMobile ? undefined : 'right',
       render: (_: any, record: System) => (
-        <Space>
+        <Space direction={isMobile ? 'vertical' : 'horizontal'} size="small">
           <Button type="link" size="small" onClick={() => navigate(`/systems/${record.id}`)}>
             Xem
           </Button>
@@ -145,20 +161,27 @@ const Systems = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={2} style={{ margin: 0 }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: 'space-between',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        gap: isMobile ? 12 : 0,
+        marginBottom: 16
+      }}>
+        <Title level={isMobile ? 3 : 2} style={{ margin: 0 }}>
           Danh sách Hệ thống
         </Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/systems/create')}>
-          Thêm hệ thống
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/systems/create')} block={isMobile}>
+          {isMobile ? 'Thêm' : 'Thêm hệ thống'}
         </Button>
       </div>
 
       <div style={{ marginBottom: 16 }}>
         <Input
-          placeholder="Tìm kiếm theo tên, mã hệ thống..."
+          placeholder={isMobile ? "Tìm kiếm..." : "Tìm kiếm theo tên, mã hệ thống..."}
           prefix={<SearchOutlined />}
-          style={{ width: 300 }}
+          style={{ width: isMobile ? '100%' : 300 }}
           onPressEnter={(e) => fetchSystems(1, (e.target as HTMLInputElement).value)}
         />
       </div>
@@ -168,9 +191,14 @@ const Systems = () => {
         dataSource={systems}
         rowKey="id"
         loading={loading}
-        pagination={pagination}
+        pagination={{
+          ...pagination,
+          size: isMobile ? 'small' : 'default',
+          showSizeChanger: !isMobile,
+          showQuickJumper: !isMobile,
+        }}
         onChange={handleTableChange}
-        scroll={{ x: 1200 }}
+        scroll={{ x: isMobile ? 400 : 1200 }}
       />
     </div>
   );

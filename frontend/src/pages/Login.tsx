@@ -33,11 +33,13 @@ const Login = () => {
         justifyContent: 'center',
         alignItems: 'center',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: '16px',
       }}
     >
       <Card
         style={{
-          width: 400,
+          width: '100%',
+          maxWidth: 400,
           boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
         }}
       >
@@ -46,13 +48,15 @@ const Login = () => {
             src="/logo-khcn.jpeg"
             alt="Bộ Khoa học và Công nghệ"
             style={{
-              width: 120,
+              width: window.innerWidth < 768 ? 80 : 120,
               height: 'auto',
               marginBottom: 16,
               borderRadius: 8
             }}
           />
-          <Title level={3}>HỆ THỐNG BÁO CÁO THỐNG KÊ</Title>
+          <Title level={window.innerWidth < 768 ? 4 : 3} style={{ marginBottom: 8 }}>
+            HỆ THỐNG BÁO CÁO THỐNG KÊ
+          </Title>
           <Typography.Text type="secondary">
             Bộ Khoa học và Công nghệ
           </Typography.Text>

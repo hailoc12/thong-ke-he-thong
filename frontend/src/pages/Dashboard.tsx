@@ -38,14 +38,16 @@ const Dashboard = () => {
     );
   }
 
+  const isMobile = window.innerWidth < 768;
+
   return (
     <div>
-      <Title level={2}>Dashboard</Title>
+      <Title level={isMobile ? 3 : 2}>Dashboard</Title>
       <Typography.Paragraph type="secondary">
         Tổng quan hệ thống CNTT
       </Typography.Paragraph>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+      <Row gutter={isMobile ? [12, 12] : [16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} sm={12} lg={6}>
           <Card>
             <Statistic
@@ -91,7 +93,7 @@ const Dashboard = () => {
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+      <Row gutter={isMobile ? [12, 12] : [16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} lg={12}>
           <Card title="Trạng thái hệ thống">
             <div style={{ marginBottom: 16 }}>

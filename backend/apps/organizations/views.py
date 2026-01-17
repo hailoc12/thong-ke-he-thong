@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 
+from apps.accounts.permissions import IsOrgUserOrAdmin
 from .models import Organization
 from .serializers import (
     OrganizationListSerializer,
@@ -27,12 +28,28 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Organization.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsOrgUserOrAdmin]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = []
     search_fields = ['code', 'name', 'contact_person', 'contact_email']
     ordering_fields = ['created_at', 'code', 'name']
     ordering = ['name']
+
+    def get_queryset(self):
+        """Filter queryset based on user role"""
+        queryset = super().get_queryset()
+        user = self.request.user
+
+        # Admin can see all organizations
+        if user.role == 'admin':
+            return queryset
+
+        # Org user can only see their own organization
+        if user.role == 'org_user' and user.organization:
+            return queryset.filter(id=user.organization.id)
+
+        # If user has no organization assigned, return empty queryset
+        return queryset.none()
 
     def get_serializer_class(self):
         """Return appropriate serializer based on action"""

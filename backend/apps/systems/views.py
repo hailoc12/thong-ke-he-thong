@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
 
+from apps.accounts.permissions import IsOrgUserOrAdmin, CanManageOrgSystems
 from .models import System, Attachment
 from .serializers import (
     SystemListSerializer,
@@ -41,7 +42,7 @@ class SystemViewSet(viewsets.ModelViewSet):
         'security',
         'attachments',
     ).all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsOrgUserOrAdmin]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['org', 'status', 'criticality_level', 'form_level', 'system_group']
     search_fields = ['system_code', 'system_name', 'system_name_en', 'purpose', 'business_owner', 'technical_owner']
@@ -57,15 +58,20 @@ class SystemViewSet(viewsets.ModelViewSet):
         return SystemDetailSerializer
 
     def get_queryset(self):
-        """Filter queryset based on user permissions"""
+        """Filter queryset based on user role"""
         queryset = super().get_queryset()
         user = self.request.user
 
-        # If user is not superuser, only show systems from their org
-        if not user.is_superuser and hasattr(user, 'organization'):
-            queryset = queryset.filter(org=user.organization)
+        # Admin can see all systems
+        if user.role == 'admin':
+            return queryset
 
-        return queryset
+        # Org user can only see systems from their organization
+        if user.role == 'org_user' and user.organization:
+            return queryset.filter(org=user.organization)
+
+        # If user has no organization assigned, return empty queryset
+        return queryset.none()
 
     @action(detail=True, methods=['post'])
     def save_draft(self, request, pk=None):
@@ -140,12 +146,17 @@ class AttachmentViewSet(viewsets.ModelViewSet):
         serializer.save(uploaded_by=self.request.user)
 
     def get_queryset(self):
-        """Filter attachments based on user permissions"""
+        """Filter attachments based on user role"""
         queryset = super().get_queryset()
         user = self.request.user
 
-        # If user is not superuser, only show attachments from their org's systems
-        if not user.is_superuser and hasattr(user, 'organization'):
-            queryset = queryset.filter(system__org=user.organization)
+        # Admin can see all attachments
+        if user.role == 'admin':
+            return queryset
 
-        return queryset
+        # Org user can only see attachments from their organization's systems
+        if user.role == 'org_user' and user.organization:
+            return queryset.filter(system__org=user.organization)
+
+        # If user has no organization assigned, return empty queryset
+        return queryset.none()

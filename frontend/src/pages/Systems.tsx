@@ -193,7 +193,7 @@ const Systems = () => {
         loading={loading}
         pagination={{
           ...pagination,
-          size: isMobile ? 'small' : 'default',
+          ...(isMobile && { size: 'small' as const }),
           showSizeChanger: !isMobile,
           showQuickJumper: !isMobile,
         }}

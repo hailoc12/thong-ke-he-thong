@@ -10,7 +10,8 @@ import {
   ApiOutlined,
   LinkOutlined
 } from '@ant-design/icons';
-import { mockMarketplaceAPIs } from '../../mocks';
+import { mockAPIMarketplace } from '../../mocks';
+import type { APIMarketplace as APIMarketplaceType } from '../../mocks';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -45,7 +46,7 @@ const APIMarketplace: React.FC = () => {
       <Title level={5} style={{ marginBottom: 16 }}>
         <Space>
           <ShopOutlined />
-          API Marketplace ({mockMarketplaceAPIs.length} Recommended APIs)
+          API Marketplace ({mockAPIMarketplace.length} Recommended APIs)
         </Space>
       </Title>
 
@@ -54,7 +55,7 @@ const APIMarketplace: React.FC = () => {
       </Paragraph>
 
       <Row gutter={[16, 16]}>
-        {mockMarketplaceAPIs.map((api) => (
+        {mockAPIMarketplace.map((api: APIMarketplaceType) => (
           <Col xs={24} sm={12} lg={8} key={api.id}>
             <Card
               hoverable

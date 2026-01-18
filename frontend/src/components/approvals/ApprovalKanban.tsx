@@ -15,9 +15,9 @@ import {
   KeyboardSensor,
   PointerSensor,
   useSensor,
-  useSensors,
-  DragEndEvent
+  useSensors
 } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
@@ -26,7 +26,8 @@ import {
   useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { mockApprovalRequests, ApprovalRequest } from '../../mocks';
+import { mockApprovalRequests } from '../../mocks';
+import type { ApprovalRequest } from '../../mocks';
 
 const { Text, Title } = Typography;
 

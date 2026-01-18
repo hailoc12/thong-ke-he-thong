@@ -12,7 +12,8 @@ import {
   UserOutlined,
   ThunderboltOutlined
 } from '@ant-design/icons';
-import { mockAPIDefinitions, APIDefinition } from '../../mocks';
+import { mockAPIDefinitions } from '../../mocks';
+import type { APIDefinition } from '../../mocks';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;

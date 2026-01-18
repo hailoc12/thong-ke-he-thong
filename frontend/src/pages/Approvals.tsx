@@ -3,7 +3,6 @@ import { Alert, Space, Typography, Statistic, Row, Col, Card } from 'antd';
 import {
   ClockCircleOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined,
   SyncOutlined
 } from '@ant-design/icons';
 import BetaBadge from '../components/common/BetaBadge';

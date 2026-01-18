@@ -25,7 +25,7 @@ const TechnologySiloTable: React.FC = () => {
       dataIndex: 'siloName',
       key: 'siloName',
       width: 200,
-      render: (text: string, record) => (
+      render: (text: string, record: TechnologySilo) => (
         <Space direction="vertical" size={2}>
           <Text strong style={{ fontSize: 13 }}>
             {text}

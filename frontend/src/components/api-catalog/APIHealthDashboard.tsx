@@ -4,7 +4,6 @@ import {
   CheckCircleOutlined,
   WarningOutlined,
   CloseCircleOutlined,
-  ThunderboltOutlined,
   ClockCircleOutlined,
   ExclamationCircleOutlined
 } from '@ant-design/icons';

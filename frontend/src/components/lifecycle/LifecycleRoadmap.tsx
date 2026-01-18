@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Timeline, Typography, Tag, Progress, Space, Row, Col, Alert, Tooltip } from 'antd';
+import { Card, Timeline, Typography, Tag, Progress, Space, Row, Col, Tooltip } from 'antd';
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -7,7 +7,8 @@ import {
   EyeOutlined,
   WarningOutlined,
   TeamOutlined,
-  DollarOutlined
+  DollarOutlined,
+  ToolOutlined
 } from '@ant-design/icons';
 import { mockSystemRoadmaps } from '../../mocks';
 

@@ -123,7 +123,7 @@ const CostForecastChart: React.FC = () => {
 
         {/* Confidence Interval Note */}
         <Text type="secondary" style={{ fontSize: 11, fontStyle: 'italic' }}>
-          📊 Forecast includes 90% confidence interval. Actual costs may vary ±{((currentYear.confidenceInterval?.high || 0) - (currentYear.confidenceInterval?.low || 0)) / 2).toFixed(1)}B VNĐ
+          📊 Forecast includes 90% confidence interval. Actual costs may vary ±{(((currentYear.confidenceInterval?.high || 0) - (currentYear.confidenceInterval?.low || 0)) / 2).toFixed(1)}B VNĐ
         </Text>
       </Space>
     </Card>

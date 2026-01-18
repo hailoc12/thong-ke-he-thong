@@ -50,3 +50,5 @@ yarn-error.log*
 
 # Playwright
 .playwright-mcp/
+07-resources/deploy-credentials.md
+ADMIN_CREDENTIALS.md

@@ -45,7 +45,7 @@ const CaseStudyCards: React.FC = () => {
     <>
       <Card>
         <Title level={5} style={{ marginBottom: 16 }}>
-          Case Studies ({mockCaseStudies.length} Success Stories)
+          Câu chuyện thành công & Case Studies ({mockCaseStudies.length} câu chuyện)
         </Title>
 
         <Row gutter={[16, 16]}>
@@ -106,7 +106,7 @@ const CaseStudyCards: React.FC = () => {
                   </Space>
 
                   <Button type="link" size="small" style={{ padding: 0 }} icon={<ReadOutlined />}>
-                    Read full case study
+                    Xem chi tiết case study
                   </Button>
                 </Space>
               </Card>
@@ -122,7 +122,7 @@ const CaseStudyCards: React.FC = () => {
         onCancel={() => setSelectedCase(null)}
         footer={[
           <Button key="close" type="primary" onClick={() => setSelectedCase(null)}>
-            Close
+            Đóng
           </Button>
         ]}
         width={800}
@@ -147,19 +147,19 @@ const CaseStudyCards: React.FC = () => {
 
             {/* Challenge */}
             <div>
-              <Title level={5}>Challenge</Title>
+              <Title level={5}>Thách thức</Title>
               <Paragraph>{selectedCase.challenge}</Paragraph>
             </div>
 
             {/* Solution */}
             <div>
-              <Title level={5}>Solution</Title>
+              <Title level={5}>Giải pháp</Title>
               <Paragraph>{selectedCase.solution}</Paragraph>
             </div>
 
             {/* Results */}
             <div>
-              <Title level={5}>Results</Title>
+              <Title level={5}>Kết quả</Title>
               <Space direction="vertical" size="small">
                 {selectedCase.results.map((result, idx) => (
                   <div key={idx}>
@@ -172,7 +172,7 @@ const CaseStudyCards: React.FC = () => {
 
             {/* Technologies */}
             <div>
-              <Title level={5}>Technologies Used</Title>
+              <Title level={5}>Công nghệ sử dụng</Title>
               {selectedCase.technologies.map(tech => (
                 <Tag key={tech} icon={<RocketOutlined />} color="processing" style={{ marginBottom: 4 }}>
                   {tech}
@@ -182,7 +182,7 @@ const CaseStudyCards: React.FC = () => {
 
             {/* Key Takeaways */}
             <div>
-              <Title level={5}>Key Takeaways</Title>
+              <Title level={5}>Bài học rút ra</Title>
               <ul style={{ paddingLeft: 20 }}>
                 {selectedCase.keyTakeaways.map((takeaway, idx) => (
                   <li key={idx}>
@@ -198,7 +198,7 @@ const CaseStudyCards: React.FC = () => {
                 <Space>
                   <ClockCircleOutlined />
                   <div>
-                    <Text type="secondary" style={{ fontSize: 12 }}>Timeline</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>Thời gian</Text>
                     <br />
                     <Text strong>{selectedCase.timeline}</Text>
                   </div>
@@ -208,7 +208,7 @@ const CaseStudyCards: React.FC = () => {
                 <Space>
                   <DollarOutlined />
                   <div>
-                    <Text type="secondary" style={{ fontSize: 12 }}>Budget</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>Ngân sách</Text>
                     <br />
                     <Text strong>{selectedCase.budget}</Text>
                   </div>

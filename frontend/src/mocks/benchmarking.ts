@@ -43,36 +43,36 @@ export interface CaseStudy {
 
 export const mockBenchmarkMetrics: BenchmarkMetric[] = [
   // IT Governance
-  { category: 'IT Governance', metric: 'Systems với SLA định nghĩa', boKHCN: 68, average: 75, topPerformer: 95, unit: '%', status: 'below' },
-  { category: 'IT Governance', metric: 'Hệ thống có disaster recovery plan', boKHCN: 45, average: 60, topPerformer: 90, unit: '%', status: 'below' },
-  { category: 'IT Governance', metric: 'Tuân thủ CNTT tiêu chuẩn quốc gia', boKHCN: 82, average: 70, topPerformer: 98, unit: '%', status: 'above' },
+  { category: 'Quản trị CNTT', metric: 'Systems với SLA định nghĩa', boKHCN: 68, average: 75, topPerformer: 95, unit: '%', status: 'below' },
+  { category: 'Quản trị CNTT', metric: 'Hệ thống có disaster recovery plan', boKHCN: 45, average: 60, topPerformer: 90, unit: '%', status: 'below' },
+  { category: 'Quản trị CNTT', metric: 'Tuân thủ CNTT tiêu chuẩn quốc gia', boKHCN: 82, average: 70, topPerformer: 98, unit: '%', status: 'above' },
 
   // Architecture
-  { category: 'Architecture', metric: 'Hệ thống sử dụng microservices', boKHCN: 22, average: 35, topPerformer: 65, unit: '%', status: 'below' },
-  { category: 'Architecture', metric: 'API-first architecture', boKHCN: 40, average: 50, topPerformer: 80, unit: '%', status: 'below' },
-  { category: 'Architecture', metric: 'Cloud-native applications', boKHCN: 30, average: 45, topPerformer: 75, unit: '%', status: 'below' },
+  { category: 'Kiến trúc', metric: 'Hệ thống sử dụng microservices', boKHCN: 22, average: 35, topPerformer: 65, unit: '%', status: 'below' },
+  { category: 'Kiến trúc', metric: 'API-first architecture', boKHCN: 40, average: 50, topPerformer: 80, unit: '%', status: 'below' },
+  { category: 'Kiến trúc', metric: 'Cloud-native applications', boKHCN: 30, average: 45, topPerformer: 75, unit: '%', status: 'below' },
 
   // Security
-  { category: 'Security', metric: 'Hệ thống có penetration testing định kỳ', boKHCN: 55, average: 65, topPerformer: 100, unit: '%', status: 'below' },
-  { category: 'Security', metric: 'Multi-factor authentication coverage', boKHCN: 78, average: 70, topPerformer: 100, unit: '%', status: 'above' },
-  { category: 'Security', metric: 'Vulnerability patching < 30 days', boKHCN: 70, average: 75, topPerformer: 95, unit: '%', status: 'below' },
-  { category: 'Security', metric: 'Security training compliance', boKHCN: 88, average: 80, topPerformer: 100, unit: '%', status: 'above' },
+  { category: 'Bảo mật', metric: 'Hệ thống có penetration testing định kỳ', boKHCN: 55, average: 65, topPerformer: 100, unit: '%', status: 'below' },
+  { category: 'Bảo mật', metric: 'Multi-factor authentication coverage', boKHCN: 78, average: 70, topPerformer: 100, unit: '%', status: 'above' },
+  { category: 'Bảo mật', metric: 'Vulnerability patching < 30 days', boKHCN: 70, average: 75, topPerformer: 95, unit: '%', status: 'below' },
+  { category: 'Bảo mật', metric: 'Security training compliance', boKHCN: 88, average: 80, topPerformer: 100, unit: '%', status: 'above' },
 
   // Operations
-  { category: 'Operations', metric: 'System uptime', boKHCN: 99.2, average: 99.5, topPerformer: 99.95, unit: '%', status: 'below' },
-  { category: 'Operations', metric: 'Mean Time To Recovery (MTTR)', boKHCN: 3.5, average: 2.5, topPerformer: 0.5, unit: 'hours', status: 'below' },
-  { category: 'Operations', metric: 'Automated monitoring coverage', boKHCN: 65, average: 80, topPerformer: 100, unit: '%', status: 'below' },
-  { category: 'Operations', metric: 'Incident response time', boKHCN: 45, average: 30, topPerformer: 10, unit: 'minutes', status: 'below' },
+  { category: 'Vận hành', metric: 'System uptime', boKHCN: 99.2, average: 99.5, topPerformer: 99.95, unit: '%', status: 'below' },
+  { category: 'Vận hành', metric: 'Mean Time To Recovery (MTTR)', boKHCN: 3.5, average: 2.5, topPerformer: 0.5, unit: 'hours', status: 'below' },
+  { category: 'Vận hành', metric: 'Automated monitoring coverage', boKHCN: 65, average: 80, topPerformer: 100, unit: '%', status: 'below' },
+  { category: 'Vận hành', metric: 'Incident response time', boKHCN: 45, average: 30, topPerformer: 10, unit: 'minutes', status: 'below' },
 
   // Innovation
-  { category: 'Innovation', metric: 'Budget allocated to R&D/Innovation', boKHCN: 8, average: 12, topPerformer: 25, unit: '%', status: 'below' },
-  { category: 'Innovation', metric: 'Hệ thống sử dụng AI/ML', boKHCN: 15, average: 25, topPerformer: 50, unit: '%', status: 'below' },
-  { category: 'Innovation', metric: 'Innovation projects per year', boKHCN: 6, average: 10, topPerformer: 20, unit: 'projects', status: 'below' },
+  { category: 'Đổi mới', metric: 'Budget allocated to R&D/Innovation', boKHCN: 8, average: 12, topPerformer: 25, unit: '%', status: 'below' },
+  { category: 'Đổi mới', metric: 'Hệ thống sử dụng AI/ML', boKHCN: 15, average: 25, topPerformer: 50, unit: '%', status: 'below' },
+  { category: 'Đổi mới', metric: 'Innovation projects per year', boKHCN: 6, average: 10, topPerformer: 20, unit: 'projects', status: 'below' },
 
   // Cost Efficiency
-  { category: 'Cost Efficiency', metric: 'IT cost as % of total budget', boKHCN: 4.2, average: 5.5, topPerformer: 3.8, unit: '%', status: 'above' },
-  { category: 'Cost Efficiency', metric: 'Cloud cost optimization', boKHCN: 25, average: 35, topPerformer: 60, unit: '%', status: 'below' },
-  { category: 'Cost Efficiency', metric: 'License optimization', boKHCN: 40, average: 50, topPerformer: 80, unit: '%', status: 'below' },
+  { category: 'Hiệu quả chi phí', metric: 'IT cost as % of total budget', boKHCN: 4.2, average: 5.5, topPerformer: 3.8, unit: '%', status: 'above' },
+  { category: 'Hiệu quả chi phí', metric: 'Cloud cost optimization', boKHCN: 25, average: 35, topPerformer: 60, unit: '%', status: 'below' },
+  { category: 'Hiệu quả chi phí', metric: 'License optimization', boKHCN: 40, average: 50, topPerformer: 80, unit: '%', status: 'below' },
 ];
 
 export const mockBestPractices: BestPractice[] = [

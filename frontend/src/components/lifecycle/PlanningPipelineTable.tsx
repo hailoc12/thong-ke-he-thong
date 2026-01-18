@@ -63,7 +63,7 @@ const PlanningPipelineTable: React.FC = () => {
 
   const columns: ColumnsType<PlanningPipeline> = [
     {
-      title: 'Project Name',
+      title: 'Tên dự án',
       dataIndex: 'projectName',
       key: 'projectName',
       width: 250,
@@ -82,7 +82,7 @@ const PlanningPipelineTable: React.FC = () => {
       )
     },
     {
-      title: 'Status',
+      title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
       width: 150,
@@ -92,16 +92,16 @@ const PlanningPipelineTable: React.FC = () => {
         </Tag>
       ),
       filters: [
-        { text: 'Idea', value: 'idea' },
-        { text: 'Feasibility', value: 'feasibility' },
-        { text: 'Approved', value: 'approved' },
-        { text: 'Budgeted', value: 'budgeted' },
-        { text: 'Ready to Start', value: 'ready_to_start' }
+        { text: 'Ý tưởng', value: 'idea' },
+        { text: 'Khả thi', value: 'feasibility' },
+        { text: 'Đã phê duyệt', value: 'approved' },
+        { text: 'Đã cấp ngân sách', value: 'budgeted' },
+        { text: 'Sẵn sàng bắt đầu', value: 'ready_to_start' }
       ],
       onFilter: (value, record) => record.status === value
     },
     {
-      title: 'Budget (VNĐ)',
+      title: 'Ngân sách (VNĐ)',
       dataIndex: 'estimatedBudget',
       key: 'estimatedBudget',
       width: 150,
@@ -111,7 +111,7 @@ const PlanningPipelineTable: React.FC = () => {
       sorter: (a, b) => a.estimatedBudget - b.estimatedBudget
     },
     {
-      title: 'Duration',
+      title: 'Thời gian',
       dataIndex: 'estimatedDuration',
       key: 'estimatedDuration',
       width: 120,
@@ -123,7 +123,7 @@ const PlanningPipelineTable: React.FC = () => {
       )
     },
     {
-      title: 'Expected Go-Live',
+      title: 'Dự kiến vận hành',
       dataIndex: 'expectedGoLive',
       key: 'expectedGoLive',
       width: 150,
@@ -159,28 +159,28 @@ const PlanningPipelineTable: React.FC = () => {
   return (
     <Card>
       <Title level={5} style={{ marginBottom: 16 }}>
-        Planning Pipeline ({stats.total} Projects)
+        Dự án đang lên kế hoạch ({stats.total} dự án)
       </Title>
 
       {/* Statistics */}
       <Space size="large" style={{ marginBottom: 16 }}>
         <div>
-          <Text type="secondary" style={{ fontSize: 12 }}>Ready to Start</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>Sẵn sàng bắt đầu</Text>
           <br />
           <Text strong style={{ fontSize: 18, color: '#722ed1' }}>{stats.readyToStart}</Text>
         </div>
         <div>
-          <Text type="secondary" style={{ fontSize: 12 }}>Budgeted</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>Đã cấp ngân sách</Text>
           <br />
           <Text strong style={{ fontSize: 18, color: '#52c41a' }}>{stats.budgeted}</Text>
         </div>
         <div>
-          <Text type="secondary" style={{ fontSize: 12 }}>Total Budget</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>Tổng ngân sách</Text>
           <br />
           <Text strong style={{ fontSize: 18, color: '#1890ff' }}>{stats.totalBudget.toFixed(2)}B VNĐ</Text>
         </div>
         <div>
-          <Text type="secondary" style={{ fontSize: 12 }}>Avg. ROI</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>ROI trung bình</Text>
           <br />
           <Text strong style={{ fontSize: 18, color: '#faad14' }}>{stats.avgROI}%</Text>
         </div>
@@ -195,7 +195,7 @@ const PlanningPipelineTable: React.FC = () => {
         pagination={{
           pageSize: 10,
           showSizeChanger: true,
-          showTotal: (total) => `Total ${total} projects`
+          showTotal: (total) => `Tổng cộng ${total} dự án`
         }}
       />
     </Card>

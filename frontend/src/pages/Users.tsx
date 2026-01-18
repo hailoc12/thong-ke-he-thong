@@ -39,6 +39,7 @@ const Users = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm<UserFormValues>();
   const [selectedRole, setSelectedRole] = useState<'admin' | 'org_user'>('org_user');
@@ -51,8 +52,12 @@ const Users = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await api.get<User[]>('/users/');
-      setUsers(response.data);
+      const response = await api.get<any>('/users/');
+      // Handle both array and paginated response
+      const usersData = Array.isArray(response.data)
+        ? response.data
+        : response.data.results || [];
+      setUsers(usersData);
     } catch (error: any) {
       message.error('Lỗi khi tải danh sách người dùng');
     } finally {
@@ -62,14 +67,22 @@ const Users = () => {
 
   const fetchOrganizations = async () => {
     try {
+      console.log("Fetching organizations...");
       const response = await api.get<any>('/organizations/');
+      console.log("Response data:", response.data);
+      console.log("Is array?", Array.isArray(response.data));
       // Handle both array and paginated response
       const orgs = Array.isArray(response.data)
         ? response.data
         : response.data.results || [];
+      console.log("Orgs extracted:", orgs);
+      console.log("Orgs length:", orgs.length);
       setOrganizations(orgs);
+      setLoadingOrgs(false);
     } catch (error) {
+      console.error("Error fetching organizations:", error);
       message.error('Lỗi khi tải danh sách đơn vị');
+      setLoadingOrgs(false);
     }
   };
 
@@ -324,7 +337,7 @@ const Users = () => {
             </Select>
           </Form.Item>
 
-          {selectedRole === 'org_user' && (
+          {selectedRole === 'org_user' && !loadingOrgs && (
             <Form.Item
               name="organization"
               label="Đơn vị"
@@ -347,6 +360,15 @@ const Users = () => {
                   value: org.id,
                   label: `${org.code} - ${org.name}`,
                 }))}
+              />
+            </Form.Item>
+          )}
+          {selectedRole === 'org_user' && loadingOrgs && (
+            <Form.Item label="Đơn vị">
+              <Select
+                placeholder="Đang tải danh sách đơn vị..."
+                loading={true}
+                disabled={true}
               />
             </Form.Item>
           )}

@@ -31,6 +31,27 @@ import type { ApprovalRequest } from '../../mocks';
 
 const { Text, Title } = Typography;
 
+// Helper functions for translations
+const getUrgencyLabel = (urgency: string) => {
+  switch (urgency) {
+    case 'critical': return 'KHẨN CẤP';
+    case 'high': return 'CAO';
+    case 'medium': return 'TRUNG BÌNH';
+    case 'low': return 'THẤP';
+    default: return urgency.toUpperCase();
+  }
+};
+
+const getRequestTypeLabel = (type: string) => {
+  switch (type) {
+    case 'new_system': return 'Hệ thống mới';
+    case 'upgrade': return 'Nâng cấp';
+    case 'contract_renewal': return 'Gia hạn hợp đồng';
+    case 'budget_increase': return 'Tăng ngân sách';
+    default: return type.replace('_', ' ');
+  }
+};
+
 // Sortable Card Component
 interface SortableApprovalCardProps {
   request: ApprovalRequest;
@@ -92,7 +113,7 @@ const SortableApprovalCard: React.FC<SortableApprovalCardProps> = ({ request, on
               {request.systemName}
             </Text>
             <Tag color={getUrgencyColor(request.urgency)} style={{ fontSize: 10 }}>
-              {request.urgency.toUpperCase()}
+              {getUrgencyLabel(request.urgency)}
             </Tag>
           </div>
 
@@ -103,7 +124,7 @@ const SortableApprovalCard: React.FC<SortableApprovalCardProps> = ({ request, on
 
           {/* Request Type */}
           <Tag icon={getRequestTypeIcon(request.requestType)} color="processing" style={{ fontSize: 11 }}>
-            {request.requestType.replace('_', ' ')}
+            {getRequestTypeLabel(request.requestType)}
           </Tag>
 
           {/* Requester */}
@@ -127,7 +148,7 @@ const SortableApprovalCard: React.FC<SortableApprovalCardProps> = ({ request, on
             <Space size={4}>
               <ClockCircleOutlined style={{ fontSize: 11, color: request.daysPending > 5 ? '#ff4d4f' : '#faad14' }} />
               <Text style={{ fontSize: 11, color: request.daysPending > 5 ? '#ff4d4f' : '#faad14' }}>
-                {request.daysPending} days pending
+                {request.daysPending} ngày chờ
               </Text>
             </Space>
           )}
@@ -236,35 +257,35 @@ const ApprovalKanban: React.FC = () => {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 16 }}>
           <KanbanColumn
-            title="Technical Review"
+            title="Xét duyệt kỹ thuật"
             count={groupedRequests.pending_technical.length}
             items={groupedRequests.pending_technical}
             color="#1890ff"
             onCardClick={handleCardClick}
           />
           <KanbanColumn
-            title="Business Review"
+            title="Xét duyệt nghiệp vụ"
             count={groupedRequests.pending_business.length}
             items={groupedRequests.pending_business}
             color="#faad14"
             onCardClick={handleCardClick}
           />
           <KanbanColumn
-            title="CIO Approval"
+            title="Phê duyệt CIO"
             count={groupedRequests.pending_cio.length}
             items={groupedRequests.pending_cio}
             color="#722ed1"
             onCardClick={handleCardClick}
           />
           <KanbanColumn
-            title="Approved"
+            title="Đã phê duyệt"
             count={groupedRequests.approved.length}
             items={groupedRequests.approved}
             color="#52c41a"
             onCardClick={handleCardClick}
           />
           <KanbanColumn
-            title="Rejected"
+            title="Từ chối"
             count={groupedRequests.rejected.length}
             items={groupedRequests.rejected}
             color="#ff4d4f"
@@ -280,7 +301,7 @@ const ApprovalKanban: React.FC = () => {
         onCancel={() => setSelectedRequest(null)}
         footer={[
           <Button key="close" onClick={() => setSelectedRequest(null)}>
-            Close
+            Đóng
           </Button>
         ]}
         width={700}
@@ -292,38 +313,38 @@ const ApprovalKanban: React.FC = () => {
               <Space wrap>
                 <Tag color="processing">{selectedRequest.systemCode}</Tag>
                 <Tag color={selectedRequest.urgency === 'critical' || selectedRequest.urgency === 'high' ? 'red' : 'blue'}>
-                  {selectedRequest.urgency.toUpperCase()}
+                  {getUrgencyLabel(selectedRequest.urgency)}
                 </Tag>
-                <Tag>{selectedRequest.requestType.replace('_', ' ')}</Tag>
+                <Tag>{getRequestTypeLabel(selectedRequest.requestType)}</Tag>
               </Space>
             </div>
 
             {/* Details */}
             <div>
-              <Text type="secondary">Requester: </Text>
+              <Text type="secondary">Người yêu cầu: </Text>
               <Text>{selectedRequest.requester} ({selectedRequest.requesterOrg})</Text>
             </div>
 
             {selectedRequest.estimatedCost && (
               <div>
-                <Text type="secondary">Estimated Cost: </Text>
+                <Text type="secondary">Chi phí dự kiến: </Text>
                 <Text strong>{(selectedRequest.estimatedCost / 1_000_000_000).toFixed(1)}B VNĐ</Text>
               </div>
             )}
 
             <div>
-              <Text type="secondary">Submitted: </Text>
+              <Text type="secondary">Ngày nộp: </Text>
               <Text>{selectedRequest.submittedDate}</Text>
               {selectedRequest.daysPending > 0 && (
                 <Text style={{ marginLeft: 16, color: '#faad14' }}>
-                  ({selectedRequest.daysPending} days pending)
+                  ({selectedRequest.daysPending} ngày chờ)
                 </Text>
               )}
             </div>
 
             {/* Approval Timeline */}
             <div style={{ marginTop: 16 }}>
-              <Title level={5}>Approval Workflow</Title>
+              <Title level={5}>Quy trình phê duyệt</Title>
               <Timeline>
                 {selectedRequest.stages.map((stage, index) => (
                   <Timeline.Item
@@ -348,7 +369,7 @@ const ApprovalKanban: React.FC = () => {
                       )}
                       {stage.status === 'reviewing' && (
                         <Tag color="processing" style={{ fontSize: 11, marginTop: 4 }}>
-                          In Progress
+                          Đang thực hiện
                         </Tag>
                       )}
                     </div>

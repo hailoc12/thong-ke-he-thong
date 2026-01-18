@@ -44,52 +44,64 @@ const MainLayout = () => {
   // Build menu items based on user role
   const menuItems: MenuProps['items'] = [
     {
-      key: '/',
-      icon: <DashboardOutlined />,
-      label: 'Dashboard',
+      type: 'group',
+      label: 'TÍNH NĂNG CƠ BẢN',
+      children: [
+        {
+          key: '/',
+          icon: <DashboardOutlined />,
+          label: 'Tổng quan',
+        },
+        {
+          key: '/systems',
+          icon: <AppstoreOutlined />,
+          label: 'Hệ thống',
+        },
+        // Organizations menu - admin only
+        ...(isAdmin ? [{
+          key: '/organizations',
+          icon: <TeamOutlined />,
+          label: 'Đơn vị',
+        }] : []),
+        // Users menu - admin only
+        ...(isAdmin ? [{
+          key: '/users',
+          icon: <UserOutlined />,
+          label: 'Người dùng',
+        }] : []),
+      ],
     },
     {
-      key: '/systems',
-      icon: <AppstoreOutlined />,
-      label: 'Hệ thống',
+      type: 'group',
+      label: 'TÍNH NĂNG NÂNG CAO',
+      children: [
+        {
+          key: '/analytics',
+          icon: <BarChartOutlined />,
+          label: 'Phân tích thông minh',
+        },
+        {
+          key: '/approvals',
+          icon: <AuditOutlined />,
+          label: 'Phê duyệt & Chữ ký',
+        },
+        {
+          key: '/benchmarking',
+          icon: <RadarChartOutlined />,
+          label: 'So sánh chuẩn mực',
+        },
+        {
+          key: '/lifecycle',
+          icon: <ProjectOutlined />,
+          label: 'Quản lý vòng đời',
+        },
+        {
+          key: '/api-catalog',
+          icon: <ApiOutlined />,
+          label: 'Danh mục API',
+        },
+      ],
     },
-    {
-      key: '/analytics',
-      icon: <BarChartOutlined />,
-      label: 'Analytics (BETA)',
-    },
-    {
-      key: '/approvals',
-      icon: <AuditOutlined />,
-      label: 'Approvals (BETA)',
-    },
-    {
-      key: '/benchmarking',
-      icon: <RadarChartOutlined />,
-      label: 'Benchmarking (BETA)',
-    },
-    {
-      key: '/lifecycle',
-      icon: <ProjectOutlined />,
-      label: 'Lifecycle (BETA)',
-    },
-    {
-      key: '/api-catalog',
-      icon: <ApiOutlined />,
-      label: 'API Catalog (BETA)',
-    },
-    // Organizations menu - admin only
-    ...(isAdmin ? [{
-      key: '/organizations',
-      icon: <TeamOutlined />,
-      label: 'Đơn vị',
-    }] : []),
-    // Users menu - admin only
-    ...(isAdmin ? [{
-      key: '/users',
-      icon: <UserOutlined />,
-      label: 'Người dùng',
-    }] : []),
   ];
 
   const handleMenuClick = ({ key }: { key: string }) => {

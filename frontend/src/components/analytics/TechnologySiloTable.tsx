@@ -8,12 +8,12 @@ import type { ColumnsType } from 'antd/es/table';
 const { Title, Text } = Typography;
 
 /**
- * Technology Silo Table - Display identified technology silos and fragmentation issues
+ * Bảng Cô lập Công nghệ - Hiển thị các nhóm công nghệ cô lập và vấn đề phân mảnh
  */
 const TechnologySiloTable: React.FC = () => {
   const columns: ColumnsType<TechnologySilo> = [
     {
-      title: 'Silo / Fragmentation',
+      title: 'Cô lập / Phân mảnh',
       dataIndex: 'technology',
       key: 'technology',
       width: 200,
@@ -23,13 +23,13 @@ const TechnologySiloTable: React.FC = () => {
             {text}
           </Text>
           <Tag color="orange" style={{ fontSize: 10 }}>
-            {record.systemCount} systems affected
+            {record.systemCount} hệ thống ảnh hưởng
           </Tag>
         </Space>
       )
     },
     {
-      title: 'Issue',
+      title: 'Vấn đề',
       dataIndex: 'issue',
       key: 'issue',
       render: (text: string) => (
@@ -41,8 +41,8 @@ const TechnologySiloTable: React.FC = () => {
     {
       title: (
         <Space>
-          Recommendation
-          <Tooltip title="AI-generated recommendations based on industry best practices">
+          Đề xuất
+          <Tooltip title="Đề xuất từ AI dựa trên thực tiễn tốt nhất ngành">
             <InfoCircleOutlined style={{ color: '#1890ff' }} />
           </Tooltip>
         </Space>
@@ -56,7 +56,7 @@ const TechnologySiloTable: React.FC = () => {
       )
     },
     {
-      title: 'Potential Saving',
+      title: 'Tiết kiệm tiềm năng',
       dataIndex: 'potentialSaving',
       key: 'potentialSaving',
       width: 150,
@@ -65,7 +65,7 @@ const TechnologySiloTable: React.FC = () => {
         if (!value) return <Text type="secondary">-</Text>;
         return (
           <Text strong style={{ color: '#52c41a', fontSize: 13 }}>
-            {(value / 1_000_000_000).toFixed(1)}B VNĐ/year
+            {(value / 1_000_000_000).toFixed(1)}B VNĐ/năm
           </Text>
         );
       }
@@ -87,10 +87,10 @@ const TechnologySiloTable: React.FC = () => {
             <WarningOutlined style={{ fontSize: 20, color: '#faad14', marginTop: 4 }} />
             <div>
               <Title level={5} style={{ marginBottom: 4 }}>
-                Technology Silos & Fragmentation
+                Cô lập & Phân mảnh Công nghệ
               </Title>
               <Text type="secondary" style={{ fontSize: 13 }}>
-                {mockTechnologySilos.length} identified silos causing inefficiency and increased costs
+                {mockTechnologySilos.length} nhóm cô lập phát hiện gây kém hiệu quả và tăng chi phí
               </Text>
             </div>
           </Space>
@@ -108,13 +108,13 @@ const TechnologySiloTable: React.FC = () => {
           >
             <Space>
               <Text strong style={{ fontSize: 13 }}>
-                Total Potential Annual Savings:
+                Tổng tiết kiệm tiềm năng hàng năm:
               </Text>
               <Text strong style={{ fontSize: 18, color: '#52c41a' }}>
                 {(totalSavings / 1_000_000_000).toFixed(1)}B VNĐ
               </Text>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                (by addressing all silos)
+                (bằng cách giải quyết tất cả nhóm cô lập)
               </Text>
             </Space>
           </div>
@@ -132,7 +132,7 @@ const TechnologySiloTable: React.FC = () => {
 
         {/* Footer Note */}
         <Text type="secondary" style={{ fontSize: 11, fontStyle: 'italic' }}>
-          💡 Technology silos lead to duplicated efforts, vendor lock-in, and increased maintenance costs. Consolidation can significantly improve efficiency.
+          💡 Cô lập công nghệ dẫn đến công sức trùng lặp, bị phụ thuộc nhà cung cấp, và tăng chi phí vận hành. Hợp nhất có thể cải thiện hiệu quả đáng kể.
         </Text>
       </Space>
     </Card>

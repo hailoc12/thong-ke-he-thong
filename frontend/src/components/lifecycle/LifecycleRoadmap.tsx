@@ -51,7 +51,7 @@ const LifecycleRoadmap: React.FC = () => {
   return (
     <Card>
       <Title level={5} style={{ marginBottom: 24 }}>
-        System Lifecycle Roadmaps ({mockSystemRoadmaps.length} Systems)
+        Lộ trình vòng đời hệ thống ({mockSystemRoadmaps.length} Hệ thống)
       </Title>
 
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -97,7 +97,7 @@ const LifecycleRoadmap: React.FC = () => {
                     <Space direction="vertical" size={4} style={{ width: '100%' }}>
                       <Space>
                         <DollarOutlined />
-                        <Text strong>Budget</Text>
+                        <Text strong>Ngân sách</Text>
                       </Space>
                       <Progress
                         percent={parseFloat(budgetUsed)}
@@ -113,10 +113,10 @@ const LifecycleRoadmap: React.FC = () => {
                   <Col xs={24} md={12}>
                     <Space>
                       <TeamOutlined />
-                      <Text strong>Team Size:</Text>
-                      <Tag color="blue">{roadmap.team.technical} Tech</Tag>
-                      <Tag color="green">{roadmap.team.business} Business</Tag>
-                      <Tag color="purple">{roadmap.team.external} External</Tag>
+                      <Text strong>Nhóm:</Text>
+                      <Tag color="blue">{roadmap.team.technical} người</Tag>
+                      <Tag color="green">{roadmap.team.business} người</Tag>
+                      <Tag color="purple">{roadmap.team.external} người</Tag>
                     </Space>
                   </Col>
                 </Row>
@@ -126,7 +126,7 @@ const LifecycleRoadmap: React.FC = () => {
                   <div>
                     <Space style={{ marginBottom: 8 }}>
                       <WarningOutlined style={{ color: '#faad14' }} />
-                      <Text strong>Active Risks:</Text>
+                      <Text strong>Rủi ro hiện tại:</Text>
                     </Space>
                     <Space wrap>
                       {roadmap.risks.map((risk, idx) => (
@@ -142,7 +142,7 @@ const LifecycleRoadmap: React.FC = () => {
 
                 {/* Timeline */}
                 <div>
-                  <Text strong style={{ display: 'block', marginBottom: 12 }}>Project Timeline</Text>
+                  <Text strong style={{ display: 'block', marginBottom: 12 }}>Lịch trình dự án</Text>
                   <Timeline>
                     {roadmap.timeline.map((phase, phaseIdx) => (
                       <Timeline.Item
@@ -150,10 +150,10 @@ const LifecycleRoadmap: React.FC = () => {
                         color={phase.phase === roadmap.currentPhase ? 'blue' : 'gray'}
                       >
                         <div>
-                          <Text strong>{phase.phase.toUpperCase()} Phase</Text>
+                          <Text strong>Giai đoạn {phase.phase.toUpperCase()}</Text>
                           <br />
                           <Text type="secondary" style={{ fontSize: 12 }}>
-                            {phase.startDate} - {phase.endDate || 'In Progress'}
+                            {phase.startDate} - {phase.endDate || 'Đang thực hiện'}
                           </Text>
                           {phase.milestones.length > 0 && (
                             <div style={{ marginTop: 8 }}>

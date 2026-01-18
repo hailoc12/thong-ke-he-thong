@@ -18,7 +18,7 @@ const APICatalog: React.FC = () => {
       <div style={{ marginBottom: 24 }}>
         <Space align="center" style={{ marginBottom: 12 }}>
           <Title level={3} style={{ margin: 0 }}>
-            API Catalog & Integration Management
+            Danh mục API & Quản lý tích hợp
           </Title>
           <BetaBadge size="default" />
         </Space>
@@ -48,8 +48,8 @@ const APICatalog: React.FC = () => {
 
       {/* Usage Instructions */}
       <Alert
-        message="💡 How to use"
-        description="Monitor API health status in real-time. Browse the complete API catalog with SLA metrics. Discover pre-vetted third-party APIs in the marketplace for integration."
+        message="💡 Hướng dẫn sử dụng"
+        description="Giám sát tình trạng API theo thời gian thực. Duyệt qua danh mục API đầy đủ với các số liệu SLA. Khám phá các API của bên thứ ba đã được xác minh trong marketplace để tích hợp."
         type="info"
         showIcon
         style={{ marginTop: 24 }}

@@ -18,7 +18,7 @@ const Lifecycle: React.FC = () => {
       <div style={{ marginBottom: 24 }}>
         <Space align="center" style={{ marginBottom: 12 }}>
           <Title level={3} style={{ margin: 0 }}>
-            Lifecycle Management & Planning
+            Quản lý vòng đời
           </Title>
           <BetaBadge size="default" />
         </Space>

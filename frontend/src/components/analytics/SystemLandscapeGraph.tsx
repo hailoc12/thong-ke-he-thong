@@ -73,11 +73,18 @@ const SystemLandscapeGraph: React.FC<SystemLandscapeGraphProps> = ({ height = 60
   }, []);
 
   const edges: Edge[] = useMemo(() => {
+    const edgeTypeLabelsMap: Record<string, string> = {
+      'API': 'API',
+      'SSO': 'SSO',
+      'Database': 'Cơ sở dữ liệu',
+      'Data Sync': 'Đồng bộ dữ liệu'
+    };
+
     return mockSystemLinks.map((edge, index) => ({
       id: `edge-${index}`,
       source: edge.source,
       target: edge.target,
-      label: edge.type,
+      label: edgeTypeLabelsMap[edge.type] || edge.type,
       type: 'smoothstep',
       animated: edge.type === 'API',
       style: {
@@ -92,10 +99,10 @@ const SystemLandscapeGraph: React.FC<SystemLandscapeGraphProps> = ({ height = 60
   }, []);
 
   const edgeTypeColors = {
-    API: '#1890ff',
-    SSO: '#52c41a',
-    Database: '#fa8c16',
-    'Data Sync': '#722ed1'
+    'API': '#1890ff',
+    'SSO': '#52c41a',
+    'Cơ sở dữ liệu': '#fa8c16',
+    'Đồng bộ dữ liệu': '#722ed1'
   };
 
   return (
@@ -103,15 +110,15 @@ const SystemLandscapeGraph: React.FC<SystemLandscapeGraphProps> = ({ height = 60
       <Space direction="vertical" style={{ width: '100%' }} size="middle">
         <div>
           <Title level={5} style={{ marginBottom: 8 }}>
-            System Landscape & Integration Map
+            Bản đồ hệ thống & Tích hợp
           </Title>
           <Text type="secondary" style={{ fontSize: 13 }}>
-            Interactive visualization of {mockSystemNodes.length} systems and {mockSystemLinks.length} integrations
+            Trực quan hóa tương tác của {mockSystemNodes.length} hệ thống và {mockSystemLinks.length} điểm tích hợp
           </Text>
         </div>
 
         <Space wrap>
-          <Text strong style={{ fontSize: 12 }}>Legend:</Text>
+          <Text strong style={{ fontSize: 12 }}>Chú thích:</Text>
           {Object.entries(edgeTypeColors).map(([type, color]) => (
             <Tag key={type} color={color} style={{ fontSize: 11 }}>
               {type}
@@ -138,10 +145,10 @@ const SystemLandscapeGraph: React.FC<SystemLandscapeGraphProps> = ({ height = 60
             <Panel position="top-right" style={{ background: 'white', padding: 8, borderRadius: 4 }}>
               <Space direction="vertical" size={2}>
                 <Text style={{ fontSize: 11 }}>
-                  <strong>{mockSystemNodes.length}</strong> Systems
+                  <strong>{mockSystemNodes.length}</strong> Hệ thống
                 </Text>
                 <Text style={{ fontSize: 11 }}>
-                  <strong>{mockSystemLinks.length}</strong> Integrations
+                  <strong>{mockSystemLinks.length}</strong> Tích hợp
                 </Text>
               </Space>
             </Panel>
@@ -149,7 +156,7 @@ const SystemLandscapeGraph: React.FC<SystemLandscapeGraphProps> = ({ height = 60
         </div>
 
         <Text type="secondary" style={{ fontSize: 11, fontStyle: 'italic' }}>
-          💡 Drag nodes to rearrange, scroll to zoom, click and drag background to pan
+          💡 Kéo thả để sắp xếp lại, cuộn để phóng to/thu nhỏ, kéo nền để di chuyển
         </Text>
       </Space>
     </Card>

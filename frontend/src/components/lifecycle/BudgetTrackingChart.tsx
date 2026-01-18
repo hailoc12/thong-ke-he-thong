@@ -57,7 +57,7 @@ const BudgetTrackingChart: React.FC = () => {
   return (
     <Card>
       <Title level={5} style={{ marginBottom: 24 }}>
-        Budget Tracking & Execution
+        Theo dõi ngân sách
       </Title>
 
       {/* Statistics Dashboard */}
@@ -65,7 +65,7 @@ const BudgetTrackingChart: React.FC = () => {
         <Col xs={24} sm={12} md={6}>
           <Card size="small">
             <Statistic
-              title="Total Allocated"
+              title="Tổng ngân sách"
               value={totalAllocated.toFixed(2)}
               suffix="B VNĐ"
               prefix={<DollarOutlined />}
@@ -76,7 +76,7 @@ const BudgetTrackingChart: React.FC = () => {
         <Col xs={24} sm={12} md={6}>
           <Card size="small">
             <Statistic
-              title="Total Spent"
+              title="Đã chi tiêu"
               value={totalSpent.toFixed(2)}
               suffix="B VNĐ"
               prefix={<CheckCircleOutlined />}
@@ -87,7 +87,7 @@ const BudgetTrackingChart: React.FC = () => {
         <Col xs={24} sm={12} md={6}>
           <Card size="small">
             <Statistic
-              title="Remaining"
+              title="Còn lại"
               value={remaining.toFixed(2)}
               suffix="B VNĐ"
               prefix={<ClockCircleOutlined />}
@@ -98,7 +98,7 @@ const BudgetTrackingChart: React.FC = () => {
         <Col xs={24} sm={12} md={6}>
           <Card size="small">
             <div>
-              <Text type="secondary" style={{ fontSize: 12 }}>Utilization Rate</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>Tỷ lệ sử dụng</Text>
               <br />
               <Text strong style={{ fontSize: 24, color: parseFloat(utilizationRate) > 90 ? '#ff4d4f' : '#52c41a' }}>
                 {utilizationRate}%
@@ -120,7 +120,7 @@ const BudgetTrackingChart: React.FC = () => {
 
       {/* Quarterly Details Table */}
       <div style={{ marginTop: 24 }}>
-        <Title level={5} style={{ marginBottom: 12 }}>Quarterly Breakdown by Category</Title>
+        <Title level={5} style={{ marginBottom: 12 }}>Chi tiết theo quý</Title>
         <Space direction="vertical" size="small" style={{ width: '100%' }}>
           {Array.from(new Set(mockBudgetTracking.map(b => `${b.year} ${b.quarter}`))).map((quarterKey) => {
             const quarterData = mockBudgetTracking.filter(b => `${b.year} ${b.quarter}` === quarterKey);
@@ -137,14 +137,14 @@ const BudgetTrackingChart: React.FC = () => {
                   </Col>
                   <Col xs={12} sm={4}>
                     <div>
-                      <Text type="secondary" style={{ fontSize: 11 }}>Allocated</Text>
+                      <Text type="secondary" style={{ fontSize: 11 }}>Cấp phát</Text>
                       <br />
                       <Text strong>{(totalAllocatedQ / 1_000_000_000).toFixed(2)}B</Text>
                     </div>
                   </Col>
                   <Col xs={12} sm={4}>
                     <div>
-                      <Text type="secondary" style={{ fontSize: 11 }}>Spent</Text>
+                      <Text type="secondary" style={{ fontSize: 11 }}>Đã chi</Text>
                       <br />
                       <Text strong style={{ color: isOverBudget ? '#ff4d4f' : '#52c41a' }}>
                         {(totalSpentQ / 1_000_000_000).toFixed(2)}B
@@ -164,7 +164,7 @@ const BudgetTrackingChart: React.FC = () => {
                       </Tag>
                       {isOverBudget && (
                         <Tag icon={<ArrowUpOutlined />} color="red">
-                          Over budget
+                          Vượt ngân sách
                         </Tag>
                       )}
                     </Space>

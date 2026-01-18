@@ -49,7 +49,7 @@ const AIInsightsGrid: React.FC = () => {
     <div>
       <div style={{ marginBottom: 16 }}>
         <Title level={5} style={{ marginBottom: 8 }}>
-          AI-Powered Insights
+          Thông tin chi tiết từ AI
         </Title>
         <Text type="secondary" style={{ fontSize: 13 }}>
           Phân tích tự động từ AI engine dựa trên dữ liệu hệ thống
@@ -101,7 +101,7 @@ const AIInsightsGrid: React.FC = () => {
 
                 {/* Impact */}
                 <div>
-                  <Text strong style={{ fontSize: 11 }}>Impact:</Text>
+                  <Text strong style={{ fontSize: 11 }}>Tác động:</Text>
                   <Paragraph style={{ fontSize: 11, marginTop: 4, marginBottom: 8 }}>
                     {insight.impact}
                   </Paragraph>
@@ -123,7 +123,7 @@ const AIInsightsGrid: React.FC = () => {
                 {/* Confidence & Savings */}
                 <Space style={{ justifyContent: 'space-between', width: '100%', marginTop: 8 }}>
                   <div>
-                    <Text style={{ fontSize: 11, color: '#8c8c8c' }}>Confidence</Text>
+                    <Text style={{ fontSize: 11, color: '#8c8c8c' }}>Độ tin cậy</Text>
                     <br />
                     <Progress
                       percent={insight.confidence}
@@ -134,7 +134,7 @@ const AIInsightsGrid: React.FC = () => {
                   </div>
                   {insight.potentialSaving && (
                     <div style={{ textAlign: 'right' }}>
-                      <Text style={{ fontSize: 11, color: '#8c8c8c' }}>Potential Saving</Text>
+                      <Text style={{ fontSize: 11, color: '#8c8c8c' }}>Tiết kiệm tiềm năng</Text>
                       <br />
                       <Text strong style={{ fontSize: 13, color: '#52c41a' }}>
                         {(insight.potentialSaving / 1_000_000_000).toFixed(1)}B VNĐ
@@ -147,7 +147,7 @@ const AIInsightsGrid: React.FC = () => {
                 {insight.affectedSystems.length > 0 && (
                   <div style={{ marginTop: 8 }}>
                     <Text style={{ fontSize: 11, color: '#8c8c8c' }}>
-                      Affected: {insight.affectedSystems.length} systems
+                      Ảnh hưởng: {insight.affectedSystems.length} hệ thống
                     </Text>
                   </div>
                 )}

@@ -38,7 +38,7 @@ const Approvals: React.FC = () => {
       <div style={{ marginBottom: 24 }}>
         <Space align="center" style={{ marginBottom: 12 }}>
           <Title level={3} style={{ margin: 0 }}>
-            Approval Workflow & E-Signature
+            Phê duyệt & Chữ ký điện tử
           </Title>
           <BetaBadge size="default" />
         </Space>
@@ -59,7 +59,7 @@ const Approvals: React.FC = () => {
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="Total Requests"
+              title="Tổng số yêu cầu"
               value={stats.total}
               prefix={<SyncOutlined />}
             />
@@ -68,7 +68,7 @@ const Approvals: React.FC = () => {
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="Pending Review"
+              title="Chờ xét duyệt"
               value={stats.pending}
               prefix={<ClockCircleOutlined />}
               valueStyle={{ color: '#faad14' }}
@@ -78,7 +78,7 @@ const Approvals: React.FC = () => {
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="Approved"
+              title="Đã phê duyệt"
               value={stats.approved}
               prefix={<CheckCircleOutlined />}
               valueStyle={{ color: '#52c41a' }}
@@ -88,10 +88,10 @@ const Approvals: React.FC = () => {
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="Avg. Days Pending"
+              title="Trung bình chờ"
               value={stats.avgDays}
               prefix={<ClockCircleOutlined />}
-              suffix="days"
+              suffix="ngày"
               valueStyle={{ color: parseFloat(stats.avgDays) > 5 ? '#ff4d4f' : '#52c41a' }}
             />
           </Card>
@@ -101,15 +101,15 @@ const Approvals: React.FC = () => {
       {/* Kanban Board */}
       <div>
         <Title level={5} style={{ marginBottom: 16 }}>
-          Approval Pipeline
+          Quy trình phê duyệt
         </Title>
         <ApprovalKanban />
       </div>
 
       {/* Instructions */}
       <Alert
-        message="💡 How to use"
-        description="Click on any card to view details and approval timeline. Drag & drop cards to reorder within columns (demo only - status changes not persisted)."
+        message="💡 Hướng dẫn sử dụng"
+        description="Click vào thẻ để xem chi tiết và dòng thời gian phê duyệt. Kéo thả thẻ để sắp xếp lại trong cột (chỉ demo - không lưu thay đổi trạng thái)."
         type="info"
         showIcon
         style={{ marginTop: 24 }}

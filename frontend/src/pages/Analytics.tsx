@@ -19,7 +19,7 @@ const Analytics: React.FC = () => {
       <div style={{ marginBottom: 24 }}>
         <Space align="center" style={{ marginBottom: 12 }}>
           <Title level={3} style={{ margin: 0 }}>
-            Intelligent Analytics
+            Phân tích thông minh
           </Title>
           <BetaBadge size="default" />
         </Space>

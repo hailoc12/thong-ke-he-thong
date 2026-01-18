@@ -18,7 +18,7 @@ const Benchmarking: React.FC = () => {
       <div style={{ marginBottom: 24 }}>
         <Space align="center" style={{ marginBottom: 12 }}>
           <Title level={3} style={{ margin: 0 }}>
-            Benchmarking & Best Practices
+            So sánh chuẩn mực & Thực tiễn tốt nhất
           </Title>
           <BetaBadge size="default" />
         </Space>
@@ -48,8 +48,8 @@ const Benchmarking: React.FC = () => {
 
       {/* Usage Instructions */}
       <Alert
-        message="💡 How to use"
-        description="Radar chart shows multi-dimensional comparison across 6 categories. Click on case study cards to view detailed success stories. Expand best practices to access resources and implementation guides."
+        message="💡 Hướng dẫn sử dụng"
+        description="Biểu đồ radar hiển thị so sánh đa chiều qua 6 danh mục. Nhấp vào thẻ case study để xem các câu chuyện thành công chi tiết. Mở rộng phần thực tiễn tốt nhất để truy cập tài nguyên và hướng dẫn triển khai."
         type="info"
         showIcon
         style={{ marginTop: 24 }}

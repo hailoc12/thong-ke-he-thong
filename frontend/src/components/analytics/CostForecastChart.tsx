@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, Typography, Space, Tag } from 'antd';
 import { Column } from '@ant-design/charts';
 import { mockCostForecast } from '../../mocks';
-import { TrendingUpOutlined } from '@ant-design/icons';
+import { ArrowUpOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 
@@ -96,7 +96,7 @@ const CostForecastChart: React.FC = () => {
             </Text>
             <br />
             <Tag
-              icon={<TrendingUpOutlined />}
+              icon={<ArrowUpOutlined />}
               color={parseFloat(growthRate) > 10 ? 'red' : 'green'}
               style={{ fontSize: 14, padding: '4px 12px' }}
             >
@@ -123,7 +123,7 @@ const CostForecastChart: React.FC = () => {
 
         {/* Confidence Interval Note */}
         <Text type="secondary" style={{ fontSize: 11, fontStyle: 'italic' }}>
-          📊 Forecast includes 90% confidence interval. Actual costs may vary ±{((currentYear.confidenceInterval.high - currentYear.confidenceInterval.low) / 2).toFixed(1)}B VNĐ
+          📊 Forecast includes 90% confidence interval. Actual costs may vary ±{((currentYear.confidenceInterval?.high || 0) - (currentYear.confidenceInterval?.low || 0)) / 2).toFixed(1)}B VNĐ
         </Text>
       </Space>
     </Card>

@@ -4,14 +4,14 @@ import {
   GlobalOutlined,
   BankOutlined,
   ShopOutlined,
-  SafetyOutlined,
   ReadOutlined,
   CheckCircleOutlined,
   RocketOutlined,
   DollarOutlined,
   ClockCircleOutlined
 } from '@ant-design/icons';
-import { mockCaseStudies, CaseStudy } from '../../mocks';
+import { mockCaseStudies } from '../../mocks';
+import type { CaseStudy } from '../../mocks';
 
 const { Title, Text, Paragraph } = Typography;
 

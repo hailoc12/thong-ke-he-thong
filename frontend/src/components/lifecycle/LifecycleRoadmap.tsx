@@ -4,9 +4,7 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   ExperimentOutlined,
-  ToolOutlined,
   EyeOutlined,
-  CloseCircleOutlined,
   WarningOutlined,
   TeamOutlined,
   DollarOutlined
@@ -144,31 +142,34 @@ const LifecycleRoadmap: React.FC = () => {
                 {/* Timeline */}
                 <div>
                   <Text strong style={{ display: 'block', marginBottom: 12 }}>Project Timeline</Text>
-                  <Timeline
-                    items={roadmap.timeline.map(phase => ({
-                      dot: getPhaseIcon(phase.status),
-                      color: phase.status === 'completed' ? 'green' : phase.status === 'in_progress' ? 'blue' : 'gray',
-                      children: (
+                  <Timeline>
+                    {roadmap.timeline.map((phase, phaseIdx) => (
+                      <Timeline.Item
+                        key={phaseIdx}
+                        color={phase.phase === roadmap.currentPhase ? 'blue' : 'gray'}
+                      >
                         <div>
-                          <Text strong>{phase.name}</Text>
+                          <Text strong>{phase.phase.toUpperCase()} Phase</Text>
                           <br />
                           <Text type="secondary" style={{ fontSize: 12 }}>
-                            {phase.startDate} - {phase.endDate}
+                            {phase.startDate} - {phase.endDate || 'In Progress'}
                           </Text>
-                          {phase.status === 'in_progress' && (
-                            <>
-                              <br />
-                              <Progress
-                                percent={phase.progress}
-                                size="small"
-                                style={{ maxWidth: 200, marginTop: 4 }}
-                              />
-                            </>
+                          {phase.milestones.length > 0 && (
+                            <div style={{ marginTop: 8 }}>
+                              {phase.milestones.map((milestone, idx) => (
+                                <div key={idx} style={{ marginLeft: 16, marginTop: 4 }}>
+                                  {getPhaseIcon(milestone.status)}
+                                  <Text style={{ marginLeft: 8, fontSize: 12 }}>
+                                    {milestone.name} ({milestone.date})
+                                  </Text>
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
-                      )
-                    }))}
-                  />
+                      </Timeline.Item>
+                    ))}
+                  </Timeline>
                 </div>
               </Space>
             </Card>

@@ -1,17 +1,14 @@
 import React, { useMemo } from 'react';
 import ReactFlow, {
-  Node,
-  Edge,
   Background,
   Controls,
   MiniMap,
-  Panel,
-  NodeTypes,
-  Position
+  Panel
 } from 'reactflow';
+import type { Node, Edge, NodeTypes } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Card, Typography, Tag, Space } from 'antd';
-import { mockSystemGraph } from '../../mocks';
+import { mockSystemNodes, mockSystemLinks } from '../../mocks';
 
 const { Title, Text } = Typography;
 
@@ -56,17 +53,15 @@ interface SystemLandscapeGraphProps {
  * Interactive system landscape graph showing systems and their integrations
  */
 const SystemLandscapeGraph: React.FC<SystemLandscapeGraphProps> = ({ height = 600 }) => {
-  const { nodes: graphNodes, edges: graphEdges } = mockSystemGraph;
-
   // Convert mock data to ReactFlow format
   const nodes: Node[] = useMemo(() => {
-    return graphNodes.map((node, index) => ({
+    return mockSystemNodes.map((node, index) => ({
       id: node.id,
       type: 'systemNode',
       position: {
         // Simple circular layout
-        x: 400 + 350 * Math.cos((index / graphNodes.length) * 2 * Math.PI),
-        y: 300 + 300 * Math.sin((index / graphNodes.length) * 2 * Math.PI)
+        x: 400 + 350 * Math.cos((index / mockSystemNodes.length) * 2 * Math.PI),
+        y: 300 + 300 * Math.sin((index / mockSystemNodes.length) * 2 * Math.PI)
       },
       data: {
         name: node.name,
@@ -75,10 +70,10 @@ const SystemLandscapeGraph: React.FC<SystemLandscapeGraphProps> = ({ height = 60
         orgName: node.orgName
       }
     }));
-  }, [graphNodes]);
+  }, []);
 
   const edges: Edge[] = useMemo(() => {
-    return graphEdges.map((edge, index) => ({
+    return mockSystemLinks.map((edge, index) => ({
       id: `edge-${index}`,
       source: edge.source,
       target: edge.target,
@@ -94,7 +89,7 @@ const SystemLandscapeGraph: React.FC<SystemLandscapeGraphProps> = ({ height = 60
       labelStyle: { fontSize: 10, fill: '#666' },
       labelBgStyle: { fill: '#fff' }
     }));
-  }, [graphEdges]);
+  }, []);
 
   const edgeTypeColors = {
     API: '#1890ff',
@@ -111,7 +106,7 @@ const SystemLandscapeGraph: React.FC<SystemLandscapeGraphProps> = ({ height = 60
             System Landscape & Integration Map
           </Title>
           <Text type="secondary" style={{ fontSize: 13 }}>
-            Interactive visualization of {graphNodes.length} systems and {graphEdges.length} integrations
+            Interactive visualization of {mockSystemNodes.length} systems and {mockSystemLinks.length} integrations
           </Text>
         </div>
 
@@ -143,10 +138,10 @@ const SystemLandscapeGraph: React.FC<SystemLandscapeGraphProps> = ({ height = 60
             <Panel position="top-right" style={{ background: 'white', padding: 8, borderRadius: 4 }}>
               <Space direction="vertical" size={2}>
                 <Text style={{ fontSize: 11 }}>
-                  <strong>{graphNodes.length}</strong> Systems
+                  <strong>{mockSystemNodes.length}</strong> Systems
                 </Text>
                 <Text style={{ fontSize: 11 }}>
-                  <strong>{graphEdges.length}</strong> Integrations
+                  <strong>{mockSystemLinks.length}</strong> Integrations
                 </Text>
               </Space>
             </Panel>

@@ -9,7 +9,8 @@ import {
   ThunderboltOutlined,
   ClockCircleOutlined
 } from '@ant-design/icons';
-import { mockPlanningPipeline, PlanningPipeline } from '../../mocks';
+import { mockPlanningPipeline } from '../../mocks';
+import type { PlanningPipeline } from '../../mocks';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;

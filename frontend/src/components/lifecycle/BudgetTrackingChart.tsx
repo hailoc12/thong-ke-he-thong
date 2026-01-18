@@ -3,7 +3,6 @@ import { Card, Typography, Row, Col, Statistic, Space, Tag, Progress } from 'ant
 import { Column } from '@ant-design/charts';
 import {
   ArrowUpOutlined,
-  ArrowDownOutlined,
   DollarOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined
@@ -16,25 +15,18 @@ const { Title, Text } = Typography;
  * Budget Tracking Chart - Quarterly budget execution tracking
  */
 const BudgetTrackingChart: React.FC = () => {
-  // Prepare chart data
-  const chartData = mockBudgetTracking.flatMap((item) => [
-    { quarter: item.quarter, category: 'Development', value: item.development, type: 'Actual' },
-    { quarter: item.quarter, category: 'Maintenance', value: item.maintenance, type: 'Actual' },
-    { quarter: item.quarter, category: 'Infrastructure', value: item.infrastructure, type: 'Actual' },
-    { quarter: item.quarter, category: 'Licenses', value: item.licenses, type: 'Actual' },
-    { quarter: item.quarter, category: 'Other', value: item.other, type: 'Actual' }
-  ]);
+  // Prepare chart data - group by quarter and show spent by category
+  const chartData = mockBudgetTracking.map((item) => ({
+    quarter: `${item.year} ${item.quarter}`,
+    category: item.category,
+    value: item.spent / 1_000_000_000 // Convert to billions
+  }));
 
   // Calculate totals and statistics
   const totalAllocated = mockBudgetTracking.reduce((sum, item) => sum + item.allocated, 0);
   const totalSpent = mockBudgetTracking.reduce((sum, item) => sum + item.spent, 0);
   const utilizationRate = ((totalSpent / totalAllocated) * 100).toFixed(1);
   const remaining = totalAllocated - totalSpent;
-  const avgSpendRate = (totalSpent / mockBudgetTracking.length).toFixed(2);
-
-  // Latest quarter data
-  const latestQuarter = mockBudgetTracking[mockBudgetTracking.length - 1];
-  const latestUtilization = ((latestQuarter.spent / latestQuarter.allocated) * 100).toFixed(1);
 
   const config = {
     data: chartData,
@@ -43,17 +35,7 @@ const BudgetTrackingChart: React.FC = () => {
     seriesField: 'category',
     isStack: true,
     color: ['#1890ff', '#52c41a', '#faad14', '#722ed1', '#8c8c8c'],
-    label: {
-      position: 'middle' as const,
-      style: {
-        fill: '#FFFFFF',
-        opacity: 0.8,
-        fontSize: 11
-      },
-      formatter: (datum: any) => {
-        return datum.value > 0.5 ? `${datum.value.toFixed(1)}B` : '';
-      }
-    },
+    label: false,
     yAxis: {
       label: {
         formatter: (v: string) => `${parseFloat(v).toFixed(0)}B VNĐ`
@@ -138,23 +120,26 @@ const BudgetTrackingChart: React.FC = () => {
 
       {/* Quarterly Details Table */}
       <div style={{ marginTop: 24 }}>
-        <Title level={5} style={{ marginBottom: 12 }}>Quarterly Breakdown</Title>
+        <Title level={5} style={{ marginBottom: 12 }}>Quarterly Breakdown by Category</Title>
         <Space direction="vertical" size="small" style={{ width: '100%' }}>
-          {mockBudgetTracking.map((quarter) => {
-            const utilization = ((quarter.spent / quarter.allocated) * 100).toFixed(1);
-            const isOverBudget = quarter.spent > quarter.allocated;
+          {Array.from(new Set(mockBudgetTracking.map(b => `${b.year} ${b.quarter}`))).map((quarterKey) => {
+            const quarterData = mockBudgetTracking.filter(b => `${b.year} ${b.quarter}` === quarterKey);
+            const totalAllocatedQ = quarterData.reduce((sum, item) => sum + item.allocated, 0);
+            const totalSpentQ = quarterData.reduce((sum, item) => sum + item.spent, 0);
+            const utilization = ((totalSpentQ / totalAllocatedQ) * 100).toFixed(1);
+            const isOverBudget = totalSpentQ > totalAllocatedQ;
 
             return (
-              <Card key={quarter.quarter} size="small" style={{ background: '#fafafa' }}>
+              <Card key={quarterKey} size="small" style={{ background: '#fafafa' }}>
                 <Row align="middle" gutter={16}>
                   <Col xs={24} sm={6}>
-                    <Text strong>{quarter.quarter}</Text>
+                    <Text strong>{quarterKey}</Text>
                   </Col>
                   <Col xs={12} sm={4}>
                     <div>
                       <Text type="secondary" style={{ fontSize: 11 }}>Allocated</Text>
                       <br />
-                      <Text strong>{quarter.allocated.toFixed(2)}B</Text>
+                      <Text strong>{(totalAllocatedQ / 1_000_000_000).toFixed(2)}B</Text>
                     </div>
                   </Col>
                   <Col xs={12} sm={4}>
@@ -162,7 +147,7 @@ const BudgetTrackingChart: React.FC = () => {
                       <Text type="secondary" style={{ fontSize: 11 }}>Spent</Text>
                       <br />
                       <Text strong style={{ color: isOverBudget ? '#ff4d4f' : '#52c41a' }}>
-                        {quarter.spent.toFixed(2)}B
+                        {(totalSpentQ / 1_000_000_000).toFixed(2)}B
                       </Text>
                     </div>
                   </Col>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Table, Tag, Typography, Space, Progress, Tooltip } from 'antd';
+import { Card, Table, Tag, Typography, Space, Tooltip } from 'antd';
 import {
   BulbOutlined,
   FileSearchOutlined,

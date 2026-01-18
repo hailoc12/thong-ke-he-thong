@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Collapse, Tag, Space, Typography, Row, Col, Button, Tooltip } from 'antd';
+import { Card, Collapse, Tag, Space, Typography, Row, Col, Button } from 'antd';
 import {
   SafetyOutlined,
   ApiOutlined,

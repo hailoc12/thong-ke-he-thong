@@ -2,18 +2,10 @@ import React from 'react';
 import { Card, Table, Typography, Tag, Space, Tooltip } from 'antd';
 import { WarningOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { mockTechnologySilos } from '../../mocks';
+import type { TechnologySilo } from '../../mocks';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;
-
-interface TechnologySilo {
-  id: number;
-  siloName: string;
-  affectedSystemsCount: number;
-  issue: string;
-  recommendation: string;
-  potentialSaving?: number;
-}
 
 /**
  * Technology Silo Table - Display identified technology silos and fragmentation issues
@@ -22,8 +14,8 @@ const TechnologySiloTable: React.FC = () => {
   const columns: ColumnsType<TechnologySilo> = [
     {
       title: 'Silo / Fragmentation',
-      dataIndex: 'siloName',
-      key: 'siloName',
+      dataIndex: 'technology',
+      key: 'technology',
       width: 200,
       render: (text: string, record: TechnologySilo) => (
         <Space direction="vertical" size={2}>
@@ -31,7 +23,7 @@ const TechnologySiloTable: React.FC = () => {
             {text}
           </Text>
           <Tag color="orange" style={{ fontSize: 10 }}>
-            {record.affectedSystemsCount} systems affected
+            {record.systemCount} systems affected
           </Tag>
         </Space>
       )

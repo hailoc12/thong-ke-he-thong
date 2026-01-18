@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Row, Col, Tag, Typography, Space, Button, Rate, Divider } from 'antd';
+import { Card, Row, Col, Tag, Typography, Space, Button, Rate } from 'antd';
 import {
   ShopOutlined,
   StarOutlined,
@@ -21,22 +21,24 @@ const { Title, Text, Paragraph } = Typography;
 const APIMarketplace: React.FC = () => {
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'identity': return <SafetyOutlined />;
+      case 'authentication': return <SafetyOutlined />;
       case 'payment': return <DollarOutlined />;
-      case 'messaging': return <ThunderboltOutlined />;
-      case 'infrastructure': return <CloudOutlined />;
-      case 'ai_ml': return <StarOutlined />;
+      case 'notification': return <ThunderboltOutlined />;
+      case 'analytics': return <CloudOutlined />;
+      case 'ai': return <StarOutlined />;
       default: return <ApiOutlined />;
     }
   };
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'identity': return 'red';
+      case 'authentication': return 'red';
       case 'payment': return 'green';
-      case 'messaging': return 'blue';
-      case 'infrastructure': return 'purple';
-      case 'ai_ml': return 'orange';
+      case 'notification': return 'blue';
+      case 'analytics': return 'purple';
+      case 'ai': return 'orange';
+      case 'mapping': return 'cyan';
+      case 'data': return 'geekblue';
       default: return 'default';
     }
   };
@@ -62,10 +64,17 @@ const APIMarketplace: React.FC = () => {
               size="small"
               style={{ height: '100%' }}
               actions={[
-                <Button type="link" size="small" icon={<LinkOutlined />}>
+                <Button
+                  key="docs"
+                  type="link"
+                  size="small"
+                  icon={<LinkOutlined />}
+                  href={api.documentation}
+                  target="_blank"
+                >
                   Documentation
                 </Button>,
-                <Button type="primary" size="small">
+                <Button key="access" type="primary" size="small">
                   Request Access
                 </Button>
               ]}
@@ -76,6 +85,7 @@ const APIMarketplace: React.FC = () => {
                   <Space>
                     {getCategoryIcon(api.category)}
                     <Text strong style={{ fontSize: 16 }}>{api.name}</Text>
+                    {api.featured && <StarOutlined style={{ color: '#faad14' }} />}
                   </Space>
                   <br />
                   <Text type="secondary" style={{ fontSize: 11 }}>{api.provider}</Text>
@@ -84,10 +94,10 @@ const APIMarketplace: React.FC = () => {
                 {/* Category & Pricing */}
                 <Space wrap>
                   <Tag color={getCategoryColor(api.category)} icon={getCategoryIcon(api.category)}>
-                    {api.category.replace('_', ' ')}
+                    {api.category}
                   </Tag>
-                  <Tag color={api.pricingModel === 'free' ? 'green' : api.pricingModel === 'freemium' ? 'blue' : 'orange'}>
-                    {api.pricingModel}
+                  <Tag color={api.pricing === 'free' ? 'green' : api.pricing === 'freemium' ? 'blue' : 'orange'}>
+                    {api.pricing}
                   </Tag>
                 </Space>
 
@@ -99,61 +109,20 @@ const APIMarketplace: React.FC = () => {
                   {api.description}
                 </Paragraph>
 
-                {/* Rating */}
+                {/* Popularity Rating */}
                 <div>
-                  <Rate disabled defaultValue={api.rating} style={{ fontSize: 14 }} />
+                  <Rate disabled value={api.popularity} style={{ fontSize: 14 }} />
                   <Text type="secondary" style={{ marginLeft: 8, fontSize: 11 }}>
-                    ({api.rating}/5)
+                    ({api.popularity}/5)
                   </Text>
                 </div>
 
-                <Divider style={{ margin: '8px 0' }} />
-
-                {/* Use Cases */}
+                {/* Use Case */}
                 <div>
-                  <Text strong style={{ fontSize: 11 }}>Use Cases:</Text>
-                  <div style={{ marginTop: 4 }}>
-                    {api.useCases.map((useCase, idx) => (
-                      <Tag key={idx} style={{ fontSize: 10, marginBottom: 4 }}>
-                        {useCase}
-                      </Tag>
-                    ))}
-                  </div>
+                  <Text strong style={{ fontSize: 11 }}>Use Case:</Text>
+                  <br />
+                  <Text style={{ fontSize: 11 }}>{api.useCase}</Text>
                 </div>
-
-                {/* Integration Complexity */}
-                <div>
-                  <Space>
-                    <Text type="secondary" style={{ fontSize: 11 }}>Integration:</Text>
-                    <Tag color={
-                      api.integrationComplexity === 'easy' ? 'green' :
-                      api.integrationComplexity === 'medium' ? 'blue' : 'orange'
-                    }>
-                      {api.integrationComplexity}
-                    </Tag>
-                  </Space>
-                </div>
-
-                {/* Key Features */}
-                <div>
-                  <Text strong style={{ fontSize: 11 }}>Key Features:</Text>
-                  <ul style={{ paddingLeft: 20, margin: '4px 0 0 0' }}>
-                    {api.keyFeatures.slice(0, 3).map((feature, idx) => (
-                      <li key={idx} style={{ fontSize: 11 }}>{feature}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Support Level */}
-                <Space>
-                  <Text type="secondary" style={{ fontSize: 11 }}>Support:</Text>
-                  <Tag color={
-                    api.supportLevel === 'enterprise' ? 'purple' :
-                    api.supportLevel === 'business' ? 'blue' : 'default'
-                  }>
-                    {api.supportLevel}
-                  </Tag>
-                </Space>
               </Space>
             </Card>
           </Col>

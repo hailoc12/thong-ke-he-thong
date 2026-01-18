@@ -52,3 +52,9 @@ yarn-error.log*
 .playwright-mcp/
 07-resources/deploy-credentials.md
 ADMIN_CREDENTIALS.md
+
+# Environment files
+frontend/.env.production
+frontend/.env.development
+backend/.env
+*.env.local

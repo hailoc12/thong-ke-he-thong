@@ -13,6 +13,11 @@ import Organizations from './pages/Organizations';
 import OrganizationDetail from './pages/OrganizationDetail';
 import OrganizationEdit from './pages/OrganizationEdit';
 import Users from './pages/Users';
+import Analytics from './pages/Analytics';
+import Approvals from './pages/Approvals';
+import Benchmarking from './pages/Benchmarking';
+import Lifecycle from './pages/Lifecycle';
+import APICatalog from './pages/APICatalog';
 import MainLayout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { colors, borderRadius, spacing } from './theme/tokens';
@@ -100,6 +105,11 @@ function App() {
             <Route path="organizations/:id" element={<OrganizationDetail />} />
             <Route path="organizations/:id/edit" element={<OrganizationEdit />} />
             <Route path="users" element={<Users />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="approvals" element={<Approvals />} />
+            <Route path="benchmarking" element={<Benchmarking />} />
+            <Route path="lifecycle" element={<Lifecycle />} />
+            <Route path="api-catalog" element={<APICatalog />} />
           </Route>
 
           {/* Catch all */}

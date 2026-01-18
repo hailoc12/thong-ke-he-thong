@@ -8,6 +8,11 @@ import {
   UserOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  BarChartOutlined,
+  AuditOutlined,
+  RadarChartOutlined,
+  ProjectOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
@@ -47,6 +52,31 @@ const MainLayout = () => {
       key: '/systems',
       icon: <AppstoreOutlined />,
       label: 'Hệ thống',
+    },
+    {
+      key: '/analytics',
+      icon: <BarChartOutlined />,
+      label: 'Analytics (BETA)',
+    },
+    {
+      key: '/approvals',
+      icon: <AuditOutlined />,
+      label: 'Approvals (BETA)',
+    },
+    {
+      key: '/benchmarking',
+      icon: <RadarChartOutlined />,
+      label: 'Benchmarking (BETA)',
+    },
+    {
+      key: '/lifecycle',
+      icon: <ProjectOutlined />,
+      label: 'Lifecycle (BETA)',
+    },
+    {
+      key: '/api-catalog',
+      icon: <ApiOutlined />,
+      label: 'API Catalog (BETA)',
     },
     // Organizations menu - admin only
     ...(isAdmin ? [{

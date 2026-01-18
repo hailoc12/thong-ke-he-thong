@@ -45,16 +45,6 @@ const APICatalogTable: React.FC = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'active': return <CheckCircleOutlined />;
-      case 'beta': return <ExperimentOutlined />;
-      case 'deprecated': return <StopOutlined />;
-      case 'sunset': return <CloseCircleOutlined />;
-      default: return <ApiOutlined />;
-    }
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'success';

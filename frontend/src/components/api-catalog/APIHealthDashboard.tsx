@@ -24,15 +24,6 @@ const APIHealthDashboard: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'healthy': return 'success';
-      case 'degraded': return 'warning';
-      case 'down': return 'error';
-      default: return 'default';
-    }
-  };
-
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical': return 'red';

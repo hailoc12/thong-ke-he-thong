@@ -5,10 +5,6 @@ import {
   CloudOutlined,
   LockOutlined,
   EyeOutlined,
-  CheckCircleOutlined,
-  ExperimentOutlined,
-  StopOutlined,
-  CloseCircleOutlined,
   UserOutlined,
   ThunderboltOutlined
 } from '@ant-design/icons';

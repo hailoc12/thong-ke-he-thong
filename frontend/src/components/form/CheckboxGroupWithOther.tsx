@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Checkbox, Input, Space, Row, Col } from 'antd';
-import type { CheckboxValueType } from 'antd/es/checkbox/Group';
+
+type CheckboxValueType = string | number | boolean;
 
 interface CheckboxGroupWithOtherProps {
   value?: string[];

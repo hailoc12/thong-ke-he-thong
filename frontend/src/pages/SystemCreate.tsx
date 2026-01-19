@@ -41,6 +41,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../config/api';
 import type { Organization } from '../types';
 import { SelectWithOther } from '../components/form/SelectWithOther';
+import { CheckboxGroupWithOther } from '../components/form/CheckboxGroupWithOther';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -140,6 +141,111 @@ const dataExchangeMethodOptions = [
   { label: 'Message Queue', value: 'Message Queue' },
   { label: 'ETL', value: 'ETL' },
   { label: 'Manual', value: 'Manual' },
+  { label: 'Khác', value: 'other' },
+];
+
+/**
+ * P1 Gap Analysis: Predefined options for architecture and database fields
+ */
+const architectureTypeOptions = [
+  { label: 'Monolithic', value: 'monolithic' },
+  { label: 'Modular', value: 'modular' },
+  { label: 'Microservices', value: 'microservices' },
+  { label: 'SOA', value: 'soa' },
+  { label: 'Serverless', value: 'serverless' },
+  { label: 'SaaS', value: 'saas' },
+  { label: 'Khác', value: 'other' },
+];
+
+const containerizationOptions = [
+  { label: 'Docker', value: 'docker' },
+  { label: 'Kubernetes', value: 'kubernetes' },
+  { label: 'OpenShift', value: 'openshift' },
+  { label: 'Không sử dụng', value: 'none' },
+  { label: 'Khác', value: 'other' },
+];
+
+const apiStyleOptions = [
+  { label: 'REST API', value: 'rest' },
+  { label: 'GraphQL', value: 'graphql' },
+  { label: 'gRPC', value: 'grpc' },
+  { label: 'SOAP', value: 'soap' },
+  { label: 'Khác', value: 'other' },
+];
+
+const messagingQueueOptions = [
+  { label: 'Apache Kafka', value: 'kafka' },
+  { label: 'RabbitMQ', value: 'rabbitmq' },
+  { label: 'ActiveMQ', value: 'activemq' },
+  { label: 'Redis Pub/Sub', value: 'redis_pubsub' },
+  { label: 'Không sử dụng', value: 'none' },
+  { label: 'Khác', value: 'other' },
+];
+
+const cacheSystemOptions = [
+  { label: 'Redis', value: 'redis' },
+  { label: 'Memcached', value: 'memcached' },
+  { label: 'Không sử dụng', value: 'none' },
+  { label: 'Khác', value: 'other' },
+];
+
+const searchEngineOptions = [
+  { label: 'Elasticsearch', value: 'elasticsearch' },
+  { label: 'Apache Solr', value: 'solr' },
+  { label: 'Không sử dụng', value: 'none' },
+  { label: 'Khác', value: 'other' },
+];
+
+const reportingBiToolOptions = [
+  { label: 'Microsoft Power BI', value: 'powerbi' },
+  { label: 'Tableau', value: 'tableau' },
+  { label: 'Metabase', value: 'metabase' },
+  { label: 'Apache Superset', value: 'superset' },
+  { label: 'Tự phát triển', value: 'custom' },
+  { label: 'Không có', value: 'none' },
+  { label: 'Khác', value: 'other' },
+];
+
+const sourceRepositoryOptions = [
+  { label: 'GitLab', value: 'gitlab' },
+  { label: 'GitHub', value: 'github' },
+  { label: 'Bitbucket', value: 'bitbucket' },
+  { label: 'Azure DevOps', value: 'azure_devops' },
+  { label: 'On-premise Git', value: 'on_premise' },
+  { label: 'Không quản lý', value: 'none' },
+  { label: 'Khác', value: 'other' },
+];
+
+const cicdToolOptions = [
+  { label: 'Jenkins', value: 'jenkins' },
+  { label: 'GitLab CI/CD', value: 'gitlab_ci' },
+  { label: 'GitHub Actions', value: 'github_actions' },
+  { label: 'Azure Pipelines', value: 'azure_pipelines' },
+  { label: 'CircleCI', value: 'circle_ci' },
+  { label: 'Travis CI', value: 'travis_ci' },
+  { label: 'Khác', value: 'other' },
+];
+
+const fileStorageTypeOptions = [
+  { label: 'File Server', value: 'file_server' },
+  { label: 'Object Storage (S3, MinIO)', value: 'object_storage' },
+  { label: 'NAS', value: 'nas' },
+  { label: 'Database BLOB', value: 'database_blob' },
+  { label: 'Không lưu file', value: 'none' },
+  { label: 'Khác', value: 'other' },
+];
+
+/**
+ * Phase 3: Predefined options for checkbox groups
+ */
+const dataSourcesOptions = [
+  { label: 'User Input', value: 'user_input' },
+  { label: 'External APIs', value: 'external_apis' },
+  { label: 'Database Sync', value: 'database_sync' },
+  { label: 'File Import', value: 'file_import' },
+  { label: 'IoT Sensors', value: 'iot_sensors' },
+  { label: 'Third-party Services', value: 'third_party_services' },
+  { label: 'Legacy Systems', value: 'legacy_systems' },
   { label: 'Khác', value: 'other' },
 ];
 
@@ -891,6 +997,130 @@ const SystemCreate = () => {
                 </Select>
               </Form.Item>
             </Col>
+
+            {/* P1 Gap Analysis: Architecture Fields */}
+            <Col span={24}>
+              <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
+                Kiến trúc ứng dụng (P1 Gap Analysis)
+              </Text>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Loại kiến trúc" name="architecture_type">
+                <SelectWithOther
+                  options={architectureTypeOptions}
+                  placeholder="Chọn loại kiến trúc"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Container hóa" name="containerization">
+                <SelectWithOther
+                  options={containerizationOptions}
+                  placeholder="Chọn công nghệ container"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Multi-tenant" name="is_multi_tenant" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Phân lớp (Layered)" name="has_layered_architecture" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item label="Chi tiết phân lớp" name="layered_architecture_details">
+                <TextArea rows={2} placeholder="VD: Presentation, Business Logic, Data Access, Integration" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="API Style" name="api_style">
+                <SelectWithOther
+                  options={apiStyleOptions}
+                  placeholder="Chọn loại API"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Messaging/Queue" name="messaging_queue">
+                <SelectWithOther
+                  options={messagingQueueOptions}
+                  placeholder="Chọn hệ thống message queue"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Cache System" name="cache_system">
+                <SelectWithOther
+                  options={cacheSystemOptions}
+                  placeholder="Chọn hệ thống cache"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Search Engine" name="search_engine">
+                <SelectWithOther
+                  options={searchEngineOptions}
+                  placeholder="Chọn công cụ tìm kiếm"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Reporting/BI Tool" name="reporting_bi_tool">
+                <SelectWithOther
+                  options={reportingBiToolOptions}
+                  placeholder="Chọn công cụ báo cáo/BI"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Source Repository" name="source_repository">
+                <SelectWithOther
+                  options={sourceRepositoryOptions}
+                  placeholder="Chọn hệ thống quản lý mã nguồn"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="CI/CD Pipeline" name="has_cicd" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="CI/CD Tool" name="cicd_tool">
+                <SelectWithOther
+                  options={cicdToolOptions}
+                  placeholder="Chọn công cụ CI/CD"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Automated Testing" name="has_automated_testing" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Testing Tools" name="automated_testing_tools">
+                <Input placeholder="VD: Jest, Pytest, Selenium, JUnit" />
+              </Form.Item>
+            </Col>
           </Row>
         </Card>
       ),
@@ -907,7 +1137,10 @@ const SystemCreate = () => {
           <Row gutter={[16, 16]}>
             <Col span={24}>
               <Form.Item label="Nguồn dữ liệu" name="data_sources" initialValue={[]}>
-                <DynamicListInput placeholder="VD: Database, API, File, External System" />
+                <CheckboxGroupWithOther
+                  options={dataSourcesOptions}
+                  customInputPlaceholder="Nhập nguồn dữ liệu khác..."
+                />
               </Form.Item>
             </Col>
 
@@ -980,6 +1213,50 @@ const SystemCreate = () => {
                   formatter={(value) => `${value}%`}
                   parser={(value) => parseFloat(value!.replace('%', '')) as any}
                 />
+              </Form.Item>
+            </Col>
+
+            {/* P1 Gap Analysis: Additional Database Fields */}
+            <Col span={24}>
+              <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
+                Chi tiết dữ liệu (P1 Gap Analysis)
+              </Text>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Loại lưu trữ file" name="file_storage_type">
+                <SelectWithOther
+                  options={fileStorageTypeOptions}
+                  placeholder="Chọn loại lưu trữ file"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Số bản ghi" name="record_count">
+                <InputNumber
+                  min={0}
+                  style={{ width: '100%' }}
+                  placeholder="Tổng số bản ghi"
+                  formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item label="CSDL phụ/khác" name="secondary_databases" initialValue={[]}>
+                <Select
+                  mode="tags"
+                  style={{ width: '100%' }}
+                  placeholder="Nhập tên CSDL phụ (Redis, MongoDB, ...)"
+                  tokenSeparators={[',']}
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item label="Chính sách lưu trữ dữ liệu" name="data_retention_policy">
+                <TextArea rows={3} placeholder="VD: Lưu 5 năm, sau đó archive; Xóa dữ liệu cá nhân sau 2 năm không hoạt động" />
               </Form.Item>
             </Col>
           </Row>

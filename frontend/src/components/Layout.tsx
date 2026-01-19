@@ -158,19 +158,19 @@ const MainLayout = () => {
             src="/logo-khcn.jpeg"
             alt="Bộ KH&CN"
             style={{
-              width: isMobile || collapsed ? 32 : 40,
+              width: isMobile || collapsed ? 36 : 48,
               height: 'auto',
-              borderRadius: 4,
+              borderRadius: 6,
             }}
           />
           {!collapsed && !isMobile && (
-            <Text strong style={{ color: 'white', fontSize: 14 }}>
-              HỆ THỐNG BÁO CÁO
+            <Text strong style={{ color: 'white', fontSize: 15, whiteSpace: 'nowrap' }}>
+              Thống kê CNTT
             </Text>
           )}
           {isMobile && (
-            <Text strong style={{ color: 'white', fontSize: 14 }}>
-              HỆ THỐNG BÁO CÁO
+            <Text strong style={{ color: 'white', fontSize: 15, whiteSpace: 'nowrap' }}>
+              Thống kê CNTT
             </Text>
           )}
         </div>
@@ -195,6 +195,7 @@ const MainLayout = () => {
           collapsed={collapsed}
           onCollapse={setCollapsed}
           trigger={null}
+          width={240}
           style={{
             overflow: 'auto',
             height: '100vh',

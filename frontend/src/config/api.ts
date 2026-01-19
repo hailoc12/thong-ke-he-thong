@@ -1,7 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
-// API Base URL - will be set via environment variable in production
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://thongkehethong.mindmaid.ai/api';
+// API Base URL - Use relative path for same-origin requests (works with both domains)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // Create axios instance
 const api = axios.create({

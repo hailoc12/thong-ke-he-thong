@@ -55,8 +55,8 @@ const Login = () => {
               borderRadius: 8
             }}
           />
-          <Title level={window.innerWidth < 768 ? 4 : 3} style={{ marginBottom: 8 }}>
-            HỆ THỐNG BÁO CÁO THỐNG KÊ
+          <Title level={window.innerWidth < 768 ? 4 : 3} style={{ marginBottom: 8, textAlign: 'center' }}>
+            Nền tảng thống kê hệ thống công nghệ
           </Title>
           <Typography.Text type="secondary">
             Bộ Khoa học và Công nghệ

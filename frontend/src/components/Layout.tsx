@@ -16,6 +16,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { isFeatureEnabled, hasPremiumFeaturesEnabled } from '../config/features';
 import type { MenuProps } from 'antd';
 
 const { Header, Sider, Content } = AntLayout;
@@ -41,7 +42,35 @@ const MainLayout = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Build menu items based on user role
+  // Build menu items based on user role and feature flags
+  const premiumMenuItems = [
+    ...(isFeatureEnabled('analytics') ? [{
+      key: '/analytics',
+      icon: <BarChartOutlined />,
+      label: 'Phân tích thông minh',
+    }] : []),
+    ...(isFeatureEnabled('approvals') ? [{
+      key: '/approvals',
+      icon: <AuditOutlined />,
+      label: 'Phê duyệt & Chữ ký',
+    }] : []),
+    ...(isFeatureEnabled('benchmarking') ? [{
+      key: '/benchmarking',
+      icon: <RadarChartOutlined />,
+      label: 'So sánh chuẩn mực',
+    }] : []),
+    ...(isFeatureEnabled('lifecycle') ? [{
+      key: '/lifecycle',
+      icon: <ProjectOutlined />,
+      label: 'Quản lý vòng đời',
+    }] : []),
+    ...(isFeatureEnabled('apiCatalog') ? [{
+      key: '/api-catalog',
+      icon: <ApiOutlined />,
+      label: 'Danh mục API',
+    }] : []),
+  ];
+
   const menuItems: MenuProps['items'] = [
     {
       type: 'group',
@@ -71,37 +100,12 @@ const MainLayout = () => {
         }] : []),
       ],
     },
-    {
-      type: 'group',
+    // Premium features group - only show if at least one premium feature is enabled
+    ...(hasPremiumFeaturesEnabled() && premiumMenuItems.length > 0 ? [{
+      type: 'group' as const,
       label: 'TÍNH NĂNG NÂNG CAO',
-      children: [
-        {
-          key: '/analytics',
-          icon: <BarChartOutlined />,
-          label: 'Phân tích thông minh',
-        },
-        {
-          key: '/approvals',
-          icon: <AuditOutlined />,
-          label: 'Phê duyệt & Chữ ký',
-        },
-        {
-          key: '/benchmarking',
-          icon: <RadarChartOutlined />,
-          label: 'So sánh chuẩn mực',
-        },
-        {
-          key: '/lifecycle',
-          icon: <ProjectOutlined />,
-          label: 'Quản lý vòng đời',
-        },
-        {
-          key: '/api-catalog',
-          icon: <ApiOutlined />,
-          label: 'Danh mục API',
-        },
-      ],
-    },
+      children: premiumMenuItems,
+    }] : []),
   ];
 
   const handleMenuClick = ({ key }: { key: string }) => {

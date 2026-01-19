@@ -21,6 +21,19 @@ import APICatalog from './pages/APICatalog';
 import MainLayout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { colors, borderRadius, spacing } from './theme/tokens';
+import { isFeatureEnabled } from './config/features';
+import type { FeatureFlags } from './config/features';
+
+// Feature-protected route wrapper
+const FeatureRoute = ({
+  feature,
+  element,
+}: {
+  feature: keyof FeatureFlags;
+  element: React.ReactElement;
+}) => {
+  return isFeatureEnabled(feature) ? element : <Navigate to="/" replace />;
+};
 
 // Ant Design Theme Configuration
 const antdTheme: ThemeConfig = {
@@ -105,11 +118,13 @@ function App() {
             <Route path="organizations/:id" element={<OrganizationDetail />} />
             <Route path="organizations/:id/edit" element={<OrganizationEdit />} />
             <Route path="users" element={<Users />} />
-            <Route path="analytics" element={<Analytics />} />
-            <Route path="approvals" element={<Approvals />} />
-            <Route path="benchmarking" element={<Benchmarking />} />
-            <Route path="lifecycle" element={<Lifecycle />} />
-            <Route path="api-catalog" element={<APICatalog />} />
+
+            {/* Premium Features - Protected by feature flags */}
+            <Route path="analytics" element={<FeatureRoute feature="analytics" element={<Analytics />} />} />
+            <Route path="approvals" element={<FeatureRoute feature="approvals" element={<Approvals />} />} />
+            <Route path="benchmarking" element={<FeatureRoute feature="benchmarking" element={<Benchmarking />} />} />
+            <Route path="lifecycle" element={<FeatureRoute feature="lifecycle" element={<Lifecycle />} />} />
+            <Route path="api-catalog" element={<FeatureRoute feature="apiCatalog" element={<APICatalog />} />} />
           </Route>
 
           {/* Catch all */}

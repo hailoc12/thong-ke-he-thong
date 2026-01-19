@@ -298,6 +298,69 @@ const securityLevelOptions = [
 ];
 
 /**
+ * Phase 4: Quick Input - CharField conversion options
+ */
+const backendTechOptions = [
+  { label: 'Node.js', value: 'nodejs' },
+  { label: 'Python', value: 'python' },
+  { label: 'Java', value: 'java' },
+  { label: 'C#/.NET', value: 'dotnet' },
+  { label: 'Go', value: 'go' },
+  { label: 'PHP', value: 'php' },
+  { label: 'Ruby', value: 'ruby' },
+  { label: 'Rust', value: 'rust' },
+  { label: 'Scala', value: 'scala' },
+  { label: 'Kotlin', value: 'kotlin' },
+  { label: 'Khác', value: 'other' },
+];
+
+const frontendTechOptions = [
+  { label: 'React', value: 'react' },
+  { label: 'Vue.js', value: 'vue' },
+  { label: 'Angular', value: 'angular' },
+  { label: 'Next.js', value: 'nextjs' },
+  { label: 'Nuxt.js', value: 'nuxtjs' },
+  { label: 'jQuery', value: 'jquery' },
+  { label: 'Svelte', value: 'svelte' },
+  { label: 'Ember.js', value: 'ember' },
+  { label: 'Backbone.js', value: 'backbone' },
+  { label: 'HTML/CSS/JS thuần', value: 'vanilla' },
+  { label: 'Khác', value: 'other' },
+];
+
+const hostingPlatformOptions = [
+  { label: 'Cloud (AWS, Azure, GCP)', value: 'cloud' },
+  { label: 'On-premise', value: 'on_premise' },
+  { label: 'Hybrid', value: 'hybrid' },
+  { label: 'SaaS', value: 'saas' },
+  { label: 'Shared hosting', value: 'shared' },
+  { label: 'VPS', value: 'vps' },
+  { label: 'Khác', value: 'other' },
+];
+
+const supportLevelOptions = [
+  { label: '24/7', value: '24_7' },
+  { label: 'Business hours (8x5)', value: 'business_hours' },
+  { label: 'Business days (8x5)', value: 'business_days' },
+  { label: 'On-demand', value: 'on_demand' },
+  { label: 'Best effort', value: 'best_effort' },
+  { label: 'None', value: 'none' },
+  { label: 'Khác', value: 'other' },
+];
+
+const apiStandardOptions = [
+  { label: 'OpenAPI 3.0', value: 'openapi_3' },
+  { label: 'OpenAPI 2.0 (Swagger)', value: 'swagger' },
+  { label: 'SOAP WSDL', value: 'soap_wsdl' },
+  { label: 'GraphQL Schema', value: 'graphql_schema' },
+  { label: 'gRPC', value: 'grpc' },
+  { label: 'AsyncAPI', value: 'asyncapi' },
+  { label: 'RAML', value: 'raml' },
+  { label: 'Không có', value: 'none' },
+  { label: 'Khác', value: 'other' },
+];
+
+/**
  * Phase 1 - Section 5: Integration Connection List Component
  * Complex dynamic form for managing integration connections
  */
@@ -1020,11 +1083,29 @@ const SystemCreate = () => {
 
             <Col span={12}>
               <Form.Item label="Nền tảng triển khai" name="hosting_platform">
-                <Select placeholder="Chọn nền tảng">
-                  <Select.Option value="cloud">Cloud</Select.Option>
-                  <Select.Option value="on_premise">On-premise</Select.Option>
-                  <Select.Option value="hybrid">Hybrid</Select.Option>
-                </Select>
+                <SelectWithOther
+                  options={hostingPlatformOptions}
+                  placeholder="Chọn nền tảng"
+                />
+              </Form.Item>
+            </Col>
+
+            {/* Phase 4: Quick Input - Backend & Frontend Tech */}
+            <Col span={12}>
+              <Form.Item label="Backend Technology" name="backend_tech">
+                <SelectWithOther
+                  options={backendTechOptions}
+                  placeholder="Chọn công nghệ backend"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Frontend Technology" name="frontend_tech">
+                <SelectWithOther
+                  options={frontendTechOptions}
+                  placeholder="Chọn công nghệ frontend"
+                />
               </Form.Item>
             </Col>
 
@@ -1338,6 +1419,16 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
+            {/* Phase 4: Quick Input - API Standard */}
+            <Col span={12}>
+              <Form.Item label="Chuẩn API" name="api_standard">
+                <SelectWithOther
+                  options={apiStandardOptions}
+                  placeholder="Chọn chuẩn API"
+                />
+              </Form.Item>
+            </Col>
+
             {/* P2 Gap Analysis: API Gateway & Management */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
@@ -1580,6 +1671,16 @@ const SystemCreate = () => {
             <Col span={12}>
               <Form.Item label="Email liên hệ" name="responsible_email">
                 <Input type="email" placeholder="Email" />
+              </Form.Item>
+            </Col>
+
+            {/* Phase 4: Quick Input - Support Level */}
+            <Col span={12}>
+              <Form.Item label="Mức độ hỗ trợ" name="support_level">
+                <SelectWithOther
+                  options={supportLevelOptions}
+                  placeholder="Chọn mức độ hỗ trợ"
+                />
               </Form.Item>
             </Col>
 

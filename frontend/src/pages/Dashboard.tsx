@@ -25,6 +25,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Ba
 import dayjs from 'dayjs';
 import api from '../config/api';
 import type { SystemStatistics } from '../types';
+import { colors, shadows, borderRadius, spacing } from '../theme/tokens';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -207,20 +208,20 @@ const Dashboard = () => {
     },
   };
 
-  // Status chart colors
+  // Status chart colors - Using enhanced design system
   const STATUS_COLORS = {
-    active: '#52c41a',
-    inactive: '#ff4d4f',
-    maintenance: '#faad14',
-    draft: '#8c8c8c',
+    active: colors.status.active,      // '#22C55E'
+    inactive: colors.status.inactive,  // '#EF4444'
+    maintenance: colors.status.maintenance, // '#F59E0B'
+    draft: colors.neutral.gray400,     // '#9CA3AF'
   };
 
-  // Criticality chart colors
+  // Criticality chart colors - Using enhanced design system
   const CRITICALITY_COLORS = {
-    critical: '#ff4d4f',
-    high: '#faad14',
-    medium: '#1890ff',
-    low: '#52c41a',
+    critical: colors.status.warning,   // '#F59E0B' (removed 'critical' level per P0.8)
+    high: colors.status.inactive,      // '#EF4444'
+    medium: colors.info.main,          // '#3B82F6'
+    low: colors.status.active,         // '#22C55E'
   };
 
   // Prepare status chart data (memoized)
@@ -448,9 +449,10 @@ const Dashboard = () => {
       <Card
         size="small"
         style={{
-          marginBottom: 16,
-          borderRadius: 8,
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+          marginBottom: spacing.md,
+          borderRadius: borderRadius.lg,
+          boxShadow: shadows.sm,
+          backgroundColor: colors.background.paper,
         }}
         role="search"
         aria-label="Bộ lọc dashboard"
@@ -534,108 +536,128 @@ const Dashboard = () => {
           <Col xs={24} sm={12} lg={6}>
             <motion.div variants={cardVariants}>
               <Card
-            style={{
-              borderLeft: '4px solid #1890ff',
-              transition: 'all 0.3s ease',
-            }}
-            className="kpi-card"
-            role="article"
-            aria-label="Tổng số hệ thống"
-          >
-            <Skeleton loading={loading} active paragraph={{ rows: 3 }} aria-label="Đang tải dữ liệu">
-              <Statistic
-                title="Tổng số hệ thống"
-                value={statistics?.total || 0}
-                prefix={<AppstoreOutlined style={{ fontSize: 24 }} aria-hidden="true" />}
-                valueStyle={{ color: '#1890ff', fontSize: 32, fontWeight: 700 }}
-                formatter={(value) => (
-                  <CountUp end={Number(value)} duration={1.5} separator="," aria-label={`${value} hệ thống`} />
-                )}
-              />
-              {renderTrend(getTrendData('total'))}
-              {renderSparkline(statistics?.total || 50, 'up', '#1890ff')}
-            </Skeleton>
-          </Card>
+                style={{
+                  borderLeft: `4px solid ${colors.primary.main}`,
+                  borderRadius: borderRadius.lg,
+                  boxShadow: shadows.card,
+                  transition: 'all 0.3s ease',
+                  backgroundColor: colors.background.paper,
+                }}
+                className="kpi-card"
+                hoverable
+                role="article"
+                aria-label="Tổng số hệ thống"
+              >
+                <Skeleton loading={loading} active paragraph={{ rows: 3 }} aria-label="Đang tải dữ liệu">
+                  <Statistic
+                    title="Tổng số hệ thống"
+                    value={statistics?.total || 0}
+                    prefix={<AppstoreOutlined style={{ fontSize: 24, color: colors.primary.main }} aria-hidden="true" />}
+                    valueStyle={{ color: colors.primary.main, fontSize: 32, fontWeight: 700 }}
+                    formatter={(value) => (
+                      <CountUp end={Number(value)} duration={1.5} separator="," aria-label={`${value} hệ thống`} />
+                    )}
+                  />
+                  {renderTrend(getTrendData('total'))}
+                  {renderSparkline(statistics?.total || 50, 'up', colors.primary.main)}
+                </Skeleton>
+              </Card>
             </motion.div>
-        </Col>
+          </Col>
 
         <Col xs={24} sm={12} lg={6}>
           <motion.div variants={cardVariants}>
             <Card
-            style={{
-              borderLeft: '4px solid #52c41a',
-              transition: 'all 0.3s ease',
-            }}
-            className="kpi-card"
-            role="article"
-            aria-label="Hệ thống đang hoạt động"
-          >
-            <Skeleton loading={loading} active paragraph={{ rows: 3 }}>
-              <Statistic
-                title="Đang hoạt động"
-                value={statistics?.by_status.active || 0}
-                prefix={<CheckCircleOutlined style={{ fontSize: 24 }} />}
-                valueStyle={{ color: '#52c41a', fontSize: 32, fontWeight: 700 }}
-                formatter={(value) => (
-                  <CountUp end={Number(value)} duration={1.5} separator="," />
-                )}
-              />
-              {renderTrend(getTrendData('active'))}
-              {renderSparkline(statistics?.by_status.active || 40, 'up', '#52c41a')}
-            </Skeleton>
-          </Card>
+              style={{
+                borderLeft: `4px solid ${colors.status.active}`,
+                borderRadius: borderRadius.lg,
+                boxShadow: shadows.card,
+                transition: 'all 0.3s ease',
+                backgroundColor: colors.background.paper,
+              }}
+              className="kpi-card"
+              hoverable
+              role="article"
+              aria-label="Hệ thống đang hoạt động"
+            >
+              <Skeleton loading={loading} active paragraph={{ rows: 3 }}>
+                <Statistic
+                  title="Đang hoạt động"
+                  value={statistics?.by_status.active || 0}
+                  prefix={<CheckCircleOutlined style={{ fontSize: 24, color: colors.status.active }} />}
+                  valueStyle={{ color: colors.status.active, fontSize: 32, fontWeight: 700 }}
+                  formatter={(value) => (
+                    <CountUp end={Number(value)} duration={1.5} separator="," />
+                  )}
+                />
+                {renderTrend(getTrendData('active'))}
+                {renderSparkline(statistics?.by_status.active || 40, 'up', colors.status.active)}
+              </Skeleton>
+            </Card>
           </motion.div>
         </Col>
 
         <Col xs={24} sm={12} lg={6}>
           <motion.div variants={cardVariants}>
             <Card
-            style={{
-              borderLeft: '4px solid #ff4d4f',
-              transition: 'all 0.3s ease',
-            }}
-            className="kpi-card"
-          >
-            <Skeleton loading={loading} active paragraph={{ rows: 3 }}>
-              <Statistic
-                title="Quan trọng"
-                value={statistics?.by_criticality.critical || 0}
-                prefix={<WarningOutlined style={{ fontSize: 24 }} />}
-                valueStyle={{ color: '#ff4d4f', fontSize: 32, fontWeight: 700 }}
-                formatter={(value) => (
-                  <CountUp end={Number(value)} duration={1.5} separator="," />
-                )}
-              />
-              {renderTrend(getTrendData('critical'))}
-              {renderSparkline(statistics?.by_criticality.critical || 10, 'down', '#ff4d4f')}
-            </Skeleton>
-          </Card>
+              style={{
+                borderLeft: `4px solid ${colors.status.warning}`,
+                borderRadius: borderRadius.lg,
+                boxShadow: shadows.card,
+                transition: 'all 0.3s ease',
+                backgroundColor: colors.background.paper,
+              }}
+              className="kpi-card"
+              hoverable
+              role="article"
+              aria-label="Hệ thống quan trọng"
+            >
+              <Skeleton loading={loading} active paragraph={{ rows: 3 }}>
+                <Statistic
+                  title="Quan trọng"
+                  value={statistics?.by_criticality.high || 0}
+                  prefix={<WarningOutlined style={{ fontSize: 24, color: colors.status.warning }} />}
+                  valueStyle={{ color: colors.status.warning, fontSize: 32, fontWeight: 700 }}
+                  formatter={(value) => (
+                    <CountUp end={Number(value)} duration={1.5} separator="," />
+                  )}
+                />
+                {renderTrend(getTrendData('critical'))}
+                {renderSparkline(statistics?.by_criticality.high || 10, 'down', colors.status.warning)}
+              </Skeleton>
+            </Card>
           </motion.div>
         </Col>
 
         <Col xs={24} sm={12} lg={6}>
           <motion.div variants={cardVariants}>
             <Card
-            style={{
-              borderLeft: '4px solid #722ed1',
-              transition: 'all 0.3s ease',
-            }}
-            className="kpi-card"
-          >
-            <Skeleton loading={loading} active paragraph={{ rows: 3 }}>
-              <Statistic
-                title="Đơn vị"
-                value={0}
-                prefix={<TeamOutlined style={{ fontSize: 24 }} />}
-                valueStyle={{ color: '#722ed1', fontSize: 32, fontWeight: 700 }}
-                formatter={(value) => (
-                  <CountUp end={Number(value)} duration={1.5} separator="," />
-                )}
-              />
-              {renderTrend(getTrendData('orgs'))}
-              {renderSparkline(5, 'neutral', '#722ed1')}
-            </Skeleton>
-          </Card>
+              style={{
+                borderLeft: `4px solid ${colors.secondary.main}`,
+                borderRadius: borderRadius.lg,
+                boxShadow: shadows.card,
+                transition: 'all 0.3s ease',
+                backgroundColor: colors.background.paper,
+              }}
+              className="kpi-card"
+              hoverable
+              role="article"
+              aria-label="Đơn vị"
+            >
+              <Skeleton loading={loading} active paragraph={{ rows: 3 }}>
+                <Statistic
+                  title="Đơn vị"
+                  value={0}
+                  prefix={<TeamOutlined style={{ fontSize: 24, color: colors.secondary.main }} />}
+                  valueStyle={{ color: colors.secondary.main, fontSize: 32, fontWeight: 700 }}
+                  formatter={(value) => (
+                    <CountUp end={Number(value)} duration={1.5} separator="," />
+                  )}
+                />
+                {renderTrend(getTrendData('orgs'))}
+                {renderSparkline(5, 'neutral', colors.secondary.main)}
+              </Skeleton>
+            </Card>
           </motion.div>
         </Col>
       </Row>

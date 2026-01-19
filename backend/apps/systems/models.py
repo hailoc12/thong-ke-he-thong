@@ -356,6 +356,9 @@ class SystemArchitecture(models.Model):
         ('monolithic', 'Monolithic'),
         ('modular', 'Modular'),
         ('microservices', 'Microservices'),
+        ('soa', 'SOA'),
+        ('serverless', 'Serverless'),
+        ('saas', 'SaaS'),
         ('other', 'Khác'),
     ]
 
@@ -370,6 +373,75 @@ class SystemArchitecture(models.Model):
         ('centralized', 'Tập trung'),
         ('distributed', 'Phân tán'),
         ('per_app', 'Riêng từng app'),
+    ]
+
+    CONTAINERIZATION_CHOICES = [
+        ('docker', 'Docker'),
+        ('kubernetes', 'Kubernetes'),
+        ('openshift', 'OpenShift'),
+        ('none', 'Không sử dụng'),
+        ('other', 'Khác'),
+    ]
+
+    API_STYLE_CHOICES = [
+        ('rest', 'REST API'),
+        ('graphql', 'GraphQL'),
+        ('grpc', 'gRPC'),
+        ('soap', 'SOAP'),
+        ('other', 'Khác'),
+    ]
+
+    MESSAGING_QUEUE_CHOICES = [
+        ('kafka', 'Apache Kafka'),
+        ('rabbitmq', 'RabbitMQ'),
+        ('activemq', 'ActiveMQ'),
+        ('redis_pubsub', 'Redis Pub/Sub'),
+        ('none', 'Không sử dụng'),
+        ('other', 'Khác'),
+    ]
+
+    CACHE_SYSTEM_CHOICES = [
+        ('redis', 'Redis'),
+        ('memcached', 'Memcached'),
+        ('none', 'Không sử dụng'),
+        ('other', 'Khác'),
+    ]
+
+    SEARCH_ENGINE_CHOICES = [
+        ('elasticsearch', 'Elasticsearch'),
+        ('solr', 'Apache Solr'),
+        ('none', 'Không sử dụng'),
+        ('other', 'Khác'),
+    ]
+
+    REPORTING_BI_CHOICES = [
+        ('powerbi', 'Microsoft Power BI'),
+        ('tableau', 'Tableau'),
+        ('metabase', 'Metabase'),
+        ('superset', 'Apache Superset'),
+        ('custom', 'Tự phát triển'),
+        ('none', 'Không có'),
+        ('other', 'Khác'),
+    ]
+
+    SOURCE_REPOSITORY_CHOICES = [
+        ('gitlab', 'GitLab'),
+        ('github', 'GitHub'),
+        ('bitbucket', 'Bitbucket'),
+        ('azure_devops', 'Azure DevOps'),
+        ('on_premise', 'On-premise Git'),
+        ('none', 'Không quản lý'),
+        ('other', 'Khác'),
+    ]
+
+    CICD_TOOL_CHOICES = [
+        ('jenkins', 'Jenkins'),
+        ('gitlab_ci', 'GitLab CI/CD'),
+        ('github_actions', 'GitHub Actions'),
+        ('azure_pipelines', 'Azure Pipelines'),
+        ('circle_ci', 'CircleCI'),
+        ('travis_ci', 'Travis CI'),
+        ('other', 'Khác'),
     ]
 
     system = models.OneToOneField(
@@ -423,6 +495,99 @@ class SystemArchitecture(models.Model):
     )
     cloud_provider = models.CharField(max_length=100, blank=True)
 
+    # P1 Gap Analysis: Additional Architecture Fields
+    is_multi_tenant = models.BooleanField(
+        default=False,
+        verbose_name=_('Multi-tenant Architecture')
+    )
+    has_layered_architecture = models.BooleanField(
+        default=False,
+        verbose_name=_('Has Layered Architecture (4-tier)')
+    )
+    layered_architecture_details = models.TextField(
+        blank=True,
+        help_text='Presentation, Business Logic, Data Access, Integration'
+    )
+
+    # Containerization & Orchestration
+    containerization = models.CharField(
+        max_length=50,
+        choices=CONTAINERIZATION_CHOICES,
+        blank=True,
+        verbose_name=_('Containerization')
+    )
+
+    # API & Integration
+    api_style = models.CharField(
+        max_length=50,
+        choices=API_STYLE_CHOICES,
+        blank=True,
+        verbose_name=_('API Style')
+    )
+
+    # Messaging & Queue
+    messaging_queue = models.CharField(
+        max_length=50,
+        choices=MESSAGING_QUEUE_CHOICES,
+        blank=True,
+        verbose_name=_('Messaging/Queue System')
+    )
+
+    # Cache
+    cache_system = models.CharField(
+        max_length=50,
+        choices=CACHE_SYSTEM_CHOICES,
+        blank=True,
+        verbose_name=_('Cache System')
+    )
+
+    # Search Engine
+    search_engine = models.CharField(
+        max_length=50,
+        choices=SEARCH_ENGINE_CHOICES,
+        blank=True,
+        verbose_name=_('Search Engine')
+    )
+
+    # Reporting & BI
+    reporting_bi_tool = models.CharField(
+        max_length=50,
+        choices=REPORTING_BI_CHOICES,
+        blank=True,
+        verbose_name=_('Reporting/BI Tool')
+    )
+
+    # Source Code Management
+    source_repository = models.CharField(
+        max_length=50,
+        choices=SOURCE_REPOSITORY_CHOICES,
+        blank=True,
+        verbose_name=_('Source Code Repository')
+    )
+
+    # CI/CD
+    has_cicd = models.BooleanField(
+        default=False,
+        verbose_name=_('Has CI/CD Pipeline')
+    )
+    cicd_tool = models.CharField(
+        max_length=50,
+        choices=CICD_TOOL_CHOICES,
+        blank=True,
+        verbose_name=_('CI/CD Tool')
+    )
+
+    # Automated Testing
+    has_automated_testing = models.BooleanField(
+        default=False,
+        verbose_name=_('Has Automated Testing')
+    )
+    automated_testing_tools = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text='e.g., Jest, Pytest, Selenium, JUnit'
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -434,6 +599,15 @@ class SystemArchitecture(models.Model):
 
 class SystemDataInfo(models.Model):
     """PHẦN 3: Dữ liệu"""
+
+    FILE_STORAGE_TYPE_CHOICES = [
+        ('file_server', 'File Server'),
+        ('object_storage', 'Object Storage (S3, MinIO)'),
+        ('nas', 'NAS'),
+        ('database_blob', 'Database BLOB'),
+        ('none', 'Không lưu file'),
+        ('other', 'Khác'),
+    ]
 
     system = models.OneToOneField(
         System,
@@ -488,6 +662,38 @@ class SystemDataInfo(models.Model):
         max_length=50,
         blank=True,
         help_text='public, internal, confidential, secret'
+    )
+
+    # P1 Gap Analysis: Additional Database Fields
+    # Primary Database (already exists in SystemArchitecture.database_type)
+    # We add secondary databases here
+    secondary_databases = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of secondary/other databases used, e.g., ["Redis", "MongoDB"]'
+    )
+
+    # File Storage
+    file_storage_type = models.CharField(
+        max_length=50,
+        choices=FILE_STORAGE_TYPE_CHOICES,
+        blank=True,
+        verbose_name=_('File Storage Type')
+    )
+
+    # Database Records Count
+    record_count = models.BigIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_('Number of Records'),
+        help_text='Tổng số bản ghi trong CSDL chính'
+    )
+
+    # Data Retention Policy
+    data_retention_policy = models.TextField(
+        blank=True,
+        verbose_name=_('Data Retention Policy'),
+        help_text='Chính sách lưu trữ dữ liệu (thời gian, quy tắc xóa, archiving)'
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

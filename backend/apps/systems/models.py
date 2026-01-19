@@ -30,7 +30,6 @@ class System(models.Model):
     ]
 
     CRITICALITY_CHOICES = [
-        # Removed ('critical', 'Tối quan trọng') per customer request P0.8
         ('high', 'Quan trọng'),
         ('medium', 'Trung bình'),
         ('low', 'Thấp'),
@@ -66,7 +65,7 @@ class System(models.Model):
     )
 
     # ======================================================================
-    # SECTION 2: Business Context (P0.8 - NEW FIELDS)
+    # SECTION 2: Business Context
     # ======================================================================
     business_objectives = models.JSONField(
         default=list,
@@ -96,7 +95,7 @@ class System(models.Model):
     )
 
     # ======================================================================
-    # SECTION 3: Technology Architecture (P0.8 - NEW FIELDS)
+    # SECTION 3: Technology Architecture
     # ======================================================================
     programming_language = models.CharField(
         max_length=255,
@@ -128,7 +127,7 @@ class System(models.Model):
     )
 
     # ======================================================================
-    # SECTION 4: Data Architecture (P0.8 - NEW FIELDS)
+    # SECTION 4: Data Architecture
     # ======================================================================
     data_sources = models.JSONField(
         default=list,
@@ -149,7 +148,7 @@ class System(models.Model):
     )
 
     # ======================================================================
-    # SECTION 5: System Integration (P0.8 - NEW FIELDS)
+    # SECTION 5: System Integration
     # ======================================================================
     integrated_internal_systems = models.JSONField(
         default=list,
@@ -173,22 +172,22 @@ class System(models.Model):
         help_text='e.g., REST API, SOAP, File Transfer, Database Sync'
     )
 
-    # API Inventory (P0.8 Phase 1 - Critical)
+    # API Inventory
     api_provided_count = models.IntegerField(
         null=True,
         blank=True,
         verbose_name=_('APIs Provided Count'),
-        help_text='Tổng số API mà hệ thống này cung cấp cho hệ thống khác (P0.8 customer requirement)'
+        help_text='Tổng số API mà hệ thống này cung cấp cho hệ thống khác'
     )
     api_consumed_count = models.IntegerField(
         null=True,
         blank=True,
         verbose_name=_('APIs Consumed Count'),
-        help_text='Tổng số API mà hệ thống này gọi từ hệ thống khác (P0.8 customer requirement)'
+        help_text='Tổng số API mà hệ thống này gọi từ hệ thống khác'
     )
 
     # ======================================================================
-    # SECTION 6: Security (P0.8 - NEW FIELDS)
+    # SECTION 6: Security
     # ======================================================================
     authentication_method = models.CharField(
         max_length=100,
@@ -222,7 +221,7 @@ class System(models.Model):
     )
 
     # ======================================================================
-    # SECTION 7: Infrastructure (P0.8 - NEW FIELDS)
+    # SECTION 7: Infrastructure
     # ======================================================================
     server_configuration = models.CharField(
         max_length=500,
@@ -256,7 +255,7 @@ class System(models.Model):
         blank=False,
         default='other',
         verbose_name=_('System Group'),
-        help_text='Nhóm hệ thống (REQUIRED - 8 options per customer feedback)'
+        help_text='Nhóm hệ thống (REQUIRED)'
     )
     status = models.CharField(
         max_length=20,
@@ -275,13 +274,13 @@ class System(models.Model):
     responsible_phone = models.CharField(max_length=20, blank=True)
     responsible_email = models.EmailField(blank=True)
 
-    # User Statistics (P0.8 Phase 1 - Section 2)
+    # User Statistics
     users_total = models.IntegerField(null=True, blank=True, verbose_name=_('Total Users'))
     total_accounts = models.IntegerField(
         null=True,
         blank=True,
         verbose_name=_('Total Accounts'),
-        help_text='Tổng số tài khoản đã tạo trong hệ thống (P0.8 customer requirement)'
+        help_text='Tổng số tài khoản đã tạo trong hệ thống'
     )
     users_mau = models.IntegerField(null=True, blank=True, verbose_name=_('MAU (Monthly Active Users)'))
     users_dau = models.IntegerField(null=True, blank=True, verbose_name=_('DAU (Daily Active Users)'))
@@ -326,7 +325,6 @@ class System(models.Model):
         """
         Auto-generate system code in format: SYS-{ORG_CODE}-{YYYY}-{XXXX}
         Example: SYS-SKHCN-HN-2026-0001
-        Per customer request P0.8: System code should be auto-generated
         """
         from django.utils import timezone
 
@@ -444,14 +442,14 @@ class SystemDataInfo(models.Model):
         primary_key=True
     )
 
-    # Data Volume (P0.8 Phase 1 - Section 4)
+    # Data Volume
     storage_size_gb = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         null=True,
         blank=True,
         verbose_name=_('Database Storage Size (GB)'),
-        help_text='Dung lượng CSDL hiện tại (GB) - REQUIRED per customer'
+        help_text='Dung lượng CSDL hiện tại (GB)'
     )
     file_storage_size_gb = models.DecimalField(
         max_digits=10,
@@ -459,7 +457,7 @@ class SystemDataInfo(models.Model):
         null=True,
         blank=True,
         verbose_name=_('File Storage Size (GB)'),
-        help_text='Dung lượng file đính kèm, tài liệu lưu trữ (GB) - REQUIRED per customer'
+        help_text='Dung lượng file đính kèm, tài liệu lưu trữ (GB)'
     )
     growth_rate_percent = models.DecimalField(
         max_digits=5,
@@ -467,7 +465,7 @@ class SystemDataInfo(models.Model):
         null=True,
         blank=True,
         verbose_name=_('Growth Rate (%)'),
-        help_text='Tốc độ tăng trưởng dữ liệu (%/năm hoặc GB/tháng) - REQUIRED per customer'
+        help_text='Tốc độ tăng trưởng dữ liệu (%/năm hoặc GB/tháng)'
     )
 
     # Data Types
@@ -996,7 +994,7 @@ class Attachment(models.Model):
     def __str__(self):
         return f"{self.filename} ({self.get_attachment_type_display()})"
 # SystemIntegrationConnection model
-# P0.8 Phase 1 - Section 5: Integration Matrix
+# Integration Matrix
 # Date: 2026-01-19
 
 from django.db import models
@@ -1006,7 +1004,7 @@ from django.utils.translation import gettext_lazy as _
 class SystemIntegrationConnection(models.Model):
     """
     Danh sách tích hợp chi tiết - Dynamic list of integration connections
-    Customer requirement P0.8: For each integration connection track:
+    For each integration connection track:
     - Hệ thống A ↔ B (source → target)
     - Dữ liệu trao đổi
     - Cách thức tích hợp

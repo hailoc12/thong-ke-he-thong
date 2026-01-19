@@ -6,6 +6,7 @@ import {
   TeamOutlined,
   RocketOutlined,
   CheckCircleOutlined,
+  BookOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
@@ -104,6 +105,21 @@ const LandingPage = () => {
               }}
             >
               Đăng ký tài khoản
+            </Button>
+            <Button
+              size="large"
+              icon={<BookOutlined />}
+              onClick={() => navigate('/help')}
+              style={{
+                height: 48,
+                fontSize: 18,
+                padding: '0 32px',
+                background: 'rgba(255,255,255,0.1)',
+                color: 'white',
+                borderColor: 'white',
+              }}
+            >
+              Hướng dẫn
             </Button>
           </div>
         </div>

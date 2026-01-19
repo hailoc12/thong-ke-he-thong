@@ -13,6 +13,7 @@ import {
   RadarChartOutlined,
   ProjectOutlined,
   ApiOutlined,
+  BookOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
@@ -106,6 +107,18 @@ const MainLayout = () => {
       label: 'TÍNH NĂNG NÂNG CAO',
       children: premiumMenuItems,
     }] : []),
+    // Help menu - always show
+    {
+      type: 'group',
+      label: 'HỖ TRỢ',
+      children: [
+        {
+          key: '/help',
+          icon: <BookOutlined />,
+          label: 'Hướng dẫn sử dụng',
+        },
+      ],
+    },
   ];
 
   const handleMenuClick = ({ key }: { key: string }) => {

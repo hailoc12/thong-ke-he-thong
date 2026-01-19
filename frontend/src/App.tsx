@@ -14,6 +14,7 @@ import Organizations from './pages/Organizations';
 import OrganizationDetail from './pages/OrganizationDetail';
 import OrganizationEdit from './pages/OrganizationEdit';
 import Users from './pages/Users';
+import Help from './pages/Help';
 import Analytics from './pages/Analytics';
 import Approvals from './pages/Approvals';
 import Benchmarking from './pages/Benchmarking';
@@ -103,6 +104,7 @@ function App() {
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/help" element={<Help />} />
 
           {/* Protected routes */}
           <Route

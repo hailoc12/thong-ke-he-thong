@@ -40,9 +40,34 @@ import {
 import { useNavigate } from 'react-router-dom';
 import api from '../config/api';
 import type { Organization } from '../types';
+import { SelectWithOther } from '../components/form/SelectWithOther';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+
+/**
+ * P0.8 Phase 1: Predefined options for SelectWithOther components
+ */
+const systemGroupOptions = [
+  { label: 'Nền tảng quốc gia', value: 'national_platform' },
+  { label: 'Nền tảng dùng chung của Bộ', value: 'shared_platform' },
+  { label: 'CSDL chuyên ngành', value: 'specialized_db' },
+  { label: 'Ứng dụng nghiệp vụ', value: 'business_app' },
+  { label: 'Cổng thông tin', value: 'portal' },
+  { label: 'BI/Báo cáo', value: 'bi' },
+  { label: 'ESB/Tích hợp', value: 'esb' },
+  { label: 'Khác', value: 'other' },
+];
+
+const authenticationMethodOptions = [
+  { label: 'Username/Password', value: 'username_password' },
+  { label: 'SSO', value: 'sso' },
+  { label: 'LDAP', value: 'ldap' },
+  { label: 'OAuth', value: 'oauth' },
+  { label: 'SAML', value: 'saml' },
+  { label: 'Biometric', value: 'biometric' },
+  { label: 'Khác', value: 'other' },
+];
 
 /**
  * P0.8 Phase 1 - Section 5: Integration Connection List Component
@@ -193,7 +218,7 @@ const IntegrationConnectionList = ({ value = [], onChange }: any) => {
                     name="integration_method"
                     rules={[{ required: true, message: 'Vui lòng chọn phương thức' }]}
                   >
-                    <Select options={integrationMethodOptions} placeholder="Chọn phương thức" />
+                    <SelectWithOther options={integrationMethodOptions} placeholder="Chọn phương thức" />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
@@ -302,7 +327,7 @@ const IntegrationConnectionList = ({ value = [], onChange }: any) => {
                   name="integration_method"
                   rules={[{ required: true, message: 'Vui lòng chọn phương thức' }]}
                 >
-                  <Select options={integrationMethodOptions} placeholder="Chọn phương thức" />
+                  <SelectWithOther options={integrationMethodOptions} placeholder="Chọn phương thức" />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -577,18 +602,12 @@ const SystemCreate = () => {
                 name="system_group"
                 initialValue="other"
                 rules={[{ required: true, message: 'Vui lòng chọn nhóm hệ thống' }]}
-                tooltip="P0.8 Phase 1: REQUIRED field - 8 options per customer feedback"
+                tooltip="P0.8 Phase 1: Dropdown với tùy chọn 'Khác' cho phép nhập tùy chỉnh"
               >
-                <Select>
-                  <Select.Option value="national_platform">Nền tảng quốc gia</Select.Option>
-                  <Select.Option value="shared_platform">Nền tảng dùng chung của Bộ</Select.Option>
-                  <Select.Option value="specialized_db">CSDL chuyên ngành</Select.Option>
-                  <Select.Option value="business_app">Ứng dụng nghiệp vụ</Select.Option>
-                  <Select.Option value="portal">Cổng thông tin</Select.Option>
-                  <Select.Option value="bi">BI/Báo cáo</Select.Option>
-                  <Select.Option value="esb">ESB/Tích hợp</Select.Option>
-                  <Select.Option value="other">Khác</Select.Option>
-                </Select>
+                <SelectWithOther
+                  options={systemGroupOptions}
+                  placeholder="Chọn nhóm hệ thống"
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -992,15 +1011,10 @@ const SystemCreate = () => {
           <Row gutter={[16, 16]}>
             <Col span={12}>
               <Form.Item label="Phương thức xác thực" name="authentication_method">
-                <Select placeholder="Chọn phương thức">
-                  <Select.Option value="username_password">Username/Password</Select.Option>
-                  <Select.Option value="sso">SSO</Select.Option>
-                  <Select.Option value="ldap">LDAP</Select.Option>
-                  <Select.Option value="oauth">OAuth</Select.Option>
-                  <Select.Option value="saml">SAML</Select.Option>
-                  <Select.Option value="biometric">Biometric</Select.Option>
-                  <Select.Option value="other">Khác</Select.Option>
-                </Select>
+                <SelectWithOther
+                  options={authenticationMethodOptions}
+                  placeholder="Chọn phương thức"
+                />
               </Form.Item>
             </Col>
 

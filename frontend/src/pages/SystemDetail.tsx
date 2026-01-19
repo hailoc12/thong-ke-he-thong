@@ -1,5 +1,5 @@
 /**
- * P0.8: System Detail View - Updated to show all 24 new fields
+ * System Detail View - Updated to show all 24 new fields
  * Organized into 8 sections with Collapse
  * Date: 2026-01-19
  */
@@ -387,7 +387,7 @@ const SystemDetail = () => {
         }
       >
         <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-          P0.8: Hiển thị đầy đủ 24 trường thông tin mới
+          Hiển thị đầy đủ 24 trường thông tin mới
         </Text>
 
         <Collapse items={collapseItems} defaultActiveKey={['1']} />

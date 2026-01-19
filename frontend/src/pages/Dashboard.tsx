@@ -218,7 +218,7 @@ const Dashboard = () => {
 
   // Criticality chart colors - Using enhanced design system
   const CRITICALITY_COLORS = {
-    critical: colors.status.warning,   // '#F59E0B' (removed 'critical' level per P0.8)
+    critical: colors.status.warning,   // '#F59E0B' (removed 'critical' level per )
     high: colors.status.inactive,      // '#EF4444'
     medium: colors.info.main,          // '#3B82F6'
     low: colors.status.active,         // '#22C55E'

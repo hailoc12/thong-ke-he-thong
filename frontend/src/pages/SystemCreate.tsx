@@ -1,5 +1,5 @@
 /**
- * P0.8: System Form Redesign - NEW VERSION
+ * System Form Redesign - NEW VERSION
  * Simplified Tabs-based form with 24 new fields
  * Date: 2026-01-19
  */
@@ -46,7 +46,7 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 /**
- * P0.8 Phase 1: Predefined options for SelectWithOther components
+ * Phase 1: Predefined options for SelectWithOther components
  */
 const systemGroupOptions = [
   { label: 'Nền tảng quốc gia', value: 'national_platform' },
@@ -70,7 +70,7 @@ const authenticationMethodOptions = [
 ];
 
 /**
- * P0.8 Phase 1 - Section 5: Integration Connection List Component
+ * Phase 1 - Section 5: Integration Connection List Component
  * Complex dynamic form for managing integration connections
  */
 interface IntegrationConnection {
@@ -569,7 +569,7 @@ const SystemCreate = () => {
                 name="criticality_level"
                 initialValue="medium"
                 rules={[{ required: true, message: 'Vui lòng chọn mức độ quan trọng' }]}
-                tooltip="P0.8: Đã bỏ 'Cực kỳ quan trọng' - chỉ còn 3 mức"
+                tooltip="Đã bỏ 'Cực kỳ quan trọng' - chỉ còn 3 mức"
               >
                 <Select>
                   <Select.Option value="high">Quan trọng</Select.Option>
@@ -579,14 +579,14 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
-            {/* P0.8 Phase 1 - Section 1: New Required Fields */}
+            {/* Phase 1 - Section 1: New Required Fields */}
             <Col span={12}>
               <Form.Item
                 label="Phạm vi sử dụng"
                 name="scope"
                 initialValue="internal_unit"
                 rules={[{ required: true, message: 'Vui lòng chọn phạm vi sử dụng' }]}
-                tooltip="P0.8 Phase 1: REQUIRED field - Phạm vi sử dụng của hệ thống"
+                tooltip="Phase 1: REQUIRED field - Phạm vi sử dụng của hệ thống"
               >
                 <Select>
                   <Select.Option value="internal_unit">Nội bộ đơn vị</Select.Option>
@@ -602,7 +602,7 @@ const SystemCreate = () => {
                 name="system_group"
                 initialValue="other"
                 rules={[{ required: true, message: 'Vui lòng chọn nhóm hệ thống' }]}
-                tooltip="P0.8 Phase 1: Dropdown với tùy chọn 'Khác' cho phép nhập tùy chỉnh"
+                tooltip="Phase 1: Dropdown với tùy chọn 'Khác' cho phép nhập tùy chỉnh"
               >
                 <SelectWithOther
                   options={systemGroupOptions}
@@ -701,10 +701,10 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
-            {/* P0.8 Phase 1 - Section 2: User Metrics */}
+            {/* Phase 1 - Section 2: User Metrics */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
-                Thống kê người dùng (P0.8 Phase 1)
+                Thống kê người dùng (Phase 1)
               </Text>
             </Col>
 
@@ -712,7 +712,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Tổng số tài khoản"
                 name="total_accounts"
-                tooltip="P0.8 Phase 1: Tổng số tài khoản đã tạo trong hệ thống"
+                tooltip="Phase 1: Tổng số tài khoản đã tạo trong hệ thống"
               >
                 <InputNumber
                   min={0}
@@ -727,7 +727,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="MAU (Monthly Active Users)"
                 name="users_mau"
-                tooltip="P0.8 Phase 1: Số người dùng hoạt động hàng tháng"
+                tooltip="Phase 1: Số người dùng hoạt động hàng tháng"
               >
                 <InputNumber
                   min={0}
@@ -742,7 +742,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="DAU (Daily Active Users)"
                 name="users_dau"
-                tooltip="P0.8 Phase 1: Số người dùng hoạt động hàng ngày"
+                tooltip="Phase 1: Số người dùng hoạt động hàng ngày"
               >
                 <InputNumber
                   min={0}
@@ -757,7 +757,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Số đơn vị/địa phương sử dụng"
                 name="num_organizations"
-                tooltip="P0.8 Phase 1: Số đơn vị/địa phương sử dụng hệ thống"
+                tooltip="Phase 1: Số đơn vị/địa phương sử dụng hệ thống"
               >
                 <InputNumber
                   min={0}
@@ -840,10 +840,10 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
-            {/* P0.8 Phase 1 - Section 4: Data Volume Metrics */}
+            {/* Phase 1 - Section 4: Data Volume Metrics */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
-                Dung lượng dữ liệu (P0.8 Phase 1 - REQUIRED)
+                Dung lượng dữ liệu (Phase 1 - REQUIRED)
               </Text>
             </Col>
 
@@ -851,7 +851,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Dung lượng CSDL hiện tại (GB)"
                 name="storage_size_gb"
-                tooltip="P0.8 Phase 1 - REQUIRED: Dung lượng cơ sở dữ liệu hiện tại"
+                tooltip="Phase 1 - REQUIRED: Dung lượng cơ sở dữ liệu hiện tại"
               >
                 <InputNumber
                   min={0}
@@ -867,7 +867,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Dung lượng file đính kèm (GB)"
                 name="file_storage_size_gb"
-                tooltip="P0.8 Phase 1 - REQUIRED: Dung lượng file, tài liệu lưu trữ"
+                tooltip="Phase 1 - REQUIRED: Dung lượng file, tài liệu lưu trữ"
               >
                 <InputNumber
                   min={0}
@@ -883,7 +883,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Tốc độ tăng trưởng dữ liệu (%)"
                 name="growth_rate_percent"
-                tooltip="P0.8 Phase 1 - REQUIRED: Tốc độ tăng trưởng (%/năm hoặc GB/tháng)"
+                tooltip="Phase 1 - REQUIRED: Tốc độ tăng trưởng (%/năm hoặc GB/tháng)"
               >
                 <InputNumber
                   min={0}
@@ -910,10 +910,10 @@ const SystemCreate = () => {
       children: (
         <Card>
           <Row gutter={[16, 16]}>
-            {/* P0.8 Phase 1 - Section 5: API Inventory */}
+            {/* Phase 1 - Section 5: API Inventory */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
-                Thống kê API (P0.8 Phase 1)
+                Thống kê API (Phase 1)
               </Text>
             </Col>
 
@@ -921,7 +921,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Số API cung cấp"
                 name="api_provided_count"
-                tooltip="P0.8 Phase 1: Tổng số API mà hệ thống này cung cấp cho hệ thống khác"
+                tooltip="Phase 1: Tổng số API mà hệ thống này cung cấp cho hệ thống khác"
               >
                 <InputNumber
                   min={0}
@@ -935,7 +935,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Số API tiêu thụ"
                 name="api_consumed_count"
-                tooltip="P0.8 Phase 1: Tổng số API mà hệ thống này gọi từ hệ thống khác"
+                tooltip="Phase 1: Tổng số API mà hệ thống này gọi từ hệ thống khác"
               >
                 <InputNumber
                   min={0}
@@ -977,10 +977,10 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
-            {/* P0.8 Phase 1 - Section 5: Integration Connections (Complex Dynamic Form) */}
+            {/* Phase 1 - Section 5: Integration Connections (Complex Dynamic Form) */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 24, marginBottom: 16 }}>
-                Danh sách tích hợp chi tiết (P0.8 Phase 1 - CRITICAL)
+                Danh sách tích hợp chi tiết (Phase 1 - CRITICAL)
               </Text>
               <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
                 Liệt kê chi tiết các kết nối tích hợp giữa hệ thống này với các hệ thống khác
@@ -1137,7 +1137,7 @@ const SystemCreate = () => {
               Tạo hệ thống mới
             </Title>
             <Text type="secondary">
-              P0.8: Form mới với 8 phần - Điền thông tin hệ thống theo từng tab
+              Form mới với 8 phần - Điền thông tin hệ thống theo từng tab
             </Text>
           </div>
 

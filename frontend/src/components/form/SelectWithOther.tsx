@@ -36,14 +36,22 @@ export const SelectWithOther = ({
       return;
     }
 
-    // Check if value is a predefined option
-    const isPredefined = options.some(opt => opt.value === value);
+    // Check if value is the "other" option itself (should show custom input with empty value)
+    if (value === otherValue) {
+      setSelectedOption(otherValue);
+      setShowCustomInput(true);
+      setCustomValue(''); // Empty initially, user will fill it
+      return;
+    }
+
+    // Check if value is a predefined non-other option
+    const isPredefined = options.some(opt => opt.value === value && opt.value !== otherValue);
     if (isPredefined) {
       setSelectedOption(value);
       setShowCustomInput(false);
       setCustomValue('');
     } else {
-      // Value is custom
+      // Value is custom text (not in predefined options)
       setSelectedOption(otherValue);
       setCustomValue(value);
       setShowCustomInput(true);

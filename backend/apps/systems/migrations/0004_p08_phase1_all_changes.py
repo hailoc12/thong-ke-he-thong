@@ -73,6 +73,60 @@ class Migration(migrations.Migration):
 
     operations = [
         # ======================================================================
+        # FIX: Register SystemDataInfo in migration state (table already exists)
+        # ======================================================================
+        # The SystemDataInfo model exists in database but was never created through migrations.
+        # This operation adds it to Django's migration state without creating the table.
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.CreateModel(
+                    name='SystemDataInfo',
+                    fields=[
+                        ('system', models.OneToOneField(
+                            on_delete=django.db.models.deletion.CASCADE,
+                            primary_key=True,
+                            related_name='data_info',
+                            serialize=False,
+                            to='systems.system'
+                        )),
+                        ('storage_size_gb', models.DecimalField(
+                            blank=True,
+                            decimal_places=2,
+                            max_digits=10,
+                            null=True,
+                            verbose_name='Database Storage Size (GB)'
+                        )),
+                        ('growth_rate_percent', models.DecimalField(
+                            blank=True,
+                            decimal_places=2,
+                            max_digits=5,
+                            null=True,
+                            verbose_name='Growth Rate (%)'
+                        )),
+                        ('data_types', models.JSONField(blank=True, default=list)),
+                        ('has_api', models.BooleanField(default=False, verbose_name='Has API')),
+                        ('api_endpoints_count', models.IntegerField(blank=True, null=True)),
+                        ('shared_with_systems', models.TextField(blank=True)),
+                        ('has_data_standard', models.BooleanField(default=False, verbose_name='Has Data Standard')),
+                        ('has_personal_data', models.BooleanField(default=False)),
+                        ('has_sensitive_data', models.BooleanField(default=False)),
+                        ('data_classification', models.CharField(blank=True, max_length=50)),
+                        ('created_at', models.DateTimeField(auto_now_add=True)),
+                        ('updated_at', models.DateTimeField(auto_now=True)),
+                    ],
+                    options={
+                        'db_table': 'system_data_info',
+                        'verbose_name': 'System Data Info',
+                        'verbose_name_plural': 'System Data Info',
+                    },
+                ),
+            ],
+            database_operations=[
+                # No database operations - table already exists
+            ],
+        ),
+
+        # ======================================================================
         # SECTION 1: Update system_group choices (8 options) + make required
         # ======================================================================
 

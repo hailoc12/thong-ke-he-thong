@@ -428,6 +428,46 @@ const dataVolumeOptions = [
 ];
 
 /**
+ * Phase 4 Part 3: JSONField checkbox options
+ */
+const businessProcessesOptions = [
+  { label: 'Quản lý hồ sơ', value: 'document_management' },
+  { label: 'Phê duyệt', value: 'approval' },
+  { label: 'Tra cứu', value: 'lookup' },
+  { label: 'Báo cáo', value: 'reporting' },
+  { label: 'Đăng ký', value: 'registration' },
+  { label: 'Thanh toán', value: 'payment' },
+  { label: 'Giám sát', value: 'monitoring' },
+  { label: 'Thống kê', value: 'statistics' },
+  { label: 'Khác', value: 'other' },
+];
+
+const integratedInternalSystemsOptions = [
+  { label: 'Hệ thống quản lý văn bản', value: 'document_management_system' },
+  { label: 'Hệ thống quản lý nhân sự', value: 'hr_system' },
+  { label: 'Hệ thống tài chính', value: 'finance_system' },
+  { label: 'Hệ thống báo cáo', value: 'reporting_system' },
+  { label: 'Portal nội bộ', value: 'internal_portal' },
+  { label: 'SSO/Identity', value: 'sso_identity' },
+  { label: 'Email/Messaging', value: 'email_system' },
+  { label: 'File Storage', value: 'file_storage' },
+  { label: 'Khác', value: 'other' },
+];
+
+const integratedExternalSystemsOptions = [
+  { label: 'VNeID', value: 'vneid' },
+  { label: 'LGSP (Nền tảng tích hợp, chia sẻ)', value: 'lgsp' },
+  { label: 'Cổng Dịch vụ công Quốc gia', value: 'national_public_service_portal' },
+  { label: 'Hệ thống Đăng ký kinh doanh', value: 'business_registration' },
+  { label: 'Hệ thống Thuế', value: 'tax_system' },
+  { label: 'Hệ thống Hải quan', value: 'customs' },
+  { label: 'BHXH (Bảo hiểm xã hội)', value: 'social_insurance' },
+  { label: 'Cơ sở dữ liệu Quốc gia về dân cư', value: 'national_population_db' },
+  { label: 'Đăng ký đất đai', value: 'land_registration' },
+  { label: 'Khác', value: 'other' },
+];
+
+/**
  * Phase 1 - Section 5: Integration Connection List Component
  * Complex dynamic form for managing integration connections
  */
@@ -1002,7 +1042,10 @@ const SystemCreate = () => {
                 name="business_processes"
                 initialValue={[]}
               >
-                <DynamicListInput placeholder="Nhập quy trình nghiệp vụ và nhấn Enter" />
+                <CheckboxGroupWithOther
+                  options={businessProcessesOptions}
+                  customInputPlaceholder="Nhập quy trình nghiệp vụ khác..."
+                />
               </Form.Item>
             </Col>
 
@@ -1533,23 +1576,29 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            <Col span={24}>
               <Form.Item
                 label="Hệ thống nội bộ tích hợp"
                 name="integrated_internal_systems"
                 initialValue={[]}
               >
-                <DynamicListInput placeholder="Nhập tên hệ thống nội bộ" />
+                <CheckboxGroupWithOther
+                  options={integratedInternalSystemsOptions}
+                  customInputPlaceholder="Nhập tên hệ thống nội bộ khác..."
+                />
               </Form.Item>
             </Col>
 
-            <Col span={12}>
+            <Col span={24}>
               <Form.Item
                 label="Hệ thống bên ngoài tích hợp"
                 name="integrated_external_systems"
                 initialValue={[]}
               >
-                <DynamicListInput placeholder="Nhập tên hệ thống bên ngoài" />
+                <CheckboxGroupWithOther
+                  options={integratedExternalSystemsOptions}
+                  customInputPlaceholder="Nhập tên hệ thống bên ngoài khác..."
+                />
               </Form.Item>
             </Col>
 

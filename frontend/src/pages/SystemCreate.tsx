@@ -70,6 +70,80 @@ const authenticationMethodOptions = [
 ];
 
 /**
+ * Phase 2: Predefined options for high-priority CharField fields
+ */
+const programmingLanguageOptions = [
+  { label: 'Python', value: 'Python' },
+  { label: 'Java', value: 'Java' },
+  { label: 'JavaScript', value: 'JavaScript' },
+  { label: 'C#', value: 'C#' },
+  { label: 'PHP', value: 'PHP' },
+  { label: 'Ruby', value: 'Ruby' },
+  { label: 'Go', value: 'Go' },
+  { label: 'Kotlin', value: 'Kotlin' },
+  { label: 'Swift', value: 'Swift' },
+  { label: 'TypeScript', value: 'TypeScript' },
+  { label: 'Rust', value: 'Rust' },
+  { label: 'C++', value: 'C++' },
+  { label: '.NET', value: '.NET' },
+  { label: 'Khác', value: 'other' },
+];
+
+const frameworkOptions = [
+  { label: 'Django', value: 'Django' },
+  { label: 'Spring Boot', value: 'Spring Boot' },
+  { label: 'React', value: 'React' },
+  { label: 'Angular', value: 'Angular' },
+  { label: 'Vue.js', value: 'Vue.js' },
+  { label: 'Laravel', value: 'Laravel' },
+  { label: 'Ruby on Rails', value: 'Ruby on Rails' },
+  { label: 'Express.js', value: 'Express.js' },
+  { label: 'Flask', value: 'Flask' },
+  { label: 'FastAPI', value: 'FastAPI' },
+  { label: 'ASP.NET', value: 'ASP.NET' },
+  { label: 'Flutter', value: 'Flutter' },
+  { label: 'Next.js', value: 'Next.js' },
+  { label: 'Nuxt.js', value: 'Nuxt.js' },
+  { label: 'Khác', value: 'other' },
+];
+
+const databaseNameOptions = [
+  { label: 'PostgreSQL', value: 'PostgreSQL' },
+  { label: 'MySQL', value: 'MySQL' },
+  { label: 'SQL Server', value: 'SQL Server' },
+  { label: 'Oracle Database', value: 'Oracle Database' },
+  { label: 'MongoDB', value: 'MongoDB' },
+  { label: 'Redis', value: 'Redis' },
+  { label: 'MariaDB', value: 'MariaDB' },
+  { label: 'Cassandra', value: 'Cassandra' },
+  { label: 'Elasticsearch', value: 'Elasticsearch' },
+  { label: 'SQLite', value: 'SQLite' },
+  { label: 'DynamoDB', value: 'DynamoDB' },
+  { label: 'Firebase', value: 'Firebase' },
+  { label: 'Khác', value: 'other' },
+];
+
+const dataClassificationTypeOptions = [
+  { label: 'Công khai', value: 'Công khai' },
+  { label: 'Nội bộ', value: 'Nội bộ' },
+  { label: 'Hạn chế', value: 'Hạn chế' },
+  { label: 'Bí mật', value: 'Bí mật' },
+  { label: 'Tối mật', value: 'Tối mật' },
+  { label: 'Khác', value: 'other' },
+];
+
+const dataExchangeMethodOptions = [
+  { label: 'API REST', value: 'API REST' },
+  { label: 'API SOAP', value: 'API SOAP' },
+  { label: 'File Transfer', value: 'File Transfer' },
+  { label: 'Database Link', value: 'Database Link' },
+  { label: 'Message Queue', value: 'Message Queue' },
+  { label: 'ETL', value: 'ETL' },
+  { label: 'Manual', value: 'Manual' },
+  { label: 'Khác', value: 'other' },
+];
+
+/**
  * Phase 1 - Section 5: Integration Connection List Component
  * Complex dynamic form for managing integration connections
  */
@@ -783,19 +857,28 @@ const SystemCreate = () => {
           <Row gutter={[16, 16]}>
             <Col span={12}>
               <Form.Item label="Ngôn ngữ lập trình" name="programming_language">
-                <Input placeholder="VD: Python, Java, JavaScript, C#" />
+                <SelectWithOther
+                  options={programmingLanguageOptions}
+                  placeholder="Chọn ngôn ngữ lập trình"
+                />
               </Form.Item>
             </Col>
 
             <Col span={12}>
               <Form.Item label="Framework/Thư viện" name="framework">
-                <Input placeholder="VD: Django, Spring Boot, React, Angular" />
+                <SelectWithOther
+                  options={frameworkOptions}
+                  placeholder="Chọn framework/thư viện"
+                />
               </Form.Item>
             </Col>
 
             <Col span={12}>
               <Form.Item label="Cơ sở dữ liệu" name="database_name">
-                <Input placeholder="VD: PostgreSQL, MySQL, MongoDB, Oracle" />
+                <SelectWithOther
+                  options={databaseNameOptions}
+                  placeholder="Chọn cơ sở dữ liệu"
+                />
               </Form.Item>
             </Col>
 
@@ -830,7 +913,10 @@ const SystemCreate = () => {
 
             <Col span={12}>
               <Form.Item label="Phân loại dữ liệu" name="data_classification_type">
-                <Input placeholder="VD: Public, Internal, Confidential, Secret" />
+                <SelectWithOther
+                  options={dataClassificationTypeOptions}
+                  placeholder="Chọn mức độ phân loại"
+                />
               </Form.Item>
             </Col>
 
@@ -973,7 +1059,10 @@ const SystemCreate = () => {
 
             <Col span={12}>
               <Form.Item label="Phương thức trao đổi dữ liệu" name="data_exchange_method">
-                <Input placeholder="VD: REST API, SOAP, File Transfer, Database Sync" />
+                <SelectWithOther
+                  options={dataExchangeMethodOptions}
+                  placeholder="Chọn phương thức trao đổi"
+                />
               </Form.Item>
             </Col>
 

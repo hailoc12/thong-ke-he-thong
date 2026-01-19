@@ -17,7 +17,7 @@ const Login = () => {
     try {
       await login(values);
       message.success('Đăng nhập thành công!');
-      navigate('/');
+      navigate('/dashboard');
     } catch (error: any) {
       message.error(error.response?.data?.detail || 'Đăng nhập thất bại');
     } finally {

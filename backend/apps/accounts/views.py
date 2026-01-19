@@ -134,3 +134,45 @@ class UserViewSet(viewsets.ModelViewSet):
             'message': 'Kích hoạt người dùng thành công',
             'user': serializer.data
         })
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete a user with cascade warning
+        Returns info about systems that belong to user's organization
+        """
+        user = self.get_object()
+
+        # Prevent deleting the last admin
+        if user.role == 'admin' and User.objects.filter(role='admin', is_active=True).count() == 1:
+            return Response(
+                {'error': 'Không thể xóa admin cuối cùng trong hệ thống'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Get statistics about systems
+        systems_count = 0
+        warning_message = ''
+
+        if user.organization:
+            # Count systems belonging to user's organization
+            from apps.systems.models import System
+            systems_count = System.objects.filter(org=user.organization).count()
+
+            # Check if this is the last user in the organization
+            org_users_count = User.objects.filter(
+                organization=user.organization,
+                is_active=True
+            ).exclude(id=user.id).count()
+
+            if org_users_count == 0 and systems_count > 0:
+                warning_message = f'Đây là người dùng cuối cùng của đơn vị {user.organization.name}. ' \
+                                f'Sau khi xóa, {systems_count} hệ thống của đơn vị này sẽ không còn ai quản lý.'
+
+        # Perform deletion
+        user.delete()
+
+        return Response({
+            'message': 'Xóa người dùng thành công',
+            'systems_affected': systems_count,
+            'warning': warning_message
+        }, status=status.HTTP_200_OK)

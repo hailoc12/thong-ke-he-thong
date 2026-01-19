@@ -17,6 +17,8 @@ import {
   CheckCircleOutlined,
   StopOutlined,
   UserOutlined,
+  DeleteOutlined,
+  ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../config/api';
@@ -41,6 +43,9 @@ const Users = () => {
   const [loading, setLoading] = useState(false);
   const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deleteWarning, setDeleteWarning] = useState<string>('');
   const [form] = Form.useForm<UserFormValues>();
   const [selectedRole, setSelectedRole] = useState<'admin' | 'org_user'>('org_user');
 
@@ -121,6 +126,41 @@ const Users = () => {
     }
   };
 
+  const showDeleteConfirm = (user: User) => {
+    setUserToDelete(user);
+
+    // Generate warning message
+    let warning = `Bạn có chắc muốn xóa người dùng "${user.username}"?`;
+
+    if (user.organization_name) {
+      warning += `\n\nLưu ý: Người dùng này thuộc đơn vị "${user.organization_name}". `;
+      warning += 'Nếu đây là người dùng cuối cùng của đơn vị, các hệ thống của đơn vị sẽ không còn ai quản lý.';
+    }
+
+    setDeleteWarning(warning);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!userToDelete) return;
+
+    try {
+      const response = await api.delete(`/users/${userToDelete.id}/`);
+
+      if (response.data.warning) {
+        message.warning(response.data.warning, 10);
+      } else {
+        message.success('Xóa người dùng thành công');
+      }
+
+      setDeleteModalOpen(false);
+      setUserToDelete(null);
+      fetchUsers();
+    } catch (error: any) {
+      message.error(error.response?.data?.error || 'Xóa người dùng thất bại');
+    }
+  };
+
   const columns: ColumnsType<User> = [
     {
       title: 'Tên đăng nhập',
@@ -183,7 +223,7 @@ const Users = () => {
     {
       title: 'Hành động',
       key: 'action',
-      width: 200,
+      width: 280,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
@@ -222,6 +262,15 @@ const Users = () => {
               </Button>
             </Popconfirm>
           )}
+          <Button
+            type="text"
+            danger
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={() => showDeleteConfirm(record)}
+          >
+            Xóa
+          </Button>
         </Space>
       ),
     },
@@ -389,6 +438,35 @@ const Users = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        title={
+          <Space>
+            <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
+            <span>Xác nhận xóa người dùng</span>
+          </Space>
+        }
+        open={deleteModalOpen}
+        onOk={handleDelete}
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setUserToDelete(null);
+        }}
+        okText="Xóa"
+        cancelText="Hủy"
+        okButtonProps={{ danger: true }}
+      >
+        <div style={{ whiteSpace: 'pre-line', marginTop: 16 }}>
+          {deleteWarning}
+        </div>
+        <div style={{ marginTop: 16, padding: 12, background: '#fff1f0', borderRadius: 4, border: '1px solid #ffccc7' }}>
+          <strong style={{ color: '#cf1322' }}>⚠️ Cảnh báo:</strong>
+          <div style={{ marginTop: 8 }}>
+            Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan đến người dùng này sẽ bị mất.
+          </div>
+        </div>
       </Modal>
     </div>
   );

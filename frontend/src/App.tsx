@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import type { ThemeConfig } from 'antd';
 import viVN from 'antd/locale/vi_VN';
+import HomeRedirect from './components/HomeRedirect';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -96,13 +97,16 @@ function App() {
     <ConfigProvider locale={viVN} theme={antdTheme}>
       <BrowserRouter>
         <Routes>
+          {/* Root - show landing page or redirect to dashboard based on auth */}
+          <Route path="/" element={<HomeRedirect />} />
+
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
           {/* Protected routes */}
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <MainLayout />
@@ -127,7 +131,7 @@ function App() {
             <Route path="api-catalog" element={<FeatureRoute feature="apiCatalog" element={<APICatalog />} />} />
           </Route>
 
-          {/* Catch all */}
+          {/* Catch all - redirect to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

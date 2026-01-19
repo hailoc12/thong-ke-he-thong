@@ -9,8 +9,8 @@
 **Quản trị viên hệ thống**
 
 - **Username:** admin
-- **Email:** admin@mindmaid.ai
-- **Password:** [Xem ADMIN_CREDENTIALS.md]
+- **Email:** admin@thongke.vn
+- **Password:** Admin@2026
 - **Role:** admin (Quản trị viên)
 
 **Quyền hạn:**

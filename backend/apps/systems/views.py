@@ -44,8 +44,17 @@ class SystemViewSet(viewsets.ModelViewSet):
     ).all()
     permission_classes = [IsOrgUserOrAdmin]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['org', 'status', 'criticality_level', 'form_level', 'system_group']
-    search_fields = ['system_code', 'system_name', 'system_name_en', 'purpose', 'business_owner', 'technical_owner']
+    # P0.8: Added new filterset fields for technology stack
+    filterset_fields = [
+        'org', 'status', 'criticality_level', 'form_level', 'system_group',
+        'programming_language', 'framework', 'database_name', 'hosting_platform'
+    ]
+    # P0.8: Added new search fields for technology stack
+    search_fields = [
+        'system_code', 'system_name', 'system_name_en', 'purpose',
+        'business_owner', 'technical_owner',
+        'programming_language', 'framework', 'database_name'
+    ]
     ordering_fields = ['created_at', 'updated_at', 'system_code', 'system_name', 'go_live_date']
     ordering = ['-created_at']
 
@@ -106,7 +115,7 @@ class SystemViewSet(viewsets.ModelViewSet):
                 'draft': queryset.filter(status='draft').count(),
             },
             'by_criticality': {
-                'critical': queryset.filter(criticality_level='critical').count(),
+                # P0.8: Removed 'critical' option per customer request
                 'high': queryset.filter(criticality_level='high').count(),
                 'medium': queryset.filter(criticality_level='medium').count(),
                 'low': queryset.filter(criticality_level='low').count(),

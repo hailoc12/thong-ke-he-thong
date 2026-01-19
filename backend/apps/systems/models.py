@@ -29,7 +29,7 @@ class System(models.Model):
     ]
 
     CRITICALITY_CHOICES = [
-        ('critical', 'Tối quan trọng'),
+        # Removed ('critical', 'Tối quan trọng') per customer request P0.8
         ('high', 'Quan trọng'),
         ('medium', 'Trung bình'),
         ('low', 'Thấp'),
@@ -60,6 +60,176 @@ class System(models.Model):
         default=list,
         blank=True,
         help_text='["leader", "staff", "business", "citizen"]'
+    )
+
+    # ======================================================================
+    # SECTION 2: Business Context (P0.8 - NEW FIELDS)
+    # ======================================================================
+    business_objectives = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of business objectives (max 5 items recommended)'
+    )
+    business_processes = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of main business processes supported by the system'
+    )
+    has_design_documents = models.BooleanField(
+        default=False,
+        verbose_name=_('Has Design Documents?'),
+        help_text='Có đủ hồ sơ phân tích thiết kế hệ thống?'
+    )
+    user_types = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='User types: internal_leadership, internal_staff, internal_reviewer, external_business, external_citizen, external_local, external_agency'
+    )
+    annual_users = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_('Annual Users Count'),
+        help_text='Số lượng người dùng hàng năm'
+    )
+
+    # ======================================================================
+    # SECTION 3: Technology Architecture (P0.8 - NEW FIELDS)
+    # ======================================================================
+    programming_language = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Programming Language'),
+        help_text='e.g., Python, Java, JavaScript, C#'
+    )
+    framework = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Framework/Library'),
+        help_text='e.g., Django, Spring Boot, React, Angular'
+    )
+    database_name = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Database'),
+        help_text='e.g., PostgreSQL, MySQL, MongoDB, Oracle'
+    )
+    hosting_platform = models.CharField(
+        max_length=50,
+        choices=[
+            ('cloud', 'Cloud'),
+            ('on_premise', 'On-premise'),
+            ('hybrid', 'Hybrid'),
+        ],
+        blank=True,
+        verbose_name=_('Hosting Platform')
+    )
+
+    # ======================================================================
+    # SECTION 4: Data Architecture (P0.8 - NEW FIELDS)
+    # ======================================================================
+    data_sources = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of data sources (databases, APIs, files, etc.)'
+    )
+    data_classification_type = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Data Classification'),
+        help_text='e.g., Public, Internal, Confidential, Secret'
+    )
+    data_volume = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Data Volume'),
+        help_text='e.g., 100GB, 1TB, 10TB'
+    )
+
+    # ======================================================================
+    # SECTION 5: System Integration (P0.8 - NEW FIELDS)
+    # ======================================================================
+    integrated_internal_systems = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of integrated internal systems'
+    )
+    integrated_external_systems = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of integrated external systems'
+    )
+    api_list = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of APIs/Webservices provided or consumed'
+    )
+    data_exchange_method = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Data Exchange Method'),
+        help_text='e.g., REST API, SOAP, File Transfer, Database Sync'
+    )
+
+    # ======================================================================
+    # SECTION 6: Security (P0.8 - NEW FIELDS)
+    # ======================================================================
+    authentication_method = models.CharField(
+        max_length=100,
+        choices=[
+            ('username_password', 'Username/Password'),
+            ('sso', 'SSO'),
+            ('ldap', 'LDAP'),
+            ('oauth', 'OAuth'),
+            ('saml', 'SAML'),
+            ('biometric', 'Biometric'),
+            ('other', 'Khác'),
+        ],
+        blank=True,
+        verbose_name=_('Authentication Method')
+    )
+    has_encryption = models.BooleanField(
+        default=False,
+        verbose_name=_('Has Data Encryption?'),
+        help_text='Mã hóa dữ liệu'
+    )
+    has_audit_log = models.BooleanField(
+        default=False,
+        verbose_name=_('Has Audit Log?'),
+        help_text='Có log audit trail?'
+    )
+    compliance_standards_list = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name=_('Compliance Standards'),
+        help_text='e.g., ISO 27001, GDPR, PCI DSS, SOC 2'
+    )
+
+    # ======================================================================
+    # SECTION 7: Infrastructure (P0.8 - NEW FIELDS)
+    # ======================================================================
+    server_configuration = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name=_('Server Configuration'),
+        help_text='CPU, RAM, Storage specifications'
+    )
+    storage_capacity = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Storage Capacity'),
+        help_text='Total storage allocated for the system'
+    )
+    backup_plan = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name=_('Backup Plan'),
+        help_text='Backup frequency, retention, and strategy'
+    )
+    disaster_recovery_plan = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name=_('Disaster Recovery Plan'),
+        help_text='DR strategy, RTO, RPO'
     )
 
     # System Group & Status
@@ -121,6 +291,31 @@ class System(models.Model):
         ]
         verbose_name = _('System')
         verbose_name_plural = _('Systems')
+
+    def generate_system_code(self):
+        """
+        Auto-generate system code in format: SYS-{ORG_CODE}-{YYYY}-{XXXX}
+        Example: SYS-SKHCN-HN-2026-0001
+        Per customer request P0.8: System code should be auto-generated
+        """
+        from django.utils import timezone
+
+        org_code = self.org.code if hasattr(self.org, 'code') else f"ORG{self.org.id}"
+        year = timezone.now().year
+
+        # Count systems created this year for this organization
+        count = System.objects.filter(
+            org=self.org,
+            created_at__year=year
+        ).count() + 1
+
+        return f"SYS-{org_code}-{year}-{count:04d}"
+
+    def save(self, *args, **kwargs):
+        """Override save to auto-generate system_code if not provided"""
+        if not self.system_code:
+            self.system_code = self.generate_system_code()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.system_code} - {self.system_name}"

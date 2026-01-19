@@ -1,6 +1,11 @@
+/**
+ * P0.8: System Form Redesign - NEW VERSION
+ * Simplified Tabs-based form with 24 new fields
+ * Date: 2026-01-19
+ */
 import { useState, useEffect } from 'react';
 import {
-  Steps,
+  Tabs,
   Form,
   Input,
   Select,
@@ -8,34 +13,43 @@ import {
   Card,
   Row,
   Col,
-  DatePicker,
   InputNumber,
+  Switch,
   Checkbox,
-  Radio,
-  Rate,
   message,
   Spin,
   Typography,
+  Tag,
+  Space,
 } from 'antd';
-import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons';
+import {
+  ArrowLeftOutlined,
+  SaveOutlined,
+  InfoCircleOutlined,
+  AppstoreOutlined,
+  DatabaseOutlined,
+  ApiOutlined,
+  SafetyOutlined,
+  CloudServerOutlined,
+  ToolOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../config/api';
-import type { Organization, SystemCreatePayload } from '../types';
+import type { Organization } from '../types';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const SystemCreate = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [formLevel, setFormLevel] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [formData, setFormData] = useState<Partial<SystemCreatePayload>>({});
+  const [userRole, setUserRole] = useState<string>('');
 
   useEffect(() => {
     fetchOrganizations();
+    checkUserRole();
   }, []);
 
   const fetchOrganizations = async () => {
@@ -47,956 +61,564 @@ const SystemCreate = () => {
     }
   };
 
-  // Steps configuration
-  const level1Steps = [
-    { title: 'Thông tin cơ bản', key: 'basic' },
-    { title: 'Kiến trúc', key: 'architecture' },
-    { title: 'Dữ liệu', key: 'data' },
-    { title: 'Vận hành', key: 'operations' },
-    { title: 'Liên thông', key: 'integration' },
-    { title: 'Đánh giá', key: 'assessment' },
-  ];
-
-  const level2Steps = [
-    { title: 'Chi phí', key: 'cost' },
-    { title: 'Nhà cung cấp', key: 'vendor' },
-    { title: 'Hạ tầng', key: 'infrastructure' },
-    { title: 'Bảo mật', key: 'security' },
-  ];
-
-  const allSteps = formLevel === 2 ? [...level1Steps, ...level2Steps] : level1Steps;
-
-  const handleFormLevelChange = (level: 1 | 2) => {
-    setFormLevel(level);
-  };
-
-  const handleNext = async () => {
+  const checkUserRole = async () => {
     try {
-      const values = await form.validateFields();
-      setFormData({ ...formData, ...values });
-      setCurrentStep(currentStep + 1);
+      const response = await api.get('/auth/me/');
+      setUserRole(response.data.role);
+      if (response.data.organization) {
+        form.setFieldsValue({ org: response.data.organization });
+      }
     } catch (error) {
-      console.error('Validation failed:', error);
+      console.error('Failed to fetch user info:', error);
     }
-  };
-
-  const handlePrev = () => {
-    setCurrentStep(currentStep - 1);
   };
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      const allData = { ...formData, ...values };
       setLoading(true);
 
-      // Build the payload
-      const payload: SystemCreatePayload = {
-        org: allData.org,
-        system_code: allData.system_code,
-        system_name: allData.system_name,
-        system_name_en: allData.system_name_en,
-        purpose: allData.purpose,
-        scope: allData.scope,
-        system_group: allData.system_group,
-        status: allData.status || 'operating',
-        criticality_level: allData.criticality_level || 'medium',
-        form_level: formLevel,
-        go_live_date: allData.go_live_date?.format('YYYY-MM-DD'),
-        business_owner: allData.business_owner,
-        technical_owner: allData.technical_owner,
-        responsible_person: allData.responsible_person,
-        responsible_phone: allData.responsible_phone,
-        responsible_email: allData.responsible_email,
-        users_total: allData.users_total,
-        architecture_data: {
-          architecture_type: allData.architecture_type,
-          backend_tech: allData.backend_tech,
-          frontend_tech: allData.frontend_tech,
-          database_type: allData.database_type,
-          database_model: allData.database_model,
-          hosting_type: allData.hosting_type,
-          mobile_app: allData.mobile_app,
-        },
-        data_info_data: {
-          storage_size_gb: allData.storage_size_gb,
-          has_api: allData.has_api,
-          has_personal_data: allData.has_personal_data,
-          has_sensitive_data: allData.has_sensitive_data,
-          data_classification: allData.data_classification,
-        },
-        operations_data: {
-          dev_type: allData.dev_type,
-          developer: allData.developer,
-          warranty_status: allData.warranty_status,
-          has_maintenance_contract: allData.has_maintenance_contract,
-          operator: allData.operator,
-          vendor_dependency: allData.vendor_dependency,
-        },
-        integration_data: {
-          has_integration: allData.has_integration,
-          integration_count: allData.integration_count,
-          connected_internal_systems: allData.connected_internal_systems,
-          connected_external_systems: allData.connected_external_systems,
-          uses_standard_api: allData.uses_standard_api,
-        },
-        assessment_data: {
-          performance_rating: allData.performance_rating,
-          uptime_percent: allData.uptime_percent,
-          user_satisfaction_rating: allData.user_satisfaction_rating,
-          technical_debt_level: allData.technical_debt_level,
-          needs_replacement: allData.needs_replacement,
-          major_issues: allData.major_issues,
-        },
+      // Build payload - all fields are now flat (no nested _data objects)
+      const payload = {
+        ...values,
+        // org will be auto-filled by backend for org users
       };
-
-      // Add Level 2 data if applicable
-      if (formLevel === 2) {
-        payload.cost_data = {
-          initial_investment: allData.initial_investment,
-          development_cost: allData.development_cost,
-          annual_license_cost: allData.annual_license_cost,
-          annual_maintenance_cost: allData.annual_maintenance_cost,
-          annual_infrastructure_cost: allData.annual_infrastructure_cost,
-          total_cost_of_ownership: allData.total_cost_of_ownership,
-          funding_source: allData.funding_source,
-        };
-        payload.vendor_data = {
-          vendor_name: allData.vendor_name,
-          vendor_type: allData.vendor_type,
-          vendor_contact_person: allData.vendor_contact_person,
-          vendor_phone: allData.vendor_phone,
-          vendor_email: allData.vendor_email,
-          contract_number: allData.contract_number,
-          contract_start_date: allData.contract_start_date?.format('YYYY-MM-DD'),
-          contract_end_date: allData.contract_end_date?.format('YYYY-MM-DD'),
-          vendor_lock_in_risk: allData.vendor_lock_in_risk,
-        };
-        payload.infrastructure_data = {
-          num_servers: allData.num_servers,
-          server_specs: allData.server_specs,
-          total_cpu_cores: allData.total_cpu_cores,
-          total_ram_gb: allData.total_ram_gb,
-          total_storage_tb: allData.total_storage_tb,
-          backup_frequency: allData.backup_frequency,
-          has_disaster_recovery: allData.has_disaster_recovery,
-          rto_hours: allData.rto_hours,
-          rpo_hours: allData.rpo_hours,
-        };
-        payload.security_data = {
-          auth_method: allData.auth_method,
-          has_mfa: allData.has_mfa,
-          has_rbac: allData.has_rbac,
-          has_data_encryption_at_rest: allData.has_data_encryption_at_rest,
-          has_data_encryption_in_transit: allData.has_data_encryption_in_transit,
-          has_firewall: allData.has_firewall,
-          has_waf: allData.has_waf,
-          last_security_audit_date: allData.last_security_audit_date?.format('YYYY-MM-DD'),
-          compliance_standards: allData.compliance_standards,
-        };
-      }
 
       await api.post('/systems/', payload);
       message.success('Tạo hệ thống thành công!');
       navigate('/systems');
     } catch (error: any) {
       console.error('Failed to create system:', error);
-      message.error(error.response?.data?.message || 'Có lỗi xảy ra khi tạo hệ thống');
+      message.error(error.response?.data?.message || 'Tạo hệ thống thất bại!');
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 1: Basic Info
-  const renderBasicInfoStep = () => (
-    <>
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item
-            name="org"
-            label="Đơn vị"
-            rules={[{ required: true, message: 'Vui lòng chọn đơn vị' }]}
-          >
-            <Select
-              placeholder="Chọn đơn vị"
-              showSearch
-              optionFilterProp="children"
-            >
-              {organizations.map((org) => (
-                <Select.Option key={org.id} value={org.id}>
-                  {org.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            name="system_code"
-            label="Mã hệ thống"
-            rules={[{ required: true, message: 'Vui lòng nhập mã hệ thống' }]}
-          >
-            <Input placeholder="VD: HT001" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item
-            name="system_name"
-            label="Tên hệ thống"
-            rules={[{ required: true, message: 'Vui lòng nhập tên hệ thống' }]}
-          >
-            <Input placeholder="Tên hệ thống" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="system_name_en" label="Tên tiếng Anh">
-            <Input placeholder="English name" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Form.Item name="purpose" label="Mục đích / Mô tả">
-        <TextArea rows={3} placeholder="Mô tả mục đích và chức năng chính của hệ thống" />
-      </Form.Item>
-
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item name="scope" label="Phạm vi">
-            <Select placeholder="Chọn phạm vi">
-              <Select.Option value="internal_unit">Nội bộ đơn vị</Select.Option>
-              <Select.Option value="org_wide">Toàn bộ</Select.Option>
-              <Select.Option value="external">Bên ngoài</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="system_group" label="Nhóm hệ thống">
-            <Select placeholder="Chọn nhóm">
-              <Select.Option value="platform">Nền tảng</Select.Option>
-              <Select.Option value="business">Nghiệp vụ</Select.Option>
-              <Select.Option value="portal">Cổng thông tin</Select.Option>
-              <Select.Option value="website">Website</Select.Option>
-              <Select.Option value="bi">BI/Báo cáo</Select.Option>
-              <Select.Option value="esb">ESB/Tích hợp</Select.Option>
-              <Select.Option value="other">Khác</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="go_live_date" label="Ngày vận hành">
-            <DatePicker style={{ width: '100%' }} placeholder="Chọn ngày" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item
-            name="status"
-            label="Trạng thái"
-            rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
-            initialValue="operating"
-          >
-            <Select>
-              <Select.Option value="operating">Đang vận hành</Select.Option>
-              <Select.Option value="pilot">Thí điểm</Select.Option>
-              <Select.Option value="stopped">Dừng</Select.Option>
-              <Select.Option value="replacing">Sắp thay thế</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item
-            name="criticality_level"
-            label="Mức độ quan trọng"
-            rules={[{ required: true, message: 'Vui lòng chọn mức độ' }]}
-            initialValue="medium"
-          >
-            <Select>
-              <Select.Option value="critical">Tối quan trọng</Select.Option>
-              <Select.Option value="high">Quan trọng</Select.Option>
-              <Select.Option value="medium">Trung bình</Select.Option>
-              <Select.Option value="low">Thấp</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item
-            name="form_level"
-            label="Cấp độ form"
-            rules={[{ required: true }]}
-            initialValue={1}
-          >
-            <Radio.Group onChange={(e) => handleFormLevelChange(e.target.value)}>
-              <Radio value={1}>Level 1 (6 phần)</Radio>
-              <Radio value={2}>Level 2 (10 phần)</Radio>
-            </Radio.Group>
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="business_owner" label="Chủ sở hữu nghiệp vụ">
-            <Input placeholder="Họ tên" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="technical_owner" label="Chủ sở hữu kỹ thuật">
-            <Input placeholder="Họ tên" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item name="responsible_person" label="Người phụ trách">
-            <Input placeholder="Họ tên" />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="responsible_phone" label="Số điện thoại">
-            <Input placeholder="SĐT" />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="responsible_email" label="Email">
-            <Input type="email" placeholder="Email" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item name="users_total" label="Tổng số người dùng">
-            <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-          </Form.Item>
-        </Col>
-      </Row>
-    </>
-  );
-
-  // Step 2: Architecture
-  const renderArchitectureStep = () => (
-    <>
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="architecture_type" label="Loại kiến trúc">
-            <Select placeholder="Chọn loại">
-              <Select.Option value="monolithic">Monolithic</Select.Option>
-              <Select.Option value="modular">Modular</Select.Option>
-              <Select.Option value="microservices">Microservices</Select.Option>
-              <Select.Option value="other">Khác</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="hosting_type" label="Loại hosting">
-            <Select placeholder="Chọn loại">
-              <Select.Option value="cloud">Cloud</Select.Option>
-              <Select.Option value="on-premise">On-premise</Select.Option>
-              <Select.Option value="hybrid">Hybrid</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="backend_tech" label="Công nghệ Backend">
-            <Input placeholder="VD: Java Spring, .NET, Python Django" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="frontend_tech" label="Công nghệ Frontend">
-            <Input placeholder="VD: React, Angular, Vue" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="database_type" label="Loại Database">
-            <Input placeholder="VD: PostgreSQL, MySQL, Oracle" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="database_model" label="Mô hình Database">
-            <Select placeholder="Chọn mô hình">
-              <Select.Option value="centralized">Tập trung</Select.Option>
-              <Select.Option value="distributed">Phân tán</Select.Option>
-              <Select.Option value="per_app">Riêng từng app</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="mobile_app" label="Mobile App">
-            <Select placeholder="Chọn loại">
-              <Select.Option value="native">Native App</Select.Option>
-              <Select.Option value="hybrid">Hybrid App</Select.Option>
-              <Select.Option value="pwa">PWA</Select.Option>
-              <Select.Option value="none">Không có</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-      </Row>
-    </>
-  );
-
-  // Step 3: Data Info
-  const renderDataInfoStep = () => (
-    <>
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="storage_size_gb" label="Dung lượng lưu trữ (GB)">
-            <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="data_classification" label="Phân loại dữ liệu">
-            <Select placeholder="Chọn phân loại">
-              <Select.Option value="public">Công khai</Select.Option>
-              <Select.Option value="internal">Nội bộ</Select.Option>
-              <Select.Option value="confidential">Bảo mật</Select.Option>
-              <Select.Option value="secret">Tuyệt mật</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item name="has_api" valuePropName="checked">
-            <Checkbox>Có API</Checkbox>
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="has_personal_data" valuePropName="checked">
-            <Checkbox>Có dữ liệu cá nhân</Checkbox>
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="has_sensitive_data" valuePropName="checked">
-            <Checkbox>Có dữ liệu nhạy cảm</Checkbox>
-          </Form.Item>
-        </Col>
-      </Row>
-    </>
-  );
-
-  // Step 4: Operations
-  const renderOperationsStep = () => (
-    <>
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="dev_type" label="Loại phát triển">
-            <Select placeholder="Chọn loại">
-              <Select.Option value="internal">Nội bộ</Select.Option>
-              <Select.Option value="outsource">Thuê ngoài</Select.Option>
-              <Select.Option value="combined">Kết hợp</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="developer" label="Nhà phát triển">
-            <Input placeholder="Tên công ty/đơn vị phát triển" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="warranty_status" label="Trạng thái bảo hành">
-            <Select placeholder="Chọn trạng thái">
-              <Select.Option value="active">Còn bảo hành</Select.Option>
-              <Select.Option value="expired">Hết bảo hành</Select.Option>
-              <Select.Option value="none">Không có</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="operator" label="Đơn vị vận hành">
-            <Input placeholder="Tên đơn vị vận hành" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="vendor_dependency" label="Mức phụ thuộc NCC">
-            <Select placeholder="Chọn mức độ">
-              <Select.Option value="high">Cao</Select.Option>
-              <Select.Option value="medium">Trung bình</Select.Option>
-              <Select.Option value="low">Thấp</Select.Option>
-              <Select.Option value="none">Không</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="has_maintenance_contract" valuePropName="checked">
-            <Checkbox>Có hợp đồng bảo trì</Checkbox>
-          </Form.Item>
-        </Col>
-      </Row>
-    </>
-  );
-
-  // Step 5: Integration
-  const renderIntegrationStep = () => (
-    <>
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="has_integration" valuePropName="checked">
-            <Checkbox>Có tích hợp với hệ thống khác</Checkbox>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="integration_count" label="Số lượng tích hợp">
-            <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Form.Item name="connected_internal_systems" label="Hệ thống nội bộ liên thông">
-        <TextArea rows={2} placeholder="Liệt kê các hệ thống nội bộ đã kết nối" />
-      </Form.Item>
-
-      <Form.Item name="connected_external_systems" label="Hệ thống bên ngoài liên thông">
-        <TextArea rows={2} placeholder="Liệt kê các hệ thống bên ngoài đã kết nối" />
-      </Form.Item>
-
-      <Form.Item name="uses_standard_api" valuePropName="checked">
-        <Checkbox>Sử dụng API chuẩn (REST, SOAP, etc.)</Checkbox>
-      </Form.Item>
-    </>
-  );
-
-  // Step 6: Assessment
-  const renderAssessmentStep = () => (
-    <>
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="performance_rating" label="Đánh giá hiệu năng">
-            <Rate />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="user_satisfaction_rating" label="Đánh giá người dùng">
-            <Rate />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="uptime_percent" label="Uptime (%)">
-            <InputNumber style={{ width: '100%' }} min={0} max={100} placeholder="99.9" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="technical_debt_level" label="Mức nợ kỹ thuật">
-            <Select placeholder="Chọn mức độ">
-              <Select.Option value="high">Cao</Select.Option>
-              <Select.Option value="medium">Trung bình</Select.Option>
-              <Select.Option value="low">Thấp</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Form.Item name="needs_replacement" valuePropName="checked">
-        <Checkbox>Cần thay thế hệ thống</Checkbox>
-      </Form.Item>
-
-      <Form.Item name="major_issues" label="Vấn đề chính">
-        <TextArea rows={3} placeholder="Mô tả các vấn đề chính của hệ thống" />
-      </Form.Item>
-    </>
-  );
-
-  // Step 7: Cost (Level 2)
-  const renderCostStep = () => (
-    <>
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="initial_investment" label="Đầu tư ban đầu (VND)">
-            <InputNumber
-              style={{ width: '100%' }}
-              min={0}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as any}
-              placeholder="0"
-            />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="development_cost" label="Chi phí phát triển (VND)">
-            <InputNumber
-              style={{ width: '100%' }}
-              min={0}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as any}
-              placeholder="0"
-            />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item name="annual_license_cost" label="CP License/năm">
-            <InputNumber
-              style={{ width: '100%' }}
-              min={0}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as any}
-              placeholder="0"
-            />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="annual_maintenance_cost" label="CP Bảo trì/năm">
-            <InputNumber
-              style={{ width: '100%' }}
-              min={0}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as any}
-              placeholder="0"
-            />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="annual_infrastructure_cost" label="CP Hạ tầng/năm">
-            <InputNumber
-              style={{ width: '100%' }}
-              min={0}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as any}
-              placeholder="0"
-            />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="total_cost_of_ownership" label="TCO 5 năm (VND)">
-            <InputNumber
-              style={{ width: '100%' }}
-              min={0}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as any}
-              placeholder="0"
-            />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="funding_source" label="Nguồn kinh phí">
-            <Input placeholder="VD: Ngân sách nhà nước, Vốn ODA" />
-          </Form.Item>
-        </Col>
-      </Row>
-    </>
-  );
-
-  // Step 8: Vendor (Level 2)
-  const renderVendorStep = () => (
-    <>
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="vendor_name" label="Tên nhà cung cấp">
-            <Input placeholder="Tên công ty" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="vendor_type" label="Loại NCC">
-            <Select placeholder="Chọn loại">
-              <Select.Option value="domestic">Trong nước</Select.Option>
-              <Select.Option value="foreign">Nước ngoài</Select.Option>
-              <Select.Option value="joint_venture">Liên doanh</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item name="vendor_contact_person" label="Người liên hệ">
-            <Input placeholder="Họ tên" />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="vendor_phone" label="Số điện thoại">
-            <Input placeholder="SĐT" />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="vendor_email" label="Email">
-            <Input type="email" placeholder="Email" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item name="contract_number" label="Số hợp đồng">
-            <Input placeholder="Số HĐ" />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="contract_start_date" label="Ngày bắt đầu HĐ">
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="contract_end_date" label="Ngày kết thúc HĐ">
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="vendor_lock_in_risk" label="Rủi ro phụ thuộc NCC">
-            <Select placeholder="Chọn mức độ">
-              <Select.Option value="high">Cao</Select.Option>
-              <Select.Option value="medium">Trung bình</Select.Option>
-              <Select.Option value="low">Thấp</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-      </Row>
-    </>
-  );
-
-  // Step 9: Infrastructure (Level 2)
-  const renderInfrastructureStep = () => (
-    <>
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item name="num_servers" label="Số lượng server">
-            <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="total_cpu_cores" label="Tổng CPU cores">
-            <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item name="total_ram_gb" label="Tổng RAM (GB)">
-            <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="total_storage_tb" label="Tổng storage (TB)">
-            <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="server_specs" label="Cấu hình server">
-            <Input placeholder="VD: Dell R740, 2x Intel Xeon" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="backup_frequency" label="Tần suất backup">
-            <Select placeholder="Chọn tần suất">
-              <Select.Option value="real-time">Real-time</Select.Option>
-              <Select.Option value="hourly">Hàng giờ</Select.Option>
-              <Select.Option value="daily">Hàng ngày</Select.Option>
-              <Select.Option value="weekly">Hàng tuần</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="has_disaster_recovery" valuePropName="checked">
-            <Checkbox>Có Disaster Recovery</Checkbox>
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="rto_hours" label="RTO (giờ)">
-            <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="rpo_hours" label="RPO (giờ)">
-            <InputNumber style={{ width: '100%' }} min={0} placeholder="0" />
-          </Form.Item>
-        </Col>
-      </Row>
-    </>
-  );
-
-  // Step 10: Security (Level 2)
-  const renderSecurityStep = () => (
-    <>
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="auth_method" label="Phương thức xác thực">
-            <Select placeholder="Chọn phương thức">
-              <Select.Option value="username/password">Username/Password</Select.Option>
-              <Select.Option value="sso">SSO</Select.Option>
-              <Select.Option value="ldap">LDAP/AD</Select.Option>
-              <Select.Option value="oauth">OAuth</Select.Option>
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="last_security_audit_date" label="Ngày audit cuối">
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={6}>
-          <Form.Item name="has_mfa" valuePropName="checked">
-            <Checkbox>Có MFA</Checkbox>
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item name="has_rbac" valuePropName="checked">
-            <Checkbox>Có RBAC</Checkbox>
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item name="has_firewall" valuePropName="checked">
-            <Checkbox>Có Firewall</Checkbox>
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item name="has_waf" valuePropName="checked">
-            <Checkbox>Có WAF</Checkbox>
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="has_data_encryption_at_rest" valuePropName="checked">
-            <Checkbox>Mã hóa dữ liệu lưu trữ</Checkbox>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="has_data_encryption_in_transit" valuePropName="checked">
-            <Checkbox>Mã hóa dữ liệu truyền tải</Checkbox>
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Form.Item name="compliance_standards" label="Tiêu chuẩn tuân thủ">
-        <Select mode="multiple" placeholder="Chọn tiêu chuẩn">
-          <Select.Option value="ISO27001">ISO 27001</Select.Option>
-          <Select.Option value="GDPR">GDPR</Select.Option>
-          <Select.Option value="PCIDSS">PCI DSS</Select.Option>
-          <Select.Option value="SOC2">SOC 2</Select.Option>
-        </Select>
-      </Form.Item>
-    </>
-  );
-
-  const renderStepContent = () => {
-    const stepKey = allSteps[currentStep]?.key;
-    switch (stepKey) {
-      case 'basic':
-        return renderBasicInfoStep();
-      case 'architecture':
-        return renderArchitectureStep();
-      case 'data':
-        return renderDataInfoStep();
-      case 'operations':
-        return renderOperationsStep();
-      case 'integration':
-        return renderIntegrationStep();
-      case 'assessment':
-        return renderAssessmentStep();
-      case 'cost':
-        return renderCostStep();
-      case 'vendor':
-        return renderVendorStep();
-      case 'infrastructure':
-        return renderInfrastructureStep();
-      case 'security':
-        return renderSecurityStep();
-      default:
-        return null;
-    }
+  const handleCancel = () => {
+    navigate('/systems');
   };
+
+  // Helper component for dynamic list input
+  const DynamicListInput = ({ value = [], onChange, placeholder }: any) => {
+    const [items, setItems] = useState<string[]>(value);
+    const [inputValue, setInputValue] = useState('');
+
+    const handleAdd = () => {
+      if (inputValue.trim()) {
+        const newItems = [...items, inputValue.trim()];
+        setItems(newItems);
+        onChange?.(newItems);
+        setInputValue('');
+      }
+    };
+
+    const handleRemove = (index: number) => {
+      const newItems = items.filter((_, i) => i !== index);
+      setItems(newItems);
+      onChange?.(newItems);
+    };
+
+    return (
+      <div>
+        <Space.Compact style={{ width: '100%', marginBottom: 8 }}>
+          <Input
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onPressEnter={handleAdd}
+            placeholder={placeholder}
+          />
+          <Button type="primary" onClick={handleAdd}>
+            Thêm
+          </Button>
+        </Space.Compact>
+        <div>
+          {items.map((item, index) => (
+            <Tag
+              key={index}
+              closable
+              onClose={() => handleRemove(index)}
+              style={{ marginBottom: 8 }}
+            >
+              {item}
+            </Tag>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const tabItems = [
+    {
+      key: '1',
+      label: (
+        <span>
+          <InfoCircleOutlined /> Thông tin cơ bản
+        </span>
+      ),
+      children: (
+        <Card>
+          <Row gutter={[16, 16]}>
+            {/* Organization - admin only */}
+            {userRole === 'admin' && (
+              <Col span={12}>
+                <Form.Item
+                  label="Tổ chức"
+                  name="org"
+                  rules={[{ required: true, message: 'Vui lòng chọn tổ chức' }]}
+                >
+                  <Select
+                    showSearch
+                    placeholder="Chọn tổ chức"
+                    options={organizations.map((org) => ({
+                      label: org.name,
+                      value: org.id,
+                    }))}
+                    filterOption={(input, option) =>
+                      (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                    }
+                  />
+                </Form.Item>
+              </Col>
+            )}
+
+            <Col span={12}>
+              <Form.Item
+                label="Tên hệ thống"
+                name="system_name"
+                rules={[{ required: true, message: 'Vui lòng nhập tên hệ thống' }]}
+              >
+                <Input placeholder="Nhập tên hệ thống" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Tên tiếng Anh" name="system_name_en">
+                <Input placeholder="Nhập tên tiếng Anh" />
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Text type="secondary">
+                <InfoCircleOutlined /> Mã hệ thống sẽ được tự động tạo sau khi lưu (SYS-ORG-YYYY-XXXX)
+              </Text>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item
+                label="Mô tả"
+                name="description"
+                rules={[{ required: true, message: 'Vui lòng nhập mô tả' }]}
+              >
+                <TextArea rows={4} placeholder="Mô tả chức năng và mục đích của hệ thống" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Trạng thái"
+                name="status"
+                initialValue="operating"
+                rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
+              >
+                <Select>
+                  <Select.Option value="operating">Đang vận hành</Select.Option>
+                  <Select.Option value="planning">Đang lập kế hoạch</Select.Option>
+                  <Select.Option value="development">Đang phát triển</Select.Option>
+                  <Select.Option value="testing">Đang thử nghiệm</Select.Option>
+                  <Select.Option value="inactive">Ngừng hoạt động</Select.Option>
+                  <Select.Option value="maintenance">Bảo trì</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Mức độ quan trọng"
+                name="criticality_level"
+                initialValue="medium"
+                rules={[{ required: true, message: 'Vui lòng chọn mức độ quan trọng' }]}
+                tooltip="P0.8: Đã bỏ 'Cực kỳ quan trọng' - chỉ còn 3 mức"
+              >
+                <Select>
+                  <Select.Option value="high">Quan trọng</Select.Option>
+                  <Select.Option value="medium">Trung bình</Select.Option>
+                  <Select.Option value="low">Thấp</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+    {
+      key: '2',
+      label: (
+        <span>
+          <AppstoreOutlined /> Bối cảnh nghiệp vụ
+        </span>
+      ),
+      children: (
+        <Card>
+          <Row gutter={[16, 16]}>
+            <Col span={24}>
+              <Form.Item
+                label="Mục tiêu nghiệp vụ"
+                name="business_objectives"
+                initialValue={[]}
+                tooltip="Khuyến nghị tối đa 5 mục tiêu để tập trung"
+              >
+                <DynamicListInput placeholder="Nhập mục tiêu nghiệp vụ và nhấn Enter" />
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item
+                label="Quy trình nghiệp vụ chính"
+                name="business_processes"
+                initialValue={[]}
+              >
+                <DynamicListInput placeholder="Nhập quy trình nghiệp vụ và nhấn Enter" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Có đủ hồ sơ phân tích thiết kế?"
+                name="has_design_documents"
+                valuePropName="checked"
+                initialValue={false}
+              >
+                <Switch />
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item
+                label="Đối tượng sử dụng"
+                name="user_types"
+                initialValue={[]}
+              >
+                <Checkbox.Group>
+                  <Row>
+                    <Col span={8}>
+                      <Checkbox value="internal_leadership">Lãnh đạo nội bộ</Checkbox>
+                    </Col>
+                    <Col span={8}>
+                      <Checkbox value="internal_staff">Cán bộ nội bộ</Checkbox>
+                    </Col>
+                    <Col span={8}>
+                      <Checkbox value="internal_reviewer">Người thẩm định nội bộ</Checkbox>
+                    </Col>
+                    <Col span={8}>
+                      <Checkbox value="external_business">Doanh nghiệp</Checkbox>
+                    </Col>
+                    <Col span={8}>
+                      <Checkbox value="external_citizen">Người dân</Checkbox>
+                    </Col>
+                    <Col span={8}>
+                      <Checkbox value="external_local">Địa phương</Checkbox>
+                    </Col>
+                    <Col span={8}>
+                      <Checkbox value="external_agency">Cơ quan khác</Checkbox>
+                    </Col>
+                  </Row>
+                </Checkbox.Group>
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Số lượng người dùng hàng năm" name="annual_users">
+                <InputNumber
+                  min={0}
+                  style={{ width: '100%' }}
+                  placeholder="Nhập số lượng người dùng"
+                  formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+    {
+      key: '3',
+      label: (
+        <span>
+          <DatabaseOutlined /> Kiến trúc công nghệ
+        </span>
+      ),
+      children: (
+        <Card>
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item label="Ngôn ngữ lập trình" name="programming_language">
+                <Input placeholder="VD: Python, Java, JavaScript, C#" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Framework/Thư viện" name="framework">
+                <Input placeholder="VD: Django, Spring Boot, React, Angular" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Cơ sở dữ liệu" name="database_name">
+                <Input placeholder="VD: PostgreSQL, MySQL, MongoDB, Oracle" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Nền tảng triển khai" name="hosting_platform">
+                <Select placeholder="Chọn nền tảng">
+                  <Select.Option value="cloud">Cloud</Select.Option>
+                  <Select.Option value="on_premise">On-premise</Select.Option>
+                  <Select.Option value="hybrid">Hybrid</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+    {
+      key: '4',
+      label: (
+        <span>
+          <DatabaseOutlined /> Kiến trúc dữ liệu
+        </span>
+      ),
+      children: (
+        <Card>
+          <Row gutter={[16, 16]}>
+            <Col span={24}>
+              <Form.Item label="Nguồn dữ liệu" name="data_sources" initialValue={[]}>
+                <DynamicListInput placeholder="VD: Database, API, File, External System" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Phân loại dữ liệu" name="data_classification_type">
+                <Input placeholder="VD: Public, Internal, Confidential, Secret" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Khối lượng dữ liệu" name="data_volume">
+                <Input placeholder="VD: 100GB, 1TB, 10TB" />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+    {
+      key: '5',
+      label: (
+        <span>
+          <ApiOutlined /> Tích hợp hệ thống
+        </span>
+      ),
+      children: (
+        <Card>
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item
+                label="Hệ thống nội bộ tích hợp"
+                name="integrated_internal_systems"
+                initialValue={[]}
+              >
+                <DynamicListInput placeholder="Nhập tên hệ thống nội bộ" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Hệ thống bên ngoài tích hợp"
+                name="integrated_external_systems"
+                initialValue={[]}
+              >
+                <DynamicListInput placeholder="Nhập tên hệ thống bên ngoài" />
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item label="API/Webservices" name="api_list" initialValue={[]}>
+                <DynamicListInput placeholder="Nhập API endpoint hoặc tên service" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Phương thức trao đổi dữ liệu" name="data_exchange_method">
+                <Input placeholder="VD: REST API, SOAP, File Transfer, Database Sync" />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+    {
+      key: '6',
+      label: (
+        <span>
+          <SafetyOutlined /> An toàn thông tin
+        </span>
+      ),
+      children: (
+        <Card>
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item label="Phương thức xác thực" name="authentication_method">
+                <Select placeholder="Chọn phương thức">
+                  <Select.Option value="username_password">Username/Password</Select.Option>
+                  <Select.Option value="sso">SSO</Select.Option>
+                  <Select.Option value="ldap">LDAP</Select.Option>
+                  <Select.Option value="oauth">OAuth</Select.Option>
+                  <Select.Option value="saml">SAML</Select.Option>
+                  <Select.Option value="biometric">Biometric</Select.Option>
+                  <Select.Option value="other">Khác</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Mã hóa dữ liệu"
+                name="has_encryption"
+                valuePropName="checked"
+                initialValue={false}
+              >
+                <Switch />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Có log audit?"
+                name="has_audit_log"
+                valuePropName="checked"
+                initialValue={false}
+              >
+                <Switch />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Tuân thủ tiêu chuẩn" name="compliance_standards_list">
+                <Input placeholder="VD: ISO 27001, GDPR, PCI DSS, SOC 2" />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+    {
+      key: '7',
+      label: (
+        <span>
+          <CloudServerOutlined /> Hạ tầng kỹ thuật
+        </span>
+      ),
+      children: (
+        <Card>
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item label="Cấu hình máy chủ" name="server_configuration">
+                <Input placeholder="VD: 8 CPU, 16GB RAM, 500GB SSD" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Dung lượng lưu trữ" name="storage_capacity">
+                <Input placeholder="VD: 1TB, 5TB, 10TB" />
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item label="Phương án sao lưu" name="backup_plan">
+                <TextArea rows={3} placeholder="VD: Sao lưu hàng ngày, lưu giữ 30 ngày" />
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item label="Kế hoạch khôi phục thảm họa" name="disaster_recovery_plan">
+                <TextArea rows={3} placeholder="VD: RTO 4 giờ, RPO 1 giờ, standby site ở ..." />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+    {
+      key: '8',
+      label: (
+        <span>
+          <ToolOutlined /> Vận hành
+        </span>
+      ),
+      children: (
+        <Card>
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item label="Người chịu trách nhiệm" name="business_owner">
+                <Input placeholder="Tên người chịu trách nhiệm" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Người quản trị kỹ thuật" name="technical_owner">
+                <Input placeholder="Tên người quản trị kỹ thuật" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Số điện thoại liên hệ" name="responsible_phone">
+                <Input placeholder="Số điện thoại" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Email liên hệ" name="responsible_email">
+                <Input type="email" placeholder="Email" />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+  ];
 
   return (
     <Spin spinning={loading}>
-      <div style={{ marginBottom: 16 }}>
-        <Button
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate('/systems')}
-        >
-          Quay lại
-        </Button>
-      </div>
+      <div style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>
+        <Card>
+          <div style={{ marginBottom: 24 }}>
+            <Button icon={<ArrowLeftOutlined />} onClick={handleCancel}>
+              Quay lại
+            </Button>
+            <Title level={2} style={{ marginTop: 16 }}>
+              Tạo hệ thống mới
+            </Title>
+            <Text type="secondary">
+              P0.8: Form mới với 8 phần - Điền thông tin hệ thống theo từng tab
+            </Text>
+          </div>
 
-      <Card>
-        <Title level={3} style={{ marginBottom: 24 }}>
-          Thêm hệ thống mới
-        </Title>
+          <Form form={form} layout="vertical" scrollToFirstError>
+            <Tabs items={tabItems} />
 
-        <Steps
-          current={currentStep}
-          items={allSteps.map((step) => ({ title: step.title }))}
-          style={{ marginBottom: 32 }}
-          size="small"
-        />
-
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={formData}
-          preserve={false}
-        >
-          {renderStepContent()}
-
-          <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between' }}>
-            <div>
-              {currentStep > 0 && (
-                <Button onClick={handlePrev}>
-                  Quay lại
-                </Button>
-              )}
-            </div>
-            <div>
-              {currentStep < allSteps.length - 1 && (
-                <Button type="primary" onClick={handleNext}>
-                  Tiếp theo
-                </Button>
-              )}
-              {currentStep === allSteps.length - 1 && (
-                <Button
-                  type="primary"
-                  icon={<SaveOutlined />}
-                  onClick={handleSubmit}
-                  loading={loading}
-                >
+            <div style={{ marginTop: 24, textAlign: 'right' }}>
+              <Space>
+                <Button onClick={handleCancel}>Hủy</Button>
+                <Button type="primary" icon={<SaveOutlined />} onClick={handleSubmit}>
                   Lưu hệ thống
                 </Button>
-              )}
+              </Space>
             </div>
-          </div>
-        </Form>
-      </Card>
+          </Form>
+        </Card>
+      </div>
     </Spin>
   );
 };

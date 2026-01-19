@@ -206,6 +206,59 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = System
         fields = '__all__'
+        read_only_fields = ['system_code']  # P0.8: Auto-generated, not editable
+
+    def validate_business_objectives(self, value):
+        """P0.8: Validate business objectives (max 5 recommended)"""
+        if value and len(value) > 5:
+            raise serializers.ValidationError(
+                "Khuyến nghị tối đa 5 mục tiêu nghiệp vụ để tập trung và dễ quản lý."
+            )
+        return value
+
+    def validate_user_types(self, value):
+        """P0.8: Validate user types against allowed choices"""
+        allowed_types = [
+            'internal_leadership',
+            'internal_staff',
+            'internal_reviewer',
+            'external_business',
+            'external_citizen',
+            'external_local',
+            'external_agency'
+        ]
+        if value:
+            for user_type in value:
+                if user_type not in allowed_types:
+                    raise serializers.ValidationError(
+                        f"'{user_type}' không phải loại người dùng hợp lệ. "
+                        f"Chọn từ: {', '.join(allowed_types)}"
+                    )
+        return value
+
+    def validate_annual_users(self, value):
+        """P0.8: Validate annual users count"""
+        if value is not None and value < 0:
+            raise serializers.ValidationError("Số lượng người dùng không thể âm.")
+        return value
+
+    def validate(self, attrs):
+        """P0.8: Cross-field validation"""
+        # Auto-fill organization for org users
+        request = self.context.get('request')
+        if request and request.user:
+            user = request.user
+            # If user is org_user or org_admin, auto-fill their organization
+            if user.role in ['org_user', 'org_admin']:
+                # Override any org value with user's organization
+                attrs['org'] = user.organization
+            # If admin is creating without org specified, raise error
+            elif user.role == 'admin' and not attrs.get('org'):
+                raise serializers.ValidationError({
+                    'org': 'Admin phải chọn tổ chức khi tạo hệ thống.'
+                })
+
+        return attrs
 
     def create(self, validated_data):
         """Create System with nested related models"""

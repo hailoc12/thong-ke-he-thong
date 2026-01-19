@@ -12,10 +12,11 @@ class System(models.Model):
     ]
 
     GROUP_CHOICES = [
-        ('platform', 'Nền tảng'),
-        ('business', 'Nghiệp vụ'),
+        ('national_platform', 'Nền tảng quốc gia'),
+        ('shared_platform', 'Nền tảng dùng chung của Bộ'),
+        ('specialized_db', 'CSDL chuyên ngành'),
+        ('business_app', 'Ứng dụng nghiệp vụ'),
         ('portal', 'Cổng thông tin'),
-        ('website', 'Website'),
         ('bi', 'BI/Báo cáo'),
         ('esb', 'ESB/Tích hợp'),
         ('other', 'Khác'),
@@ -53,8 +54,10 @@ class System(models.Model):
     scope = models.CharField(
         max_length=50,
         choices=SCOPE_CHOICES,
-        blank=True,
-        verbose_name=_('Scope')
+        blank=False,
+        default='internal_unit',
+        verbose_name=_('Scope'),
+        help_text='Phạm vi sử dụng của hệ thống (REQUIRED)'
     )
     target_users = models.JSONField(
         default=list,
@@ -170,6 +173,20 @@ class System(models.Model):
         help_text='e.g., REST API, SOAP, File Transfer, Database Sync'
     )
 
+    # API Inventory (P0.8 Phase 1 - Critical)
+    api_provided_count = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_('APIs Provided Count'),
+        help_text='Tổng số API mà hệ thống này cung cấp cho hệ thống khác (P0.8 customer requirement)'
+    )
+    api_consumed_count = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_('APIs Consumed Count'),
+        help_text='Tổng số API mà hệ thống này gọi từ hệ thống khác (P0.8 customer requirement)'
+    )
+
     # ======================================================================
     # SECTION 6: Security (P0.8 - NEW FIELDS)
     # ======================================================================
@@ -236,8 +253,10 @@ class System(models.Model):
     system_group = models.CharField(
         max_length=50,
         choices=GROUP_CHOICES,
-        blank=True,
-        verbose_name=_('System Group')
+        blank=False,
+        default='other',
+        verbose_name=_('System Group'),
+        help_text='Nhóm hệ thống (REQUIRED - 8 options per customer feedback)'
     )
     status = models.CharField(
         max_length=20,
@@ -256,11 +275,22 @@ class System(models.Model):
     responsible_phone = models.CharField(max_length=20, blank=True)
     responsible_email = models.EmailField(blank=True)
 
-    # User Statistics
+    # User Statistics (P0.8 Phase 1 - Section 2)
     users_total = models.IntegerField(null=True, blank=True, verbose_name=_('Total Users'))
-    users_mau = models.IntegerField(null=True, blank=True, verbose_name=_('MAU'))
-    users_dau = models.IntegerField(null=True, blank=True, verbose_name=_('DAU'))
-    num_organizations = models.IntegerField(null=True, blank=True, verbose_name=_('Number of Organizations'))
+    total_accounts = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_('Total Accounts'),
+        help_text='Tổng số tài khoản đã tạo trong hệ thống (P0.8 customer requirement)'
+    )
+    users_mau = models.IntegerField(null=True, blank=True, verbose_name=_('MAU (Monthly Active Users)'))
+    users_dau = models.IntegerField(null=True, blank=True, verbose_name=_('DAU (Daily Active Users)'))
+    num_organizations = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_('Number of Organizations'),
+        help_text='Số đơn vị/địa phương sử dụng hệ thống'
+    )
 
     # Criticality
     criticality_level = models.CharField(
@@ -414,20 +444,30 @@ class SystemDataInfo(models.Model):
         primary_key=True
     )
 
-    # Data Volume
+    # Data Volume (P0.8 Phase 1 - Section 4)
     storage_size_gb = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         null=True,
         blank=True,
-        verbose_name=_('Storage Size (GB)')
+        verbose_name=_('Database Storage Size (GB)'),
+        help_text='Dung lượng CSDL hiện tại (GB) - REQUIRED per customer'
+    )
+    file_storage_size_gb = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_('File Storage Size (GB)'),
+        help_text='Dung lượng file đính kèm, tài liệu lưu trữ (GB) - REQUIRED per customer'
     )
     growth_rate_percent = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         null=True,
         blank=True,
-        verbose_name=_('Growth Rate (%)')
+        verbose_name=_('Growth Rate (%)'),
+        help_text='Tốc độ tăng trưởng dữ liệu (%/năm hoặc GB/tháng) - REQUIRED per customer'
     )
 
     # Data Types
@@ -955,3 +995,112 @@ class Attachment(models.Model):
 
     def __str__(self):
         return f"{self.filename} ({self.get_attachment_type_display()})"
+# SystemIntegrationConnection model
+# P0.8 Phase 1 - Section 5: Integration Matrix
+# Date: 2026-01-19
+
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+
+
+class SystemIntegrationConnection(models.Model):
+    """
+    Danh sách tích hợp chi tiết - Dynamic list of integration connections
+    Customer requirement P0.8: For each integration connection track:
+    - Hệ thống A ↔ B (source → target)
+    - Dữ liệu trao đổi
+    - Cách thức tích hợp
+    - Tần suất
+    - Xử lý lỗi/retry
+    - API documentation status
+    """
+
+    system = models.ForeignKey(
+        'System',
+        on_delete=models.CASCADE,
+        related_name='integration_connections',
+        verbose_name=_('System')
+    )
+
+    # Connection endpoints
+    source_system = models.CharField(
+        max_length=200,
+        verbose_name=_('Source System'),
+        help_text='Hệ thống cung cấp dữ liệu'
+    )
+    target_system = models.CharField(
+        max_length=200,
+        verbose_name=_('Target System'),
+        help_text='Hệ thống nhận dữ liệu'
+    )
+
+    # Data objects exchanged
+    data_objects = models.TextField(
+        verbose_name=_('Data Objects Exchanged'),
+        help_text='Các đối tượng dữ liệu, entities được trao đổi. VD: Thông tin nhân viên, phòng ban, chức vụ'
+    )
+
+    # Integration method
+    INTEGRATION_METHOD_CHOICES = [
+        ('api_rest', 'API REST'),
+        ('api_soap', 'API SOAP'),
+        ('api_graphql', 'API GraphQL'),
+        ('file_transfer', 'File Transfer'),
+        ('database_link', 'Database Link'),
+        ('message_queue', 'Message Queue'),
+        ('manual', 'Thủ công'),
+        ('other', 'Khác'),
+    ]
+    integration_method = models.CharField(
+        max_length=50,
+        choices=INTEGRATION_METHOD_CHOICES,
+        verbose_name=_('Integration Method')
+    )
+
+    # Frequency
+    FREQUENCY_CHOICES = [
+        ('realtime', 'Real-time'),
+        ('near_realtime', 'Near real-time (< 1 phút)'),
+        ('batch_hourly', 'Batch - Mỗi giờ'),
+        ('batch_daily', 'Batch - Hàng ngày'),
+        ('batch_weekly', 'Batch - Hàng tuần'),
+        ('batch_monthly', 'Batch - Hàng tháng'),
+        ('on_demand', 'On-demand'),
+    ]
+    frequency = models.CharField(
+        max_length=50,
+        choices=FREQUENCY_CHOICES,
+        verbose_name=_('Frequency')
+    )
+
+    # Error handling
+    error_handling = models.TextField(
+        blank=True,
+        verbose_name=_('Error Handling / Retry'),
+        help_text='Cơ chế retry, rollback, error notification. VD: Retry 3 lần, delay 5 phút, gửi email cảnh báo'
+    )
+
+    # API documentation
+    has_api_docs = models.BooleanField(
+        default=False,
+        verbose_name=_('Has API Documentation?')
+    )
+
+    # Notes
+    notes = models.TextField(
+        blank=True,
+        verbose_name=_('Notes')
+    )
+
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'system_integration_connections'
+        ordering = ['source_system', 'target_system']
+        verbose_name = _('Integration Connection')
+        verbose_name_plural = _('Integration Connections')
+
+    def __str__(self):
+        return f"{self.source_system} → {self.target_system} ({self.get_integration_method_display()})"

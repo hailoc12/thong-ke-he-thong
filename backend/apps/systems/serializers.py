@@ -11,6 +11,7 @@ from .models import (
     SystemInfrastructure,
     SystemSecurity,
     Attachment,
+    SystemIntegrationConnection,  # P0.8 Phase 1 - Section 5
 )
 from apps.organizations.models import Organization
 
@@ -115,6 +116,41 @@ class AttachmentSerializer(serializers.ModelSerializer):
         return f"{size:.1f} TB"
 
 
+class SystemIntegrationConnectionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for SystemIntegrationConnection (P0.8 Phase 1 - Section 5)
+    Detailed integration connection tracking
+    """
+
+    integration_method_display = serializers.CharField(
+        source='get_integration_method_display',
+        read_only=True
+    )
+    frequency_display = serializers.CharField(
+        source='get_frequency_display',
+        read_only=True
+    )
+
+    class Meta:
+        model = SystemIntegrationConnection
+        fields = [
+            'id',
+            'source_system',
+            'target_system',
+            'data_objects',
+            'integration_method',
+            'integration_method_display',
+            'frequency',
+            'frequency_display',
+            'error_handling',
+            'has_api_docs',
+            'notes',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+
 class SystemListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for System list view"""
 
@@ -163,6 +199,9 @@ class SystemDetailSerializer(serializers.ModelSerializer):
     assessment = SystemAssessmentSerializer(read_only=True)
     attachments = AttachmentSerializer(many=True, read_only=True)
 
+    # P0.8 Phase 1 - Integration Connections (nested list)
+    integration_connections = SystemIntegrationConnectionSerializer(many=True, read_only=True)
+
     # Level 2 related models (conditionally included)
     cost = SystemCostSerializer(read_only=True)
     vendor = SystemVendorSerializer(read_only=True)
@@ -196,6 +235,9 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
     operations_data = SystemOperationsSerializer(required=False)
     integration_data = SystemIntegrationSerializer(required=False)
     assessment_data = SystemAssessmentSerializer(required=False)
+
+    # P0.8 Phase 1 - Integration Connections (nested list)
+    integration_connections_data = SystemIntegrationConnectionSerializer(many=True, required=False)
 
     # Level 2 nested writes
     cost_data = SystemCostSerializer(required=False)
@@ -268,6 +310,7 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
         operations_data = validated_data.pop('operations_data', {})
         integration_data = validated_data.pop('integration_data', {})
         assessment_data = validated_data.pop('assessment_data', {})
+        integration_connections_data = validated_data.pop('integration_connections_data', [])  # P0.8 Phase 1
         cost_data = validated_data.pop('cost_data', {})
         vendor_data = validated_data.pop('vendor_data', {})
         infrastructure_data = validated_data.pop('infrastructure_data', {})
@@ -282,6 +325,13 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
         SystemOperations.objects.create(system=system, **operations_data)
         SystemIntegration.objects.create(system=system, **integration_data)
         SystemAssessment.objects.create(system=system, **assessment_data)
+
+        # P0.8 Phase 1 - Create Integration Connections (dynamic list)
+        for conn_data in integration_connections_data:
+            SystemIntegrationConnection.objects.create(
+                system=system,
+                **conn_data
+            )
 
         # Create Level 2 related models if form_level == 2
         if system.form_level == 2:
@@ -300,6 +350,7 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
         operations_data = validated_data.pop('operations_data', None)
         integration_data = validated_data.pop('integration_data', None)
         assessment_data = validated_data.pop('assessment_data', None)
+        integration_connections_data = validated_data.pop('integration_connections_data', None)  # P0.8 Phase 1
         cost_data = validated_data.pop('cost_data', None)
         vendor_data = validated_data.pop('vendor_data', None)
         infrastructure_data = validated_data.pop('infrastructure_data', None)
@@ -340,6 +391,17 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
             for attr, value in assessment_data.items():
                 setattr(assessment, attr, value)
             assessment.save()
+
+        # P0.8 Phase 1 - Update Integration Connections
+        if integration_connections_data is not None:
+            # Delete old connections
+            instance.integration_connections.all().delete()
+            # Create new connections
+            for conn_data in integration_connections_data:
+                SystemIntegrationConnection.objects.create(
+                    system=instance,
+                    **conn_data
+                )
 
         # Update Level 2 related models if form_level == 2
         if instance.form_level == 2:

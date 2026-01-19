@@ -32,6 +32,10 @@ import {
   SafetyOutlined,
   CloudServerOutlined,
   ToolOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../config/api';
@@ -39,6 +43,308 @@ import type { Organization } from '../types';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+
+/**
+ * P0.8 Phase 1 - Section 5: Integration Connection List Component
+ * Complex dynamic form for managing integration connections
+ */
+interface IntegrationConnection {
+  source_system: string;
+  target_system: string;
+  data_objects: string;
+  integration_method: string;
+  frequency: string;
+  error_handling?: string;
+  has_api_docs: boolean;
+  notes?: string;
+}
+
+const IntegrationConnectionList = ({ value = [], onChange }: any) => {
+  const [connections, setConnections] = useState<IntegrationConnection[]>(value || []);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editForm] = Form.useForm();
+
+  const integrationMethodOptions = [
+    { label: 'API REST', value: 'api_rest' },
+    { label: 'API SOAP', value: 'api_soap' },
+    { label: 'API GraphQL', value: 'api_graphql' },
+    { label: 'File Transfer', value: 'file_transfer' },
+    { label: 'Database Link', value: 'database_link' },
+    { label: 'Message Queue', value: 'message_queue' },
+    { label: 'Thủ công', value: 'manual' },
+    { label: 'Khác', value: 'other' },
+  ];
+
+  const frequencyOptions = [
+    { label: 'Real-time', value: 'realtime' },
+    { label: 'Near real-time (< 1 phút)', value: 'near_realtime' },
+    { label: 'Batch - Mỗi giờ', value: 'batch_hourly' },
+    { label: 'Batch - Hàng ngày', value: 'batch_daily' },
+    { label: 'Batch - Hàng tuần', value: 'batch_weekly' },
+    { label: 'Batch - Hàng tháng', value: 'batch_monthly' },
+    { label: 'On-demand', value: 'on_demand' },
+  ];
+
+  const handleAdd = () => {
+    setEditingIndex(connections.length);
+    editForm.resetFields();
+    editForm.setFieldsValue({ has_api_docs: false });
+  };
+
+  const handleSave = async () => {
+    try {
+      const values = await editForm.validateFields();
+      const newConnections = [...connections];
+      if (editingIndex !== null) {
+        if (editingIndex < connections.length) {
+          newConnections[editingIndex] = values;
+        } else {
+          newConnections.push(values);
+        }
+        setConnections(newConnections);
+        onChange?.(newConnections);
+        setEditingIndex(null);
+        editForm.resetFields();
+      }
+    } catch (error) {
+      console.error('Validation failed:', error);
+    }
+  };
+
+  const handleEdit = (index: number) => {
+    setEditingIndex(index);
+    editForm.setFieldsValue(connections[index]);
+  };
+
+  const handleDelete = (index: number) => {
+    const newConnections = connections.filter((_, i) => i !== index);
+    setConnections(newConnections);
+    onChange?.(newConnections);
+  };
+
+  const handleCancel = () => {
+    setEditingIndex(null);
+    editForm.resetFields();
+  };
+
+  return (
+    <div style={{ border: '1px solid #d9d9d9', borderRadius: 4, padding: 16 }}>
+      {/* Connection List */}
+      {connections.map((conn, index) => (
+        <Card
+          key={index}
+          size="small"
+          style={{ marginBottom: 12 }}
+          title={`Kết nối ${index + 1}: ${conn.source_system} → ${conn.target_system}`}
+          extra={
+            editingIndex === index ? null : (
+              <Space>
+                <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(index)}>
+                  Sửa
+                </Button>
+                <Button
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleDelete(index)}
+                >
+                  Xóa
+                </Button>
+              </Space>
+            )
+          }
+        >
+          {editingIndex === index ? (
+            <Form form={editForm} layout="vertical">
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    label="Hệ thống nguồn"
+                    name="source_system"
+                    rules={[{ required: true, message: 'Vui lòng nhập hệ thống nguồn' }]}
+                  >
+                    <Input placeholder="VD: Hệ thống A" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    label="Hệ thống đích"
+                    name="target_system"
+                    rules={[{ required: true, message: 'Vui lòng nhập hệ thống đích' }]}
+                  >
+                    <Input placeholder="VD: Hệ thống B" />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item
+                    label="Đối tượng dữ liệu trao đổi"
+                    name="data_objects"
+                    rules={[{ required: true, message: 'Vui lòng nhập đối tượng dữ liệu' }]}
+                  >
+                    <TextArea
+                      rows={2}
+                      placeholder="VD: Thông tin nhân viên, phòng ban, chức vụ"
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    label="Phương thức tích hợp"
+                    name="integration_method"
+                    rules={[{ required: true, message: 'Vui lòng chọn phương thức' }]}
+                  >
+                    <Select options={integrationMethodOptions} placeholder="Chọn phương thức" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    label="Tần suất"
+                    name="frequency"
+                    rules={[{ required: true, message: 'Vui lòng chọn tần suất' }]}
+                  >
+                    <Select options={frequencyOptions} placeholder="Chọn tần suất" />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item label="Xử lý lỗi/Retry" name="error_handling">
+                    <TextArea
+                      rows={2}
+                      placeholder="VD: Retry 3 lần, delay 5 phút, gửi email cảnh báo"
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Có tài liệu API?" name="has_api_docs" valuePropName="checked">
+                    <Switch />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <Form.Item label="Ghi chú" name="notes">
+                    <TextArea rows={2} placeholder="Ghi chú thêm" />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Space>
+                <Button type="primary" onClick={handleSave}>
+                  Lưu
+                </Button>
+                <Button onClick={handleCancel}>Hủy</Button>
+              </Space>
+            </Form>
+          ) : (
+            <div>
+              <p>
+                <strong>Dữ liệu:</strong> {conn.data_objects}
+              </p>
+              <p>
+                <strong>Phương thức:</strong>{' '}
+                {integrationMethodOptions.find((o) => o.value === conn.integration_method)?.label}
+              </p>
+              <p>
+                <strong>Tần suất:</strong>{' '}
+                {frequencyOptions.find((o) => o.value === conn.frequency)?.label}
+              </p>
+              {conn.has_api_docs && (
+                <Tag color="green" icon={<CheckCircleOutlined />}>
+                  Có tài liệu API
+                </Tag>
+              )}
+            </div>
+          )}
+        </Card>
+      ))}
+
+      {/* Add New Button */}
+      {editingIndex === null && (
+        <Button type="dashed" block icon={<PlusOutlined />} onClick={handleAdd}>
+          Thêm kết nối tích hợp
+        </Button>
+      )}
+
+      {/* Add Form (when adding new) */}
+      {editingIndex === connections.length && (
+        <Card size="small" style={{ marginTop: 12 }} title="Thêm kết nối mới">
+          <Form form={editForm} layout="vertical">
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  label="Hệ thống nguồn"
+                  name="source_system"
+                  rules={[{ required: true, message: 'Vui lòng nhập hệ thống nguồn' }]}
+                >
+                  <Input placeholder="VD: Hệ thống A" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="Hệ thống đích"
+                  name="target_system"
+                  rules={[{ required: true, message: 'Vui lòng nhập hệ thống đích' }]}
+                >
+                  <Input placeholder="VD: Hệ thống B" />
+                </Form.Item>
+              </Col>
+              <Col span={24}>
+                <Form.Item
+                  label="Đối tượng dữ liệu trao đổi"
+                  name="data_objects"
+                  rules={[{ required: true, message: 'Vui lòng nhập đối tượng dữ liệu' }]}
+                >
+                  <TextArea
+                    rows={2}
+                    placeholder="VD: Thông tin nhân viên, phòng ban, chức vụ"
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="Phương thức tích hợp"
+                  name="integration_method"
+                  rules={[{ required: true, message: 'Vui lòng chọn phương thức' }]}
+                >
+                  <Select options={integrationMethodOptions} placeholder="Chọn phương thức" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="Tần suất"
+                  name="frequency"
+                  rules={[{ required: true, message: 'Vui lòng chọn tần suất' }]}
+                >
+                  <Select options={frequencyOptions} placeholder="Chọn tần suất" />
+                </Form.Item>
+              </Col>
+              <Col span={24}>
+                <Form.Item label="Xử lý lỗi/Retry" name="error_handling">
+                  <TextArea
+                    rows={2}
+                    placeholder="VD: Retry 3 lần, delay 5 phút, gửi email cảnh báo"
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="Có tài liệu API?" name="has_api_docs" valuePropName="checked">
+                  <Switch />
+                </Form.Item>
+              </Col>
+              <Col span={24}>
+                <Form.Item label="Ghi chú" name="notes">
+                  <TextArea rows={2} placeholder="Ghi chú thêm" />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Space>
+              <Button type="primary" onClick={handleSave}>
+                Lưu
+              </Button>
+              <Button onClick={handleCancel}>Hủy</Button>
+            </Space>
+          </Form>
+        </Card>
+      )}
+    </div>
+  );
+};
 
 const SystemCreate = () => {
   const navigate = useNavigate();
@@ -247,6 +553,44 @@ const SystemCreate = () => {
                 </Select>
               </Form.Item>
             </Col>
+
+            {/* P0.8 Phase 1 - Section 1: New Required Fields */}
+            <Col span={12}>
+              <Form.Item
+                label="Phạm vi sử dụng"
+                name="scope"
+                initialValue="internal_unit"
+                rules={[{ required: true, message: 'Vui lòng chọn phạm vi sử dụng' }]}
+                tooltip="P0.8 Phase 1: REQUIRED field - Phạm vi sử dụng của hệ thống"
+              >
+                <Select>
+                  <Select.Option value="internal_unit">Nội bộ đơn vị</Select.Option>
+                  <Select.Option value="org_wide">Toàn bộ</Select.Option>
+                  <Select.Option value="external">Bên ngoài</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Nhóm hệ thống"
+                name="system_group"
+                initialValue="other"
+                rules={[{ required: true, message: 'Vui lòng chọn nhóm hệ thống' }]}
+                tooltip="P0.8 Phase 1: REQUIRED field - 8 options per customer feedback"
+              >
+                <Select>
+                  <Select.Option value="national_platform">Nền tảng quốc gia</Select.Option>
+                  <Select.Option value="shared_platform">Nền tảng dùng chung của Bộ</Select.Option>
+                  <Select.Option value="specialized_db">CSDL chuyên ngành</Select.Option>
+                  <Select.Option value="business_app">Ứng dụng nghiệp vụ</Select.Option>
+                  <Select.Option value="portal">Cổng thông tin</Select.Option>
+                  <Select.Option value="bi">BI/Báo cáo</Select.Option>
+                  <Select.Option value="esb">ESB/Tích hợp</Select.Option>
+                  <Select.Option value="other">Khác</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
           </Row>
         </Card>
       ),
@@ -337,6 +681,73 @@ const SystemCreate = () => {
                 />
               </Form.Item>
             </Col>
+
+            {/* P0.8 Phase 1 - Section 2: User Metrics */}
+            <Col span={24}>
+              <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
+                Thống kê người dùng (P0.8 Phase 1)
+              </Text>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Tổng số tài khoản"
+                name="total_accounts"
+                tooltip="P0.8 Phase 1: Tổng số tài khoản đã tạo trong hệ thống"
+              >
+                <InputNumber
+                  min={0}
+                  style={{ width: '100%' }}
+                  placeholder="Nhập tổng số tài khoản"
+                  formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="MAU (Monthly Active Users)"
+                name="users_mau"
+                tooltip="P0.8 Phase 1: Số người dùng hoạt động hàng tháng"
+              >
+                <InputNumber
+                  min={0}
+                  style={{ width: '100%' }}
+                  placeholder="Nhập MAU"
+                  formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="DAU (Daily Active Users)"
+                name="users_dau"
+                tooltip="P0.8 Phase 1: Số người dùng hoạt động hàng ngày"
+              >
+                <InputNumber
+                  min={0}
+                  style={{ width: '100%' }}
+                  placeholder="Nhập DAU"
+                  formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Số đơn vị/địa phương sử dụng"
+                name="num_organizations"
+                tooltip="P0.8 Phase 1: Số đơn vị/địa phương sử dụng hệ thống"
+              >
+                <InputNumber
+                  min={0}
+                  style={{ width: '100%' }}
+                  placeholder="Nhập số đơn vị"
+                  formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                />
+              </Form.Item>
+            </Col>
           </Row>
         </Card>
       ),
@@ -409,6 +820,63 @@ const SystemCreate = () => {
                 <Input placeholder="VD: 100GB, 1TB, 10TB" />
               </Form.Item>
             </Col>
+
+            {/* P0.8 Phase 1 - Section 4: Data Volume Metrics */}
+            <Col span={24}>
+              <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
+                Dung lượng dữ liệu (P0.8 Phase 1 - REQUIRED)
+              </Text>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Dung lượng CSDL hiện tại (GB)"
+                name="storage_size_gb"
+                tooltip="P0.8 Phase 1 - REQUIRED: Dung lượng cơ sở dữ liệu hiện tại"
+              >
+                <InputNumber
+                  min={0}
+                  step={0.1}
+                  style={{ width: '100%' }}
+                  placeholder="Nhập dung lượng GB"
+                  formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Dung lượng file đính kèm (GB)"
+                name="file_storage_size_gb"
+                tooltip="P0.8 Phase 1 - REQUIRED: Dung lượng file, tài liệu lưu trữ"
+              >
+                <InputNumber
+                  min={0}
+                  step={0.1}
+                  style={{ width: '100%' }}
+                  placeholder="Nhập dung lượng GB"
+                  formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Tốc độ tăng trưởng dữ liệu (%)"
+                name="growth_rate_percent"
+                tooltip="P0.8 Phase 1 - REQUIRED: Tốc độ tăng trưởng (%/năm hoặc GB/tháng)"
+              >
+                <InputNumber
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  style={{ width: '100%' }}
+                  placeholder="Nhập % tăng trưởng"
+                  formatter={(value) => `${value}%`}
+                  parser={(value) => parseFloat(value!.replace('%', '')) as any}
+                />
+              </Form.Item>
+            </Col>
           </Row>
         </Card>
       ),
@@ -423,6 +891,41 @@ const SystemCreate = () => {
       children: (
         <Card>
           <Row gutter={[16, 16]}>
+            {/* P0.8 Phase 1 - Section 5: API Inventory */}
+            <Col span={24}>
+              <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
+                Thống kê API (P0.8 Phase 1)
+              </Text>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Số API cung cấp"
+                name="api_provided_count"
+                tooltip="P0.8 Phase 1: Tổng số API mà hệ thống này cung cấp cho hệ thống khác"
+              >
+                <InputNumber
+                  min={0}
+                  style={{ width: '100%' }}
+                  placeholder="Số API cung cấp"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Số API tiêu thụ"
+                name="api_consumed_count"
+                tooltip="P0.8 Phase 1: Tổng số API mà hệ thống này gọi từ hệ thống khác"
+              >
+                <InputNumber
+                  min={0}
+                  style={{ width: '100%' }}
+                  placeholder="Số API tiêu thụ"
+                />
+              </Form.Item>
+            </Col>
+
             <Col span={12}>
               <Form.Item
                 label="Hệ thống nội bộ tích hợp"
@@ -452,6 +955,25 @@ const SystemCreate = () => {
             <Col span={12}>
               <Form.Item label="Phương thức trao đổi dữ liệu" name="data_exchange_method">
                 <Input placeholder="VD: REST API, SOAP, File Transfer, Database Sync" />
+              </Form.Item>
+            </Col>
+
+            {/* P0.8 Phase 1 - Section 5: Integration Connections (Complex Dynamic Form) */}
+            <Col span={24}>
+              <Text strong style={{ fontSize: 16, display: 'block', marginTop: 24, marginBottom: 16 }}>
+                Danh sách tích hợp chi tiết (P0.8 Phase 1 - CRITICAL)
+              </Text>
+              <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+                Liệt kê chi tiết các kết nối tích hợp giữa hệ thống này với các hệ thống khác
+              </Text>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item
+                name="integration_connections_data"
+                initialValue={[]}
+              >
+                <IntegrationConnectionList />
               </Form.Item>
             </Col>
           </Row>

@@ -299,6 +299,28 @@ class System(models.Model):
         verbose_name=_('Criticality Level')
     )
 
+    # P2 Gap Analysis: Security Level
+    SECURITY_LEVEL_CHOICES = [
+        (1, 'Cấp 1'),
+        (2, 'Cấp 2'),
+        (3, 'Cấp 3'),
+        (4, 'Cấp 4'),
+        (5, 'Cấp 5'),
+    ]
+
+    security_level = models.IntegerField(
+        choices=SECURITY_LEVEL_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name=_('Security Level'),
+        help_text='Mức độ an toàn thông tin (1-5)'
+    )
+    has_security_documents = models.BooleanField(
+        default=False,
+        verbose_name=_('Has Security Documents'),
+        help_text='Có tài liệu ATTT (chính sách, quy trình, hướng dẫn)?'
+    )
+
     # Form Level
     form_level = models.IntegerField(
         default=1,
@@ -775,6 +797,25 @@ class SystemOperations(models.Model):
         blank=True
     )
 
+    # P2 Gap Analysis: Deployment & Infrastructure
+    DEPLOYMENT_LOCATION_CHOICES = [
+        ('datacenter', 'Data Center'),
+        ('cloud', 'Cloud'),
+        ('hybrid', 'Hybrid'),
+    ]
+
+    deployment_location = models.CharField(
+        max_length=50,
+        choices=DEPLOYMENT_LOCATION_CHOICES,
+        blank=True,
+        verbose_name=_('Deployment Location')
+    )
+    compute_specifications = models.TextField(
+        blank=True,
+        verbose_name=_('Compute Specifications'),
+        help_text='CPU, RAM, Storage specifications'
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -824,6 +865,40 @@ class SystemIntegration(models.Model):
     # Standards
     uses_standard_api = models.BooleanField(default=False)
     api_standard = models.CharField(max_length=100, blank=True, help_text='REST, SOAP, GraphQL, etc.')
+
+    # P2 Gap Analysis: API Gateway & Management
+    has_api_gateway = models.BooleanField(
+        default=False,
+        verbose_name=_('Has API Gateway')
+    )
+    api_gateway_name = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name=_('API Gateway Name'),
+        help_text='Kong, AWS API Gateway, Azure API Management, etc.'
+    )
+    has_api_versioning = models.BooleanField(
+        default=False,
+        verbose_name=_('Has API Versioning')
+    )
+    has_rate_limiting = models.BooleanField(
+        default=False,
+        verbose_name=_('Has Rate Limiting/Throttling')
+    )
+
+    # API Inventory
+    api_provided_count = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_('Number of APIs Provided'),
+        help_text='Số lượng API mà hệ thống cung cấp cho hệ thống khác'
+    )
+    api_consumed_count = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_('Number of APIs Consumed'),
+        help_text='Số lượng API mà hệ thống gọi từ hệ thống khác'
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

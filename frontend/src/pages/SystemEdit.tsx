@@ -270,6 +270,34 @@ const businessObjectivesOptions = [
 ];
 
 /**
+ * P2 Gap Analysis: Additional option arrays
+ */
+const apiGatewayOptions = [
+  { label: 'Kong', value: 'kong' },
+  { label: 'AWS API Gateway', value: 'aws_api_gateway' },
+  { label: 'Azure API Management', value: 'azure_api_management' },
+  { label: 'Google Apigee', value: 'google_apigee' },
+  { label: 'Nginx', value: 'nginx' },
+  { label: 'Traefik', value: 'traefik' },
+  { label: 'Không có', value: 'none' },
+  { label: 'Khác', value: 'other' },
+];
+
+const deploymentLocationOptions = [
+  { label: 'Data Center', value: 'datacenter' },
+  { label: 'Cloud', value: 'cloud' },
+  { label: 'Hybrid', value: 'hybrid' },
+];
+
+const securityLevelOptions = [
+  { label: 'Cấp 1', value: '1' },
+  { label: 'Cấp 2', value: '2' },
+  { label: 'Cấp 3', value: '3' },
+  { label: 'Cấp 4', value: '4' },
+  { label: 'Cấp 5', value: '5' },
+];
+
+/**
  * Phase 1 - Section 5: Integration Connection List Component
  * Complex dynamic form for managing integration connections
  */
@@ -1332,6 +1360,40 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
+            {/* P2 Gap Analysis: API Gateway & Management */}
+            <Col span={24}>
+              <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
+                API Gateway & Quản lý (P2 Gap Analysis)
+              </Text>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Có API Gateway?" name="has_api_gateway" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Tên API Gateway" name="api_gateway_name">
+                <SelectWithOther
+                  options={apiGatewayOptions}
+                  placeholder="Chọn API Gateway"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Có API Versioning?" name="has_api_versioning" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Có Rate Limiting?" name="has_rate_limiting" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </Col>
+
             <Col span={12}>
               <Form.Item label="Hệ thống nội bộ tích hợp" name="integrated_internal_systems">
                 <DynamicListInput placeholder="Nhập tên hệ thống nội bộ" />
@@ -1416,6 +1478,39 @@ const SystemEdit = () => {
                 <Input placeholder="VD: ISO 27001, GDPR, PCI DSS, SOC 2" />
               </Form.Item>
             </Col>
+
+            {/* P2 Gap Analysis: Security Level */}
+            <Col span={24}>
+              <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
+                Mức độ an toàn (P2 Gap Analysis)
+              </Text>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Cấp độ an toàn" name="security_level">
+                <Select
+                  placeholder="Chọn cấp độ an toàn"
+                  allowClear
+                >
+                  {securityLevelOptions.map(opt => (
+                    <Select.Option key={opt.value} value={parseInt(opt.value)}>
+                      {opt.label}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Có tài liệu ATTT?"
+                name="has_security_documents"
+                valuePropName="checked"
+                initialValue={false}
+              >
+                <Switch />
+              </Form.Item>
+            </Col>
           </Row>
         </Card>
       ),
@@ -1488,6 +1583,32 @@ const SystemEdit = () => {
             <Col span={12}>
               <Form.Item label="Email liên hệ" name="responsible_email">
                 <Input type="email" placeholder="Email" />
+              </Form.Item>
+            </Col>
+
+            {/* P2 Gap Analysis: Deployment & Infrastructure */}
+            <Col span={24}>
+              <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
+                Triển khai & Hạ tầng (P2 Gap Analysis)
+              </Text>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Vị trí triển khai" name="deployment_location">
+                <Select
+                  options={deploymentLocationOptions}
+                  placeholder="Chọn vị trí triển khai"
+                  allowClear
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item label="Cấu hình tính toán" name="compute_specifications">
+                <TextArea
+                  rows={3}
+                  placeholder="VD: 8 vCPU, 16GB RAM, 500GB SSD, Load Balancer với 2 nodes"
+                />
               </Form.Item>
             </Col>
           </Row>

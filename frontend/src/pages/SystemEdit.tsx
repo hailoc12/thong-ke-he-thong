@@ -361,6 +361,73 @@ const apiStandardOptions = [
 ];
 
 /**
+ * Phase 4 Part 2: Additional CharField conversion options
+ */
+const serverConfigurationOptions = [
+  { label: 'Cloud VM (AWS EC2, Azure VM, GCP Compute)', value: 'cloud_vm' },
+  { label: 'Physical Server', value: 'physical_server' },
+  { label: 'Container (Docker, K8s)', value: 'container' },
+  { label: 'Serverless (Lambda, Cloud Functions)', value: 'serverless' },
+  { label: 'Managed Service (RDS, App Service)', value: 'managed' },
+  { label: 'VPS', value: 'vps' },
+  { label: 'Bare Metal', value: 'bare_metal' },
+  { label: 'Khác', value: 'other' },
+];
+
+const storageCapacityOptions = [
+  { label: '< 100GB', value: 'under_100gb' },
+  { label: '100GB - 1TB', value: '100gb_1tb' },
+  { label: '1TB - 10TB', value: '1tb_10tb' },
+  { label: '10TB - 100TB', value: '10tb_100tb' },
+  { label: '100TB - 1PB', value: '100tb_1pb' },
+  { label: '> 1PB', value: 'over_1pb' },
+  { label: 'Khác', value: 'other' },
+];
+
+const backupPlanOptions = [
+  { label: 'Daily (hàng ngày)', value: 'daily' },
+  { label: 'Weekly (hàng tuần)', value: 'weekly' },
+  { label: 'Real-time/Continuous', value: 'realtime' },
+  { label: 'Hourly (mỗi giờ)', value: 'hourly' },
+  { label: 'Monthly (hàng tháng)', value: 'monthly' },
+  { label: 'On-demand', value: 'on_demand' },
+  { label: 'None (không có)', value: 'none' },
+  { label: 'Khác', value: 'other' },
+];
+
+const disasterRecoveryOptions = [
+  { label: 'Hot Standby (tức thì)', value: 'hot_standby' },
+  { label: 'Warm Standby (vài phút)', value: 'warm_standby' },
+  { label: 'Cold Backup (vài giờ)', value: 'cold_backup' },
+  { label: 'Cloud DR', value: 'cloud_dr' },
+  { label: 'Geographic Redundancy', value: 'geo_redundancy' },
+  { label: 'None (không có)', value: 'none' },
+  { label: 'Khác', value: 'other' },
+];
+
+const complianceStandardsOptions = [
+  { label: 'ISO 27001', value: 'iso_27001' },
+  { label: 'GDPR', value: 'gdpr' },
+  { label: 'SOC 2', value: 'soc2' },
+  { label: 'HIPAA', value: 'hipaa' },
+  { label: 'PCI DSS', value: 'pci_dss' },
+  { label: 'Luật An ninh mạng VN', value: 'vietnam_cybersecurity' },
+  { label: 'Nghị định 85/2016', value: 'decree_85' },
+  { label: 'Không có', value: 'none' },
+  { label: 'Khác', value: 'other' },
+];
+
+const dataVolumeOptions = [
+  { label: '< 1GB', value: 'under_1gb' },
+  { label: '1GB - 100GB', value: '1gb_100gb' },
+  { label: '100GB - 1TB', value: '100gb_1tb' },
+  { label: '1TB - 10TB', value: '1tb_10tb' },
+  { label: '10TB - 100TB', value: '10tb_100tb' },
+  { label: '> 100TB', value: 'over_100tb' },
+  { label: 'Khác', value: 'other' },
+];
+
+/**
  * Phase 1 - Section 5: Integration Connection List Component
  * Complex dynamic form for managing integration connections
  */
@@ -1288,7 +1355,10 @@ const SystemEdit = () => {
 
             <Col span={12}>
               <Form.Item label="Khối lượng dữ liệu" name="data_volume">
-                <Input placeholder="VD: 100GB, 1TB, 10TB" />
+                <SelectWithOther
+                  options={dataVolumeOptions}
+                  placeholder="Chọn khối lượng dữ liệu"
+                />
               </Form.Item>
             </Col>
 
@@ -1566,7 +1636,10 @@ const SystemEdit = () => {
 
             <Col span={12}>
               <Form.Item label="Tuân thủ tiêu chuẩn" name="compliance_standards_list">
-                <Input placeholder="VD: ISO 27001, GDPR, PCI DSS, SOC 2" />
+                <SelectWithOther
+                  options={complianceStandardsOptions}
+                  placeholder="Chọn tiêu chuẩn tuân thủ"
+                />
               </Form.Item>
             </Col>
 
@@ -1618,25 +1691,37 @@ const SystemEdit = () => {
           <Row gutter={[16, 16]}>
             <Col span={12}>
               <Form.Item label="Cấu hình máy chủ" name="server_configuration">
-                <Input placeholder="VD: 8 CPU, 16GB RAM, 500GB SSD" />
+                <SelectWithOther
+                  options={serverConfigurationOptions}
+                  placeholder="Chọn cấu hình máy chủ"
+                />
               </Form.Item>
             </Col>
 
             <Col span={12}>
               <Form.Item label="Dung lượng lưu trữ" name="storage_capacity">
-                <Input placeholder="VD: 1TB, 5TB, 10TB" />
+                <SelectWithOther
+                  options={storageCapacityOptions}
+                  placeholder="Chọn dung lượng lưu trữ"
+                />
               </Form.Item>
             </Col>
 
-            <Col span={24}>
+            <Col span={12}>
               <Form.Item label="Phương án sao lưu" name="backup_plan">
-                <TextArea rows={3} placeholder="VD: Sao lưu hàng ngày, lưu giữ 30 ngày" />
+                <SelectWithOther
+                  options={backupPlanOptions}
+                  placeholder="Chọn phương án sao lưu"
+                />
               </Form.Item>
             </Col>
 
-            <Col span={24}>
+            <Col span={12}>
               <Form.Item label="Kế hoạch khôi phục thảm họa" name="disaster_recovery_plan">
-                <TextArea rows={3} placeholder="VD: RTO 4 giờ, RPO 1 giờ, standby site ở ..." />
+                <SelectWithOther
+                  options={disasterRecoveryOptions}
+                  placeholder="Chọn kế hoạch DR"
+                />
               </Form.Item>
             </Col>
           </Row>

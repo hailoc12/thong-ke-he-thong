@@ -15,7 +15,6 @@ import {
   Col,
   InputNumber,
   Switch,
-  Checkbox,
   message,
   Spin,
   Typography,
@@ -246,6 +245,27 @@ const dataSourcesOptions = [
   { label: 'IoT Sensors', value: 'iot_sensors' },
   { label: 'Third-party Services', value: 'third_party_services' },
   { label: 'Legacy Systems', value: 'legacy_systems' },
+  { label: 'Khác', value: 'other' },
+];
+
+const userTypesOptions = [
+  { label: 'Lãnh đạo nội bộ', value: 'internal_leadership' },
+  { label: 'Cán bộ nội bộ', value: 'internal_staff' },
+  { label: 'Người thẩm định nội bộ', value: 'internal_reviewer' },
+  { label: 'Doanh nghiệp', value: 'external_business' },
+  { label: 'Người dân', value: 'external_citizen' },
+  { label: 'Địa phương', value: 'external_local' },
+  { label: 'Cơ quan khác', value: 'external_agency' },
+  { label: 'Khác', value: 'other' },
+];
+
+const businessObjectivesOptions = [
+  { label: 'Số hóa quy trình nghiệp vụ', value: 'digitize_processes' },
+  { label: 'Cải thiện dịch vụ công', value: 'improve_public_services' },
+  { label: 'Tăng cường minh bạch', value: 'increase_transparency' },
+  { label: 'Giảm thời gian xử lý', value: 'reduce_processing_time' },
+  { label: 'Tích hợp liên thông', value: 'integration' },
+  { label: 'Báo cáo thống kê', value: 'reporting' },
   { label: 'Khác', value: 'other' },
 ];
 
@@ -842,7 +862,10 @@ const SystemEdit = () => {
                 name="business_objectives"
                 tooltip="Khuyến nghị tối đa 5 mục tiêu để tập trung"
               >
-                <DynamicListInput placeholder="Nhập mục tiêu nghiệp vụ và nhấn Enter" />
+                <CheckboxGroupWithOther
+                  options={businessObjectivesOptions}
+                  customInputPlaceholder="Nhập mục tiêu nghiệp vụ khác..."
+                />
               </Form.Item>
             </Col>
 
@@ -864,31 +887,10 @@ const SystemEdit = () => {
 
             <Col span={24}>
               <Form.Item label="Đối tượng sử dụng" name="user_types">
-                <Checkbox.Group>
-                  <Row>
-                    <Col span={8}>
-                      <Checkbox value="internal_leadership">Lãnh đạo nội bộ</Checkbox>
-                    </Col>
-                    <Col span={8}>
-                      <Checkbox value="internal_staff">Cán bộ nội bộ</Checkbox>
-                    </Col>
-                    <Col span={8}>
-                      <Checkbox value="internal_reviewer">Người thẩm định nội bộ</Checkbox>
-                    </Col>
-                    <Col span={8}>
-                      <Checkbox value="external_business">Doanh nghiệp</Checkbox>
-                    </Col>
-                    <Col span={8}>
-                      <Checkbox value="external_citizen">Người dân</Checkbox>
-                    </Col>
-                    <Col span={8}>
-                      <Checkbox value="external_local">Địa phương</Checkbox>
-                    </Col>
-                    <Col span={8}>
-                      <Checkbox value="external_agency">Cơ quan khác</Checkbox>
-                    </Col>
-                  </Row>
-                </Checkbox.Group>
+                <CheckboxGroupWithOther
+                  options={userTypesOptions}
+                  customInputPlaceholder="Nhập đối tượng sử dụng khác..."
+                />
               </Form.Item>
             </Col>
 

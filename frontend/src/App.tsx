@@ -106,14 +106,14 @@ function App() {
 
           {/* Protected routes */}
           <Route
-            path="/dashboard"
+            path="/"
             element={
               <ProtectedRoute>
                 <MainLayout />
               </ProtectedRoute>
             }
           >
-            <Route index element={<Dashboard />} />
+            <Route path="dashboard" element={<Dashboard />} />
             <Route path="systems" element={<Systems />} />
             <Route path="systems/create" element={<SystemCreate />} />
             <Route path="systems/:id" element={<SystemDetail />} />

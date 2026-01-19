@@ -92,7 +92,8 @@ const LandingPage = () => {
             >
               Đăng nhập ngay
             </Button>
-            <Button
+            {/* Registration disabled - contact admin for account */}
+            {/* <Button
               size="large"
               onClick={() => navigate('/register')}
               style={{
@@ -105,7 +106,7 @@ const LandingPage = () => {
               }}
             >
               Đăng ký tài khoản
-            </Button>
+            </Button> */}
             <Button
               size="large"
               icon={<BookOutlined />}
@@ -226,7 +227,8 @@ const LandingPage = () => {
             >
               Đăng nhập
             </Button>
-            <Button
+            {/* Registration disabled - contact admin for account */}
+            {/* <Button
               size="large"
               onClick={() => navigate('/register')}
               style={{
@@ -239,7 +241,7 @@ const LandingPage = () => {
               }}
             >
               Đăng ký
-            </Button>
+            </Button> */}
           </div>
         </div>
       </div>

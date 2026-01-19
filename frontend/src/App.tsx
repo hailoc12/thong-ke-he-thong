@@ -4,7 +4,7 @@ import type { ThemeConfig } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import HomeRedirect from './components/HomeRedirect';
 import Login from './pages/Login';
-import Register from './pages/Register';
+// import Register from './pages/Register'; // Registration disabled
 import Dashboard from './pages/Dashboard';
 import Systems from './pages/Systems';
 import SystemCreate from './pages/SystemCreate';
@@ -103,7 +103,7 @@ function App() {
 
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          {/* <Route path="/register" element={<Register />} /> */}
           <Route path="/help" element={<Help />} />
 
           {/* Protected routes */}

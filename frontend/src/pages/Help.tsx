@@ -1,7 +1,7 @@
 import { Typography, Row, Col, Card, Button, Divider, Space, Alert } from 'antd';
 import {
   LoginOutlined,
-  UserAddOutlined,
+  // UserAddOutlined, // Registration disabled
   DashboardOutlined,
   AppstoreOutlined,
   TeamOutlined,
@@ -20,7 +20,7 @@ const Help = () => {
   const navigate = useNavigate();
 
   const quickLinks = [
-    { title: 'Đăng ký tài khoản', path: '/register', icon: <UserAddOutlined /> },
+    // { title: 'Đăng ký tài khoản', path: '/register', icon: <UserAddOutlined /> }, // Registration disabled
     { title: 'Đăng nhập', path: '/login', icon: <LoginOutlined /> },
     { title: 'Dashboard', path: '/dashboard', icon: <DashboardOutlined /> },
     { title: 'Quản lý hệ thống', path: '/dashboard/systems', icon: <AppstoreOutlined /> },
@@ -33,17 +33,18 @@ const Help = () => {
       title: 'Bắt đầu',
       icon: <EnvironmentOutlined />,
       content: [
-        {
-          subtitle: 'Đăng ký tài khoản',
-          description: 'Tạo tài khoản để bắt đầu sử dụng hệ thống',
-          steps: [
-            'Truy cập trang đăng ký',
-            'Nhập thông tin: tên đăng nhập, email, mật khẩu',
-            'Chọn vai trò: Người dùng đơn vị hoặc Quản trị viên',
-            'Chọn đơn vị (nếu là người dùng đơn vị)',
-            'Click "Đăng ký"',
-          ],
-        },
+        // Registration disabled - contact admin for account
+        // {
+        //   subtitle: 'Đăng ký tài khoản',
+        //   description: 'Tạo tài khoản để bắt đầu sử dụng hệ thống',
+        //   steps: [
+        //     'Truy cập trang đăng ký',
+        //     'Nhập thông tin: tên đăng nhập, email, mật khẩu',
+        //     'Chọn vai trò: Người dùng đơn vị hoặc Quản trị viên',
+        //     'Chọn đơn vị (nếu là người dùng đơn vị)',
+        //     'Click "Đăng ký"',
+        //   ],
+        // },
         {
           subtitle: 'Đăng nhập',
           description: 'Sử dụng thông tin đã đăng ký để truy cập hệ thống',
@@ -99,7 +100,7 @@ const Help = () => {
   const faqs = [
     {
       question: 'Làm thế nào để đăng ký tài khoản?',
-      answer: 'Truy cập trang đăng ký, điền đầy đủ thông tin và click "Đăng ký". Tài khoản của bạn sẽ được tạo ngay lập tức.',
+      answer: 'Hiện tại hệ thống không hỗ trợ tự đăng ký. Vui lòng liên hệ quản trị viên (admin) để được cấp tài khoản.',
     },
     {
       question: 'Quên mật khẩu thì làm sao?',
@@ -187,7 +188,8 @@ const Help = () => {
           Bắt đầu nhanh
         </Title>
         <Row gutter={[32, 32]}>
-          <Col xs={24} md={12}>
+          {/* Registration disabled - contact admin for account */}
+          {/* <Col xs={24} md={12}>
             <Card
               type="inner"
               title="Đăng ký tài khoản"
@@ -212,7 +214,7 @@ const Help = () => {
                 ))}
               </Space>
             </Card>
-          </Col>
+          </Col> */}
           <Col xs={24} md={12}>
             <Card
               type="inner"

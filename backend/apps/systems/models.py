@@ -42,7 +42,12 @@ class System(models.Model):
         related_name='systems',
         verbose_name=_('Organization')
     )
-    system_code = models.CharField(max_length=100, verbose_name=_('System Code'))
+    system_code = models.CharField(
+        max_length=100,
+        blank=True,  # Allow empty - auto-generated in save()
+        verbose_name=_('System Code'),
+        help_text='Auto-generated format: SYS-ORG-YYYY-XXXX'
+    )
     system_name = models.CharField(max_length=255, verbose_name=_('System Name'))
     system_name_en = models.CharField(
         max_length=255,

@@ -2,6 +2,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
 
@@ -13,6 +14,7 @@ from .serializers import (
     SystemCreateUpdateSerializer,
     AttachmentSerializer,
 )
+from .utils import calculate_system_completion_percentage
 
 
 class SystemViewSet(viewsets.ModelViewSet):
@@ -197,3 +199,99 @@ class AttachmentViewSet(viewsets.ModelViewSet):
 
         # If user has no organization assigned, return empty queryset
         return queryset.none()
+
+class UnitProgressDashboardView(APIView):
+    """
+    P0.9: Unit Progress Dashboard API
+
+    GET /api/systems/dashboard/unit-progress/
+
+    Returns progress statistics for the current user's organization:
+    - Total systems count
+    - Overall completion percentage
+    - Per-system completion data with percentages
+
+    Permissions: IsAuthenticated (org_user or admin)
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Get progress dashboard data for the user's organization."""
+        user = request.user
+
+        # Admin users must specify an organization ID
+        if user.role == 'admin':
+            org_id = request.query_params.get('org_id')
+            if not org_id:
+                return Response(
+                    {
+                        'error': 'Admin users must specify org_id parameter',
+                        'example': '/api/systems/dashboard/unit-progress/?org_id=1'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            try:
+                from apps.accounts.models import Organization
+                organization = Organization.objects.get(id=org_id)
+            except Organization.DoesNotExist:
+                return Response(
+                    {'error': f'Organization with id={org_id} not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            # Org users use their assigned organization
+            organization = user.organization
+            if not organization:
+                return Response(
+                    {'error': 'User is not assigned to any organization'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        # Get all systems for this organization (exclude soft-deleted)
+        systems = System.objects.filter(
+            org=organization,
+            is_deleted=False
+        ).select_related('org').order_by('-updated_at')
+
+        # Calculate completion percentage for each system
+        systems_data = []
+        total_completion = 0.0
+        for system in systems:
+            completion_percentage = calculate_system_completion_percentage(system)
+            total_completion += completion_percentage
+
+            systems_data.append({
+                'id': system.id,
+                'system_name': system.system_name,
+                'system_code': system.system_code,
+                'status': system.status,
+                'completion_percentage': completion_percentage,
+                'created_at': system.created_at.isoformat() if system.created_at else None,
+                'updated_at': system.updated_at.isoformat() if system.updated_at else None,
+            })
+
+        # Calculate overall completion percentage
+        total_systems = len(systems_data)
+        overall_completion_percentage = (
+            round(total_completion / total_systems, 1) if total_systems > 0 else 0.0
+        )
+
+        # Count systems by completion level
+        complete_systems = sum(1 for s in systems_data if s['completion_percentage'] >= 100.0)
+        incomplete_systems = total_systems - complete_systems
+
+        # Response data
+        response_data = {
+            'organization': {
+                'id': organization.id,
+                'name': organization.name,
+                'org_code': organization.org_code,
+            },
+            'total_systems': total_systems,
+            'overall_completion_percentage': overall_completion_percentage,
+            'complete_systems': complete_systems,
+            'incomplete_systems': incomplete_systems,
+            'systems': systems_data,
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)

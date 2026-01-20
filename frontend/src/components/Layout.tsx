@@ -82,6 +82,12 @@ const MainLayout = () => {
           icon: <DashboardOutlined />,
           label: 'Tổng quan',
         },
+        // Unit Dashboard menu - visible for all users
+        {
+          key: '/dashboard/unit',
+          icon: <DashboardOutlined />,
+          label: 'Dashboard Đơn vị',
+        },
         {
           key: '/systems',
           icon: <AppstoreOutlined />,

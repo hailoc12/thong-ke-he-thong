@@ -6,6 +6,7 @@ import HomeRedirect from './components/HomeRedirect';
 import Login from './pages/Login';
 // import Register from './pages/Register'; // Registration disabled
 import Dashboard from './pages/Dashboard';
+import UnitDashboard from './pages/UnitDashboard';
 import Systems from './pages/Systems';
 import SystemCreate from './pages/SystemCreate';
 import SystemDetail from './pages/SystemDetail';
@@ -116,6 +117,7 @@ function App() {
             }
           >
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="dashboard/unit" element={<UnitDashboard />} />
             <Route path="systems" element={<Systems />} />
             <Route path="systems/create" element={<SystemCreate />} />
             <Route path="systems/:id" element={<SystemDetail />} />

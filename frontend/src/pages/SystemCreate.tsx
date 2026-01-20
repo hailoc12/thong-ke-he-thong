@@ -522,7 +522,7 @@ interface IntegrationConnection {
   source_system: string;
   target_system: string;
   data_objects: string;
-  integration_method: string;
+  integration_method: string[];
   frequency: string;
   error_handling?: string;
   has_api_docs: boolean;
@@ -657,13 +657,18 @@ const IntegrationConnectionList = ({ value = [], onChange }: any) => {
                     />
                   </Form.Item>
                 </Col>
-                <Col span={12}>
+                <Col span={24}>
                   <Form.Item
                     label="Phương thức tích hợp"
                     name="integration_method"
-                    rules={[{ required: true, message: 'Vui lòng chọn phương thức' }]}
+                    initialValue={[]}
+                    rules={[{ required: true, message: 'Vui lòng chọn ít nhất một phương thức' }]}
+                    tooltip="Có thể chọn nhiều phương thức (API REST + Message Queue)"
                   >
-                    <SelectWithOther options={integrationMethodOptions} placeholder="Chọn phương thức" />
+                    <CheckboxGroupWithOther
+                      options={integrationMethodOptions}
+                      customInputPlaceholder="Nhập phương thức tích hợp khác..."
+                    />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
@@ -708,7 +713,11 @@ const IntegrationConnectionList = ({ value = [], onChange }: any) => {
               </p>
               <p>
                 <strong>Phương thức:</strong>{' '}
-                {integrationMethodOptions.find((o) => o.value === conn.integration_method)?.label}
+                {Array.isArray(conn.integration_method)
+                  ? conn.integration_method
+                      .map((m) => integrationMethodOptions.find((o) => o.value === m)?.label || m)
+                      .join(', ')
+                  : conn.integration_method}
               </p>
               <p>
                 <strong>Tần suất:</strong>{' '}
@@ -1134,7 +1143,7 @@ const SystemCreate = () => {
             {/* Phase 1 - Section 2: User Metrics */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
-                Thống kê người dùng (Phase 1)
+                Thống kê người dùng
               </Text>
             </Col>
 
@@ -1303,11 +1312,16 @@ const SystemCreate = () => {
               </Text>
             </Col>
 
-            <Col span={12}>
-              <Form.Item label="Loại kiến trúc" name="architecture_type">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="Loại kiến trúc"
+                name="architecture_type"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều (Microservices + Serverless hybrid)"
+              >
+                <CheckboxGroupWithOther
                   options={architectureTypeOptions}
-                  placeholder="Chọn loại kiến trúc"
+                  customInputPlaceholder="Nhập loại kiến trúc khác..."
                 />
               </Form.Item>
             </Col>
@@ -1344,20 +1358,30 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
-            <Col span={12}>
-              <Form.Item label="API Style" name="api_style">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="API Style"
+                name="api_style"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều (REST + GraphQL + gRPC)"
+              >
+                <CheckboxGroupWithOther
                   options={apiStyleOptions}
-                  placeholder="Chọn loại API"
+                  customInputPlaceholder="Nhập API style khác..."
                 />
               </Form.Item>
             </Col>
 
-            <Col span={12}>
-              <Form.Item label="Messaging/Queue" name="messaging_queue">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="Messaging/Queue"
+                name="messaging_queue"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều (RabbitMQ + Kafka + Redis)"
+              >
+                <CheckboxGroupWithOther
                   options={messagingQueueOptions}
-                  placeholder="Chọn hệ thống message queue"
+                  customInputPlaceholder="Nhập message queue khác..."
                 />
               </Form.Item>
             </Col>
@@ -1447,11 +1471,16 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
-            <Col span={12}>
-              <Form.Item label="Phân loại dữ liệu" name="data_classification_type">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="Phân loại dữ liệu"
+                name="data_classification_type"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều loại (Bí mật + Mật)"
+              >
+                <CheckboxGroupWithOther
                   options={dataClassificationTypeOptions}
-                  placeholder="Chọn mức độ phân loại"
+                  customInputPlaceholder="Nhập mức độ phân loại khác..."
                 />
               </Form.Item>
             </Col>
@@ -1529,11 +1558,16 @@ const SystemCreate = () => {
               </Text>
             </Col>
 
-            <Col span={12}>
-              <Form.Item label="Loại lưu trữ file" name="file_storage_type">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="Loại lưu trữ file"
+                name="file_storage_type"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều (Object Storage + Block Storage + File System)"
+              >
+                <CheckboxGroupWithOther
                   options={fileStorageTypeOptions}
-                  placeholder="Chọn loại lưu trữ file"
+                  customInputPlaceholder="Nhập loại lưu trữ file khác..."
                 />
               </Form.Item>
             </Col>
@@ -1614,12 +1648,17 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
-            {/* Phase 4: Quick Input - API Standard */}
-            <Col span={12}>
-              <Form.Item label="Chuẩn API" name="api_standard">
-                <SelectWithOther
+            {/* Quick Input - API Standard (Multi-select) */}
+            <Col span={24}>
+              <Form.Item
+                label="Chuẩn API"
+                name="api_standard"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều chuẩn (OpenAPI + AsyncAPI)"
+              >
+                <CheckboxGroupWithOther
                   options={apiStandardOptions}
-                  placeholder="Chọn chuẩn API"
+                  customInputPlaceholder="Nhập chuẩn API khác..."
                 />
               </Form.Item>
             </Col>
@@ -1733,11 +1772,16 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
-            <Col span={12}>
-              <Form.Item label="Phương thức trao đổi dữ liệu" name="data_exchange_method">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="Phương thức trao đổi dữ liệu"
+                name="data_exchange_method"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều (API REST + File Transfer + Message Queue)"
+              >
+                <CheckboxGroupWithOther
                   options={dataExchangeMethodOptions}
-                  placeholder="Chọn phương thức trao đổi"
+                  customInputPlaceholder="Nhập phương thức trao đổi dữ liệu khác..."
                 />
               </Form.Item>
             </Col>
@@ -1774,11 +1818,16 @@ const SystemCreate = () => {
       children: (
         <Card>
           <Row gutter={[16, 16]}>
-            <Col span={12}>
-              <Form.Item label="Phương thức xác thực" name="authentication_method">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="Phương thức xác thực"
+                name="authentication_method"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều (LDAP + Local + SSO + OAuth2)"
+              >
+                <CheckboxGroupWithOther
                   options={authenticationMethodOptions}
-                  placeholder="Chọn phương thức"
+                  customInputPlaceholder="Nhập phương thức xác thực khác..."
                 />
               </Form.Item>
             </Col>
@@ -1805,11 +1854,16 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
-            <Col span={12}>
-              <Form.Item label="Tuân thủ tiêu chuẩn" name="compliance_standards_list">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="Tuân thủ tiêu chuẩn"
+                name="compliance_standards_list"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều tiêu chuẩn (ISO 27001 + GDPR + Nghị định 85)"
+              >
+                <CheckboxGroupWithOther
                   options={complianceStandardsOptions}
-                  placeholder="Chọn tiêu chuẩn tuân thủ"
+                  customInputPlaceholder="Nhập tiêu chuẩn tuân thủ khác..."
                 />
               </Form.Item>
             </Col>
@@ -1846,46 +1900,6 @@ const SystemCreate = () => {
                 <Switch />
               </Form.Item>
             </Col>
-
-            <Col span={24}>
-              <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
-                Đánh giá mức nợ kỹ thuật
-              </Text>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label="Điểm phù hợp cho tích hợp"
-                name="integration_readiness"
-                tooltip="Các đặc điểm thuận lợi cho việc tích hợp liên thông"
-              >
-                <CheckboxGroupWithOther options={integrationReadinessOptions} />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label="Điểm vướng mắc"
-                name="blockers"
-                tooltip="Các rào cản kỹ thuật cần xử lý"
-              >
-                <CheckboxGroupWithOther options={blockersOptions} />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label="Đề xuất của đơn vị"
-                name="recommendation"
-                tooltip="Đề xuất hành động cho hệ thống này"
-              >
-                <Select
-                  options={recommendationOptions}
-                  placeholder="Chọn đề xuất"
-                  allowClear
-                />
-              </Form.Item>
-            </Col>
           </Row>
         </Card>
       ),
@@ -1918,11 +1932,16 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
-            <Col span={12}>
-              <Form.Item label="Phương án sao lưu" name="backup_plan">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="Phương án sao lưu"
+                name="backup_plan"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều phương án (Daily backup + Snapshot + Off-site backup)"
+              >
+                <CheckboxGroupWithOther
                   options={backupPlanOptions}
-                  placeholder="Chọn phương án sao lưu"
+                  customInputPlaceholder="Nhập phương án sao lưu khác..."
                 />
               </Form.Item>
             </Col>
@@ -2038,6 +2057,59 @@ const SystemCreate = () => {
                 <Select
                   options={deploymentFrequencyOptions}
                   placeholder="Chọn tần suất deployment"
+                  allowClear
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+    {
+      key: '9',
+      label: (
+        <span>
+          <CheckCircleOutlined /> Đánh giá
+        </span>
+      ),
+      children: (
+        <Card>
+          <Row gutter={[16, 16]}>
+            <Col span={24}>
+              <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
+                Đánh giá mức nợ kỹ thuật
+              </Text>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Điểm phù hợp cho tích hợp"
+                name="integration_readiness"
+                tooltip="Các đặc điểm thuận lợi cho việc tích hợp liên thông"
+              >
+                <CheckboxGroupWithOther options={integrationReadinessOptions} />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Điểm vướng mắc"
+                name="blockers"
+                tooltip="Các rào cản kỹ thuật cần xử lý"
+              >
+                <CheckboxGroupWithOther options={blockersOptions} />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Đề xuất của đơn vị"
+                name="recommendation"
+                tooltip="Đề xuất hành động cho hệ thống này"
+              >
+                <Select
+                  options={recommendationOptions}
+                  placeholder="Chọn đề xuất"
                   allowClear
                 />
               </Form.Item>

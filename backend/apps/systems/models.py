@@ -709,36 +709,38 @@ class SystemDataInfo(models.Model):
     )
 
     # P1 Gap Analysis: Additional Database Fields
-    # Primary Database (already exists in SystemArchitecture.database_type)
-    # We add secondary databases here
-    secondary_databases = models.JSONField(
-        default=list,
-        blank=True,
-        help_text='List of secondary/other databases used, e.g., ["Redis", "MongoDB"]'
-    )
-
-    # File Storage
-    file_storage_type = models.CharField(
-        max_length=50,
-        choices=FILE_STORAGE_TYPE_CHOICES,
-        blank=True,
-        verbose_name=_('File Storage Type')
-    )
-
-    # Database Records Count
-    record_count = models.BigIntegerField(
-        null=True,
-        blank=True,
-        verbose_name=_('Number of Records'),
-        help_text='Tổng số bản ghi trong CSDL chính'
-    )
-
-    # Data Retention Policy
-    data_retention_policy = models.TextField(
-        blank=True,
-        verbose_name=_('Data Retention Policy'),
-        help_text='Chính sách lưu trữ dữ liệu (thời gian, quy tắc xóa, archiving)'
-    )
+    # NOTE: All fields below were added without migrations, causing 500 errors. Commented out.
+    # TODO: Re-add via proper migrations if needed in future
+    # # Primary Database (already exists in SystemArchitecture.database_type)
+    # # We add secondary databases here
+    # secondary_databases = models.JSONField(
+    #     default=list,
+    #     blank=True,
+    #     help_text='List of secondary/other databases used, e.g., ["Redis", "MongoDB"]'
+    # )
+    #
+    # # File Storage
+    # file_storage_type = models.CharField(
+    #     max_length=50,
+    #     choices=FILE_STORAGE_TYPE_CHOICES,
+    #     blank=True,
+    #     verbose_name=_('File Storage Type')
+    # )
+    #
+    # # Database Records Count
+    # record_count = models.BigIntegerField(
+    #     null=True,
+    #     blank=True,
+    #     verbose_name=_('Number of Records'),
+    #     help_text='Tổng số bản ghi trong CSDL chính'
+    # )
+    #
+    # # Data Retention Policy
+    # data_retention_policy = models.TextField(
+    #     blank=True,
+    #     verbose_name=_('Data Retention Policy'),
+    #     help_text='Chính sách lưu trữ dữ liệu (thời gian, quy tắc xóa, archiving)'
+    # )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

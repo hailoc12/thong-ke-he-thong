@@ -1233,57 +1233,87 @@ const SystemEdit = () => {
       children: (
         <Card>
           <Row gutter={[16, 16]}>
-            <Col span={12}>
-              <Form.Item label="Ngôn ngữ lập trình" name="programming_language">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="Ngôn ngữ lập trình"
+                name="programming_language"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều ngôn ngữ (microservices, multiple languages)"
+              >
+                <CheckboxGroupWithOther
                   options={programmingLanguageOptions}
-                  placeholder="Chọn ngôn ngữ lập trình"
+                  customInputPlaceholder="Nhập ngôn ngữ lập trình khác..."
                 />
               </Form.Item>
             </Col>
 
-            <Col span={12}>
-              <Form.Item label="Framework/Thư viện" name="framework">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="Framework/Thư viện"
+                name="framework"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều framework (frontend + backend)"
+              >
+                <CheckboxGroupWithOther
                   options={frameworkOptions}
-                  placeholder="Chọn framework/thư viện"
+                  customInputPlaceholder="Nhập framework khác..."
                 />
               </Form.Item>
             </Col>
 
-            <Col span={12}>
-              <Form.Item label="Cơ sở dữ liệu" name="database_name">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="Cơ sở dữ liệu"
+                name="database_name"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều CSDL (PostgreSQL + Redis + MongoDB...)"
+              >
+                <CheckboxGroupWithOther
                   options={databaseNameOptions}
-                  placeholder="Chọn cơ sở dữ liệu"
+                  customInputPlaceholder="Nhập cơ sở dữ liệu khác..."
                 />
               </Form.Item>
             </Col>
 
-            <Col span={12}>
-              <Form.Item label="Nền tảng triển khai" name="hosting_platform">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="Nền tảng triển khai"
+                name="hosting_platform"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều nền tảng (hybrid deployment: AWS + on-premise)"
+              >
+                <CheckboxGroupWithOther
                   options={hostingPlatformOptions}
-                  placeholder="Chọn nền tảng"
+                  customInputPlaceholder="Nhập nền tảng khác..."
                 />
               </Form.Item>
             </Col>
 
-            {/* Phase 4: Quick Input - Backend & Frontend Tech */}
-            <Col span={12}>
-              <Form.Item label="Backend Technology" name="backend_tech">
-                <SelectWithOther
+            {/* Quick Input - Backend & Frontend Tech (Multi-select) */}
+            <Col span={24}>
+              <Form.Item
+                label="Backend Technology"
+                name="backend_tech"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều công nghệ backend (Node.js + Python + Go)"
+              >
+                <CheckboxGroupWithOther
                   options={backendTechOptions}
-                  placeholder="Chọn công nghệ backend"
+                  customInputPlaceholder="Nhập công nghệ backend khác..."
                 />
               </Form.Item>
             </Col>
 
-            <Col span={12}>
-              <Form.Item label="Frontend Technology" name="frontend_tech">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="Frontend Technology"
+                name="frontend_tech"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều công nghệ frontend (React + Vue + jQuery)"
+              >
+                <CheckboxGroupWithOther
                   options={frontendTechOptions}
-                  placeholder="Chọn công nghệ frontend"
+                  customInputPlaceholder="Nhập công nghệ frontend khác..."
                 />
               </Form.Item>
             </Col>
@@ -1304,11 +1334,16 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
-            <Col span={12}>
-              <Form.Item label="Container hóa" name="containerization">
-                <SelectWithOther
+            <Col span={24}>
+              <Form.Item
+                label="Container hóa"
+                name="containerization"
+                initialValue={[]}
+                tooltip="Có thể chọn nhiều (Docker + Kubernetes + OpenShift)"
+              >
+                <CheckboxGroupWithOther
                   options={containerizationOptions}
-                  placeholder="Chọn công nghệ container"
+                  customInputPlaceholder="Nhập công nghệ container khác..."
                 />
               </Form.Item>
             </Col>

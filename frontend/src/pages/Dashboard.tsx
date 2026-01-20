@@ -31,6 +31,14 @@ const { Title } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
+// Status mapping: English DB values → Vietnamese display names
+const STATUS_LABELS: Record<string, string> = {
+  operating: 'Đang vận hành',
+  pilot: 'Thí điểm',
+  stopped: 'Dừng',
+  replacing: 'Sắp thay thế',
+};
+
 const Dashboard = () => {
   const [statistics, setStatistics] = useState<SystemStatistics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,11 +93,11 @@ const Dashboard = () => {
       },
       summary: {
         total: statistics?.total || 0,
-        activeCount: statistics?.by_status.active || 0,
+        activeCount: statistics?.by_status.operating || 0,
         activeRate: getActiveRate() + '%',
-        criticalCount: statistics?.by_criticality.critical || 0,
+        criticalCount: statistics?.by_criticality.high || 0,
         criticalRate: getCriticalRate() + '%',
-        maintenanceRate: getMaintenanceRate() + '%',
+        maintenanceRate: getPilotRate() + '%',
         totalUsers: statistics?.users_total || 0,
       },
       byStatus: statistics?.by_status || {},
@@ -118,12 +126,12 @@ const Dashboard = () => {
     const headers = ['Metric', 'Value', 'Percentage'];
     const rows = [
       ['Tổng số hệ thống', statistics?.total || 0, '100%'],
-      ['Đang hoạt động', statistics?.by_status.active || 0, getActiveRate() + '%'],
-      ['Ngưng hoạt động', statistics?.by_status.inactive || 0, ''],
-      ['Bảo trì', statistics?.by_status.maintenance || 0, getMaintenanceRate() + '%'],
-      ['Bản nháp', statistics?.by_status.draft || 0, ''],
+      [STATUS_LABELS.operating, statistics?.by_status.operating || 0, getActiveRate() + '%'],
+      [STATUS_LABELS.stopped, statistics?.by_status.stopped || 0, ''],
+      [STATUS_LABELS.pilot, statistics?.by_status.pilot || 0, getPilotRate() + '%'],
+      [STATUS_LABELS.replacing, statistics?.by_status.replacing || 0, ''],
       [''],
-      ['Cực kỳ quan trọng', statistics?.by_criticality.critical || 0, getCriticalRate() + '%'],
+      ['Cực kỳ quan trọng', statistics?.by_criticality.high || 0, getCriticalRate() + '%'],
       ['Quan trọng', statistics?.by_criticality.high || 0, ''],
       ['Trung bình', statistics?.by_criticality.medium || 0, ''],
       ['Thấp', statistics?.by_criticality.low || 0, ''],
@@ -228,10 +236,10 @@ const Dashboard = () => {
   const statusChartData = useMemo(() => {
     if (!statistics?.by_status) return [];
     return [
-      { name: 'Đang hoạt động', value: statistics.by_status.active, color: STATUS_COLORS.active },
-      { name: 'Ngưng hoạt động', value: statistics.by_status.inactive, color: STATUS_COLORS.inactive },
-      { name: 'Bảo trì', value: statistics.by_status.maintenance, color: STATUS_COLORS.maintenance },
-      { name: 'Bản nháp', value: statistics.by_status.draft, color: STATUS_COLORS.draft },
+      { name: STATUS_LABELS.operating, value: statistics.by_status.operating, color: STATUS_COLORS.active },
+      { name: STATUS_LABELS.stopped, value: statistics.by_status.stopped, color: STATUS_COLORS.inactive },
+      { name: STATUS_LABELS.pilot, value: statistics.by_status.pilot, color: STATUS_COLORS.maintenance },
+      { name: STATUS_LABELS.replacing, value: statistics.by_status.replacing, color: STATUS_COLORS.draft },
     ].filter(item => item.value > 0);
   }, [statistics]);
 
@@ -239,7 +247,7 @@ const Dashboard = () => {
   const criticalityChartData = useMemo(() => {
     if (!statistics?.by_criticality) return [];
     return [
-      { name: 'Cực kỳ quan trọng', value: statistics.by_criticality.critical, color: CRITICALITY_COLORS.critical },
+      { name: 'Cực kỳ quan trọng', value: statistics.by_criticality.high, color: CRITICALITY_COLORS.critical },
       { name: 'Quan trọng', value: statistics.by_criticality.high, color: CRITICALITY_COLORS.high },
       { name: 'Trung bình', value: statistics.by_criticality.medium, color: CRITICALITY_COLORS.medium },
       { name: 'Thấp', value: statistics.by_criticality.low, color: CRITICALITY_COLORS.low },
@@ -249,20 +257,20 @@ const Dashboard = () => {
   // Calculate secondary metrics
   const getActiveRate = () => {
     if (!statistics?.total || statistics.total === 0) return 0;
-    const active = statistics.by_status?.active ?? 0;
-    return ((active / statistics.total) * 100).toFixed(1);
+    const operating = statistics.by_status?.operating ?? 0;
+    return ((operating / statistics.total) * 100).toFixed(1);
   };
 
   const getCriticalRate = () => {
     if (!statistics?.total || statistics.total === 0) return 0;
-    const critical = statistics.by_criticality?.high ?? 0;
-    return ((critical / statistics.total) * 100).toFixed(1);
+    const high = statistics.by_criticality?.high ?? 0;
+    return ((high / statistics.total) * 100).toFixed(1);
   };
 
-  const getMaintenanceRate = () => {
+  const getPilotRate = () => {
     if (!statistics?.total || statistics.total === 0) return 0;
-    const maintenance = statistics.by_status?.maintenance ?? 0;
-    return ((maintenance / statistics.total) * 100).toFixed(1);
+    const pilot = statistics.by_status?.pilot ?? 0;
+    return ((pilot / statistics.total) * 100).toFixed(1);
   };
 
   // Generate sparkline data (7-day mini trend)
@@ -321,8 +329,8 @@ const Dashboard = () => {
     const data = [];
     const today = dayjs();
     const baseTotal = statistics?.total || 50;
-    const baseActive = statistics?.by_status.active || 40;
-    const baseCritical = statistics?.by_criticality.critical || 10;
+    const baseActive = statistics?.by_status.operating || 40;
+    const baseCritical = statistics?.by_criticality.high || 10;
 
     for (let i = 29; i >= 0; i--) {
       const date = today.subtract(i, 'day').format('DD/MM');
@@ -493,10 +501,10 @@ const Dashboard = () => {
             aria-label="Lọc theo trạng thái"
           >
             <Option value="all">Tất cả trạng thái</Option>
-            <Option value="active">Đang hoạt động</Option>
-            <Option value="inactive">Ngưng hoạt động</Option>
-            <Option value="maintenance">Bảo trì</Option>
-            <Option value="draft">Bản nháp</Option>
+            <Option value="operating">{STATUS_LABELS.operating}</Option>
+            <Option value="stopped">{STATUS_LABELS.stopped}</Option>
+            <Option value="pilot">{STATUS_LABELS.pilot}</Option>
+            <Option value="replacing">{STATUS_LABELS.replacing}</Option>
           </Select>
 
           <Select
@@ -585,16 +593,16 @@ const Dashboard = () => {
             >
               <Skeleton loading={loading} active paragraph={{ rows: 3 }}>
                 <Statistic
-                  title="Đang hoạt động"
-                  value={statistics?.by_status.active || 0}
+                  title={STATUS_LABELS.operating}
+                  value={statistics?.by_status.operating || 0}
                   prefix={<CheckCircleOutlined style={{ fontSize: 24, color: colors.status.active }} />}
                   valueStyle={{ color: colors.status.active, fontSize: 32, fontWeight: 700 }}
                   formatter={(value) => (
                     <CountUp end={Number(value)} duration={1.5} separator="," />
                   )}
                 />
-                {renderTrend(getTrendData('active'))}
-                {renderSparkline(statistics?.by_status.active || 40, 'up', colors.status.active)}
+                {renderTrend(getTrendData('operating'))}
+                {renderSparkline(statistics?.by_status.operating || 40, 'up', colors.status.active)}
               </Skeleton>
             </Card>
           </motion.div>
@@ -707,7 +715,7 @@ const Dashboard = () => {
                 <Skeleton loading={loading} active paragraph={{ rows: 1 }}>
                   <Statistic
                     title="Tỷ lệ bảo trì"
-                    value={getMaintenanceRate()}
+                    value={getPilotRate()}
                     suffix="%"
                     valueStyle={{ color: '#faad14', fontSize: 24 }}
                   />
@@ -760,16 +768,16 @@ const Dashboard = () => {
                       />
                       <Line
                         type="monotone"
-                        dataKey="active"
+                        dataKey="operating"
                         stroke="#52c41a"
                         strokeWidth={2}
-                        name="Đang hoạt động"
+                        name={STATUS_LABELS.operating}
                         dot={{ r: isMobile ? 2 : 3 }}
                         activeDot={{ r: isMobile ? 4 : 6 }}
                       />
                       <Line
                         type="monotone"
-                        dataKey="critical"
+                        dataKey="high"
                         stroke="#ff4d4f"
                         strokeWidth={2}
                         name="Quan trọng"

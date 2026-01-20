@@ -131,11 +131,10 @@ class SystemViewSet(viewsets.ModelViewSet):
         stats = {
             'total': queryset.count(),
             'by_status': {
-                'active': queryset.filter(status='active').count(),
-                'inactive': queryset.filter(status='inactive').count(),
-                'maintenance': queryset.filter(status='maintenance').count(),
-                'planning': queryset.filter(status='planning').count(),
-                'draft': queryset.filter(status='draft').count(),
+                'operating': queryset.filter(status='operating').count(),
+                'pilot': queryset.filter(status='pilot').count(),
+                'stopped': queryset.filter(status='stopped').count(),
+                'replacing': queryset.filter(status='replacing').count(),
             },
             'by_criticality': {
                 # P0.8: Removed 'critical' option per customer request

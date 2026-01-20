@@ -77,11 +77,12 @@ const MainLayout = () => {
       type: 'group',
       label: 'TÍNH NĂNG CƠ BẢN',
       children: [
-        {
+        // Main Dashboard menu - admin only
+        ...(isAdmin ? [{
           key: '/',
           icon: <DashboardOutlined />,
           label: 'Tổng quan',
-        },
+        }] : []),
         // Unit Dashboard menu - only for non-admin users
         ...(!isAdmin ? [{
           key: '/dashboard/unit',

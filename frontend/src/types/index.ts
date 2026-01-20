@@ -277,14 +277,12 @@ export interface SystemStatistics {
   total: number;
   users_total?: number;
   by_status: {
-    active: number;
-    inactive: number;
-    maintenance: number;
-    planning: number;
-    draft: number;
+    operating: number;
+    pilot: number;
+    stopped: number;
+    replacing: number;
   };
   by_criticality: {
-    critical: number;
     high: number;
     medium: number;
     low: number;

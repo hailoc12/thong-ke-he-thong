@@ -23,6 +23,7 @@ import Lifecycle from './pages/Lifecycle';
 import APICatalog from './pages/APICatalog';
 import MainLayout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import { colors, borderRadius, spacing } from './theme/tokens';
 import { isFeatureEnabled } from './config/features';
 import type { FeatureFlags } from './config/features';
@@ -116,7 +117,7 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
             <Route path="dashboard/unit" element={<UnitDashboard />} />
             <Route path="systems" element={<Systems />} />
             <Route path="systems/create" element={<SystemCreate />} />

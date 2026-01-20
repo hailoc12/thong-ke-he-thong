@@ -4,15 +4,17 @@ import { useAuthStore } from '../stores/authStore';
 import LandingPage from '../pages/LandingPage';
 
 const HomeRedirect = () => {
-  const { isAuthenticated, checkAuth } = useAuthStore();
+  const { isAuthenticated, isAdmin, checkAuth } = useAuthStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
-  // If authenticated, redirect to dashboard
+  // If authenticated, redirect based on role
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    // Admin users → main dashboard
+    // Org users → unit dashboard
+    return <Navigate to={isAdmin ? "/dashboard" : "/dashboard/unit"} replace />;
   }
 
   // If not authenticated, show landing page

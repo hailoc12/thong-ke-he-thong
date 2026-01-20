@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Menu Visibility</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-case { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .pass { background: #e8f5e9; }
+        .fail { background: #ffebee; }
+    </style>
+</head>
+<body>
+    <h1>Test Menu Visibility for Org Users</h1>
+
+    <div class="test-case">
+        <h3>Instructions for Manual Testing:</h3>
+        <ol>
+            <li>Open browser in <strong>Incognito/Private mode</strong></li>
+            <li>Go to: <a href="https://thongkehethong.mindmaid.ai" target="_blank">https://thongkehethong.mindmaid.ai</a></li>
+            <li>Login with: <code>org1 / Test1234!</code></li>
+            <li>After login, check the left menu:</li>
+        </ol>
+
+        <h4>Expected Results:</h4>
+        <ul>
+            <li>✅ Should SEE: "Dashboard Đơn vị"</li>
+            <li>❌ Should NOT SEE: "Tổng quan"</li>
+            <li>✅ Should SEE: "Hệ thống"</li>
+            <li>❌ Should NOT SEE: "Đơn vị" (Organizations)</li>
+            <li>❌ Should NOT SEE: "Người dùng" (Users)</li>
+        </ul>
+    </div>
+
+    <div class="test-case">
+        <h3>If menu still shows "Tổng quan":</h3>
+        <ol>
+            <li><strong>Hard Refresh:</strong> Press Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (Mac)</li>
+            <li><strong>Clear Cache:</strong>
+                <ul>
+                    <li>Chrome: Settings → Privacy → Clear browsing data → Cached images and files</li>
+                    <li>Or use Incognito/Private mode</li>
+                </ul>
+            </li>
+            <li><strong>Logout and Login again</strong></li>
+        </ol>
+    </div>
+
+    <div class="test-case">
+        <h3>Technical Verification:</h3>
+        <p>Open Browser DevTools (F12) → Console, paste this:</p>
+        <pre style="background: #f5f5f5; padding: 10px;">
+// Check if user data is stored correctly
+const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
+console.log('User role:', user.role);
+console.log('Is Admin:', user.role === 'admin');
+console.log('Expected: role should be "org_user", isAdmin should be false');
+        </pre>
+    </div>
+
+    <div class="test-case">
+        <h3>Deployed Version Info:</h3>
+        <ul>
+            <li>Deployment Time: 2026-01-20 17:18 UTC</li>
+            <li>Bundle: index-RL5Jub9O.js</li>
+            <li>Changes: Menu "Tổng quan" hidden for org_user role</li>
+        </ul>
+    </div>
+
+    <script>
+        console.log('Test page loaded. Follow instructions above to verify menu visibility.');
+    </script>
+</body>
+</html>

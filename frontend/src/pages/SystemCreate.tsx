@@ -381,9 +381,6 @@ const hostingPlatformOptions = [
   { label: 'Cloud (AWS, Azure, GCP)', value: 'cloud' },
   { label: 'On-premise', value: 'on_premise' },
   { label: 'Hybrid', value: 'hybrid' },
-  { label: 'SaaS', value: 'saas' },
-  { label: 'Shared hosting', value: 'shared' },
-  { label: 'VPS', value: 'vps' },
   { label: 'Khác', value: 'other' },
 ];
 
@@ -1427,11 +1424,11 @@ const SystemCreate = () => {
               <Form.Item
                 label="Ngôn ngữ lập trình"
                 name="programming_language"
-                initialValue={[]}
-                tooltip="Có thể chọn nhiều ngôn ngữ (microservices, multiple languages)"
+                tooltip="Chọn ngôn ngữ lập trình chính của hệ thống"
               >
-                <CheckboxGroupWithOther
+                <SelectWithOther
                   options={programmingLanguageOptions}
+                  placeholder="Chọn ngôn ngữ lập trình"
                   customInputPlaceholder="Nhập ngôn ngữ lập trình khác..."
                 />
               </Form.Item>
@@ -1441,11 +1438,11 @@ const SystemCreate = () => {
               <Form.Item
                 label="Framework/Thư viện"
                 name="framework"
-                initialValue={[]}
-                tooltip="Có thể chọn nhiều framework (frontend + backend)"
+                tooltip="Chọn framework chính của hệ thống"
               >
-                <CheckboxGroupWithOther
+                <SelectWithOther
                   options={frameworkOptions}
+                  placeholder="Chọn framework"
                   customInputPlaceholder="Nhập framework khác..."
                 />
               </Form.Item>
@@ -1455,11 +1452,11 @@ const SystemCreate = () => {
               <Form.Item
                 label="Cơ sở dữ liệu"
                 name="database_name"
-                initialValue={[]}
-                tooltip="Có thể chọn nhiều CSDL (PostgreSQL + Redis + MongoDB...)"
+                tooltip="Chọn cơ sở dữ liệu chính của hệ thống"
               >
-                <CheckboxGroupWithOther
+                <SelectWithOther
                   options={databaseNameOptions}
+                  placeholder="Chọn cơ sở dữ liệu"
                   customInputPlaceholder="Nhập cơ sở dữ liệu khác..."
                 />
               </Form.Item>
@@ -1469,11 +1466,11 @@ const SystemCreate = () => {
               <Form.Item
                 label="Nền tảng triển khai"
                 name="hosting_platform"
-                initialValue={[]}
-                tooltip="Có thể chọn nhiều nền tảng (hybrid deployment: AWS + on-premise)"
+                tooltip="Chọn nền tảng triển khai của hệ thống"
               >
-                <CheckboxGroupWithOther
+                <SelectWithOther
                   options={hostingPlatformOptions}
+                  placeholder="Chọn nền tảng triển khai"
                   customInputPlaceholder="Nhập nền tảng khác..."
                 />
               </Form.Item>

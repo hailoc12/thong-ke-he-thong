@@ -146,7 +146,7 @@ const dataExchangeMethodOptions = [
 ];
 
 /**
- * P1 Gap Analysis: Predefined options for architecture and database fields
+ * Predefined options for architecture and database fields
  */
 const architectureTypeOptions = [
   { label: 'Monolithic', value: 'monolithic' },
@@ -915,16 +915,50 @@ const SystemCreate = () => {
   // Save current tab as draft
   const handleSaveCurrentTab = async () => {
     try {
-      const values = form.getFieldsValue();
+      const allValues = form.getFieldsValue();
+
+      // BUG-001 FIX: Filter out null/undefined/empty values to prevent sending garbage data
+      const cleanedValues = Object.entries(allValues).reduce((acc, [key, value]) => {
+        // Skip null, undefined, or empty string values
+        if (value === null || value === undefined || value === '') {
+          return acc;
+        }
+
+        // For nested objects (like architecture_data, integration_data, etc.)
+        if (typeof value === 'object' && !Array.isArray(value)) {
+          // Check if object has any non-empty keys
+          const nonEmptyKeys = Object.entries(value).filter(
+            ([_, v]) => v !== null && v !== undefined && v !== ''
+          );
+
+          // Only include if object has at least one non-empty field
+          if (nonEmptyKeys.length > 0) {
+            acc[key] = value;
+          }
+        }
+        // For arrays, only include if not empty
+        else if (Array.isArray(value)) {
+          if (value.length > 0) {
+            acc[key] = value;
+          }
+        }
+        // For primitives, include as-is
+        else {
+          acc[key] = value;
+        }
+
+        return acc;
+      }, {} as any);
+
       setLoading(true);
 
       // Call API to save draft
       if (_systemId) {
         // Edit mode - PATCH existing
-        await api.patch(`/systems/${_systemId}/`, values);
+        await api.patch(`/systems/${_systemId}/`, cleanedValues);
       } else {
         // Create mode - POST new (returns ID for subsequent saves)
-        const response = await api.post('/systems/', { ...values, is_draft: true });
+        const response = await api.post('/systems/', { ...cleanedValues, is_draft: true });
         _setSystemId(response.data.id); // Store ID for next saves
       }
 
@@ -941,7 +975,30 @@ const SystemCreate = () => {
       message.success('Đã lưu thông tin!');
     } catch (error: any) {
       console.error('Failed to save tab:', error);
-      message.error(error.response?.data?.message || 'Lỗi khi lưu thông tin');
+
+      // BUG-001 FIX: Show specific validation errors instead of generic message
+      if (error.response?.data) {
+        const errorData = error.response.data;
+
+        // Handle Django REST Framework validation errors (object with field names)
+        if (typeof errorData === 'object' && !errorData.message) {
+          const errorMessages: string[] = [];
+
+          Object.entries(errorData).forEach(([field, messages]) => {
+            const msg = Array.isArray(messages) ? messages.join(', ') : String(messages);
+            errorMessages.push(`${field}: ${msg}`);
+          });
+
+          // Show all errors
+          errorMessages.forEach(msg => message.error(msg, 5)); // 5 seconds duration
+        }
+        // Handle generic error message
+        else {
+          message.error(errorData.message || errorData.detail || 'Lỗi khi lưu thông tin');
+        }
+      } else {
+        message.error('Lỗi khi lưu thông tin. Vui lòng kiểm tra kết nối mạng.');
+      }
     } finally {
       setLoading(false);
     }
@@ -1451,10 +1508,10 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
-            {/* P1 Gap Analysis: Architecture Fields */}
+            {/* Architecture Fields */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
-                Kiến trúc ứng dụng (P1 Gap Analysis)
+                Kiến trúc ứng dụng
               </Text>
             </Col>
 
@@ -1697,10 +1754,10 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
-            {/* P1 Gap Analysis: Additional Database Fields */}
+            {/* Additional Database Fields */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
-                Chi tiết dữ liệu (P1 Gap Analysis)
+                Chi tiết dữ liệu
               </Text>
             </Col>
 

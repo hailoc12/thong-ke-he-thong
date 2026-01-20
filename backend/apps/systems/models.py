@@ -540,18 +540,16 @@ class SystemArchitecture(models.Model):
     cloud_provider = models.CharField(max_length=100, blank=True)
 
     # P1 Gap Analysis: Additional Architecture Fields
-    is_multi_tenant = models.BooleanField(
-        default=False,
-        verbose_name=_('Multi-tenant Architecture')
-    )
-    has_layered_architecture = models.BooleanField(
-        default=False,
-        verbose_name=_('Has Layered Architecture (4-tier)')
-    )
-    layered_architecture_details = models.TextField(
-        blank=True,
-        help_text='Presentation, Business Logic, Data Access, Integration'
-    )
+    # NOTE: These fields were added without migrations, causing 500 errors. Commented out.
+    # TODO: Re-add via proper migrations if needed in future
+    # has_layered_architecture = models.BooleanField(
+    #     default=False,
+    #     verbose_name=_('Has Layered Architecture (4-tier)')
+    # )
+    # layered_architecture_details = models.TextField(
+    #     blank=True,
+    #     help_text='Presentation, Business Logic, Data Access, Integration'
+    # )
 
     # Containerization & Orchestration
     containerization = models.CharField(

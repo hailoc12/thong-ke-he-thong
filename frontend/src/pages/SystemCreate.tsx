@@ -2154,58 +2154,11 @@ const SystemCreate = () => {
                 />
               </Form.Item>
             </Col>
-          </Row>
-        </Card>
-      ),
-    },
-    {
-      key: '8',
-      label: (
-        <span>
-          <ToolOutlined /> Vận hành
-        </span>
-      ),
-      children: (
-        <Card>
-          <Row gutter={[16, 16]}>
-            <Col span={12}>
-              <Form.Item label="Người chịu trách nhiệm" name="business_owner">
-                <Input placeholder="Tên người chịu trách nhiệm" />
-              </Form.Item>
-            </Col>
 
-            <Col span={12}>
-              <Form.Item label="Người quản trị kỹ thuật" name="technical_owner">
-                <Input placeholder="Tên người quản trị kỹ thuật" />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item label="Số điện thoại liên hệ" name="responsible_phone">
-                <Input placeholder="Số điện thoại" />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item label="Email liên hệ" name="responsible_email">
-                <Input type="email" placeholder="Email" />
-              </Form.Item>
-            </Col>
-
-            {/* Phase 4: Quick Input - Support Level */}
-            <Col span={12}>
-              <Form.Item label="Mức độ hỗ trợ" name="support_level">
-                <SelectWithOther
-                  options={supportLevelOptions}
-                  placeholder="Chọn mức độ hỗ trợ"
-                />
-              </Form.Item>
-            </Col>
-
-            {/* Deployment & Infrastructure */}
+            {/* Deployment & Infrastructure - Moved from Vận hành tab */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
-                Triển khai & Hạ tầng 
+                Triển khai & Hạ tầng
               </Text>
             </Col>
 
@@ -2266,10 +2219,57 @@ const SystemCreate = () => {
       ),
     },
     {
+      key: '8',
+      label: (
+        <span>
+          <ToolOutlined /> Vận hành
+        </span>
+      ),
+      children: (
+        <Card>
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item label="Người chịu trách nhiệm" name="business_owner">
+                <Input placeholder="Tên người chịu trách nhiệm" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Người quản trị kỹ thuật" name="technical_owner">
+                <Input placeholder="Tên người quản trị kỹ thuật" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Số điện thoại liên hệ" name="responsible_phone">
+                <Input placeholder="Số điện thoại" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Email liên hệ" name="responsible_email">
+                <Input type="email" placeholder="Email" />
+              </Form.Item>
+            </Col>
+
+            {/* Phase 4: Quick Input - Support Level */}
+            <Col span={12}>
+              <Form.Item label="Mức độ hỗ trợ" name="support_level">
+                <SelectWithOther
+                  options={supportLevelOptions}
+                  placeholder="Chọn mức độ hỗ trợ"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+      ),
+    },
+    {
       key: '9',
       label: (
         <span>
-          <CheckCircleOutlined /> Đánh giá
+          <CheckCircleOutlined /> Đánh giá hệ thống
         </span>
       ),
       children: (
@@ -2362,39 +2362,41 @@ const SystemCreate = () => {
             setShowWarningModal(false);
             setPendingTab(null);
           }}
-          footer={[
-            <Button
-              key="stay"
-              onClick={() => {
-                setShowWarningModal(false);
-                setPendingTab(null);
-              }}
-            >
-              Ở lại tab hiện tại
-            </Button>,
-            <Button
-              key="continue"
-              onClick={() => {
-                setShowWarningModal(false);
-                setCurrentTab(pendingTab!);
-                setPendingTab(null);
-              }}
-            >
-              Tiếp tục (không lưu)
-            </Button>,
-            <Button
-              key="save"
-              type="primary"
-              onClick={async () => {
-                await handleSaveCurrentTab();
-                setShowWarningModal(false);
-                setCurrentTab(pendingTab!);
-                setPendingTab(null);
-              }}
-            >
-              Lưu & Tiếp tục
-            </Button>,
-          ]}
+          footer={
+            <Space>
+              <Button
+                key="stay"
+                onClick={() => {
+                  setShowWarningModal(false);
+                  setPendingTab(null);
+                }}
+              >
+                Ở lại tab hiện tại
+              </Button>
+              <Button
+                key="continue"
+                onClick={() => {
+                  setShowWarningModal(false);
+                  setCurrentTab(pendingTab!);
+                  setPendingTab(null);
+                }}
+              >
+                Tiếp tục (không lưu)
+              </Button>
+              <Button
+                key="save"
+                type="primary"
+                onClick={async () => {
+                  await handleSaveCurrentTab();
+                  setShowWarningModal(false);
+                  setCurrentTab(pendingTab!);
+                  setPendingTab(null);
+                }}
+              >
+                Lưu & Tiếp tục
+              </Button>
+            </Space>
+          }
         >
           <p>Bạn cần hoàn thiện nhập thông tin ở tab hiện tại trước khi di chuyển sang hạng mục tiếp theo.</p>
           <p>Bạn có muốn lưu thông tin trước khi chuyển tab?</p>

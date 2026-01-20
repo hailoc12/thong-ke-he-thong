@@ -297,9 +297,6 @@ const securityLevelOptions = [
   { label: 'Cấp 5', value: '5' },
 ];
 
-/**
- * P0.8 Phase 3: Integration & Operations options
- */
 const computeTypeOptions = [
   { label: 'Virtual Machine', value: 'vm' },
   { label: 'Container', value: 'container' },
@@ -325,9 +322,6 @@ const apiVersioningStandardOptions = [
   { label: 'Khác', value: 'other' },
 ];
 
-/**
- * P0.8 Phase 4: Technical Debt Assessment options
- */
 const integrationReadinessOptions = [
   { label: 'Dễ chuẩn hóa', value: 'easy_to_standardize' },
   { label: 'Có API tốt', value: 'good_api' },
@@ -1651,10 +1645,9 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
-            {/* P0.8 Phase 3: API Documentation & Monitoring */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
-                API Documentation & Monitoring (P0.8 Phase 3)
+                API Documentation & Monitoring
               </Text>
             </Col>
 
@@ -1822,10 +1815,9 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
-            {/* P0.8 Phase 4: Technical Debt Assessment */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
-                Đánh giá mức nợ kỹ thuật (P0.8 Phase 4)
+                Đánh giá mức nợ kỹ thuật
               </Text>
             </Col>
 
@@ -1985,10 +1977,9 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
-            {/* P0.8 Phase 3: Compute Type & Deployment Frequency */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
-                Loại hạ tầng & Tần suất triển khai (P0.8 Phase 3)
+                Loại hạ tầng & Tần suất triển khai
               </Text>
             </Col>
 
@@ -2046,7 +2037,7 @@ const SystemEdit = () => {
               Chỉnh sửa hệ thống
             </Title>
             <Text type="secondary">
-              Form mới với 8 phần - Cập nhật thông tin hệ thống
+              Cập nhật thông tin hệ thống
             </Text>
           </div>
 

@@ -115,5 +115,5 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
         return Response(
             {'message': f'Đã xóa đơn vị "{org_name}" thành công'},
-            status=status.HTTP_204_NO_CONTENT
+            status=status.HTTP_200_OK
         )

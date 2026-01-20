@@ -270,7 +270,7 @@ const businessObjectivesOptions = [
 ];
 
 /**
- * P2 Gap Analysis: Additional option arrays
+ * Additional option arrays
  */
 const apiGatewayOptions = [
   { label: 'Kong', value: 'kong' },
@@ -1690,10 +1690,10 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
-            {/* P2 Gap Analysis: API Gateway & Management */}
+            {/* API Gateway & Management */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
-                API Gateway & Quản lý (P2 Gap Analysis)
+                API Gateway & Quản lý 
               </Text>
             </Col>
 
@@ -1876,10 +1876,10 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
-            {/* P2 Gap Analysis: Security Level */}
+            {/* Security Level */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
-                Mức độ an toàn (P2 Gap Analysis)
+                Mức độ an toàn 
               </Text>
             </Col>
 
@@ -2011,10 +2011,10 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
-            {/* P2 Gap Analysis: Deployment & Infrastructure */}
+            {/* Deployment & Infrastructure */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
-                Triển khai & Hạ tầng (P2 Gap Analysis)
+                Triển khai & Hạ tầng 
               </Text>
             </Col>
 

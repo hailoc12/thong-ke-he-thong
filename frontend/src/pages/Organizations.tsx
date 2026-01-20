@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, Typography, Input, Modal, Form, message } from 'antd';
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Typography, Input, Modal, Form, message, Popconfirm } from 'antd';
+import { PlusOutlined, SearchOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../config/api';
+import { useAuthStore } from '../stores/authStore';
 import type { Organization, ApiResponse, OrganizationCreatePayload } from '../types';
 
 const { Title } = Typography;
@@ -11,6 +12,7 @@ const { TextArea } = Input;
 
 const Organizations = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuthStore();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -77,6 +79,18 @@ const Organizations = () => {
     }
   };
 
+  const handleDelete = async (id: number, name: string) => {
+    try {
+      await api.delete(`/organizations/${id}/`);
+      message.success(`Đã xóa đơn vị "${name}" thành công`);
+      fetchOrganizations(pagination.current);
+    } catch (error: any) {
+      console.error('Failed to delete organization:', error);
+      const errorMessage = error.response?.data?.error || 'Có lỗi xảy ra khi xóa đơn vị';
+      message.error(errorMessage, 8); // Show error for 8 seconds
+    }
+  };
+
   const columns: ColumnsType<Organization> = [
     {
       title: 'Mã đơn vị',
@@ -119,16 +133,37 @@ const Organizations = () => {
     {
       title: 'Thao tác',
       key: 'action',
-      width: 150,
+      width: 200,
       fixed: 'right',
       render: (_: any, record: Organization) => (
-        <Space>
+        <Space size="small">
           <Button type="link" size="small" onClick={() => navigate(`/organizations/${record.id}`)}>
             Xem
           </Button>
           <Button type="link" size="small" onClick={() => navigate(`/organizations/${record.id}/edit`)}>
             Sửa
           </Button>
+          {isAdmin && (
+            <Popconfirm
+              title="Xóa đơn vị"
+              description={
+                <div style={{ maxWidth: 300 }}>
+                  <p>Bạn có chắc chắn muốn xóa đơn vị <strong>"{record.name}"</strong>?</p>
+                  <p style={{ color: '#ff4d4f', marginTop: 8, marginBottom: 0 }}>
+                    <ExclamationCircleOutlined /> Thao tác này KHÔNG THỂ HOÀN TÁC!
+                  </p>
+                </div>
+              }
+              onConfirm={() => handleDelete(record.id, record.name)}
+              okText="Xóa"
+              cancelText="Hủy"
+              okButtonProps={{ danger: true }}
+            >
+              <Button type="text" danger size="small" icon={<DeleteOutlined />}>
+                Xóa
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },

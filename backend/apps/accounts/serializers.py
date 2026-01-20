@@ -110,9 +110,30 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """Custom JWT serializer to include user role and organization info"""
+    remember_me = serializers.BooleanField(required=False, default=False)
+
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        return token
 
     def validate(self, attrs):
+        # Extract remember_me before passing to parent
+        remember_me = attrs.pop('remember_me', False)
+
         data = super().validate(attrs)
+
+        # If remember_me is True, extend token lifetime
+        if remember_me:
+            from rest_framework_simplejwt.tokens import RefreshToken
+            from datetime import timedelta
+
+            # Create new token with extended lifetime
+            refresh = RefreshToken.for_user(self.user)
+            refresh.access_token.set_exp(lifetime=timedelta(days=30))
+
+            data['access'] = str(refresh.access_token)
+            data['refresh'] = str(refresh)
 
         # Add user role and organization info to response
         data['user'] = {

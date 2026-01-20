@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message } from 'antd';
+import { Form, Input, Button, Card, Typography, message, Checkbox } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 // import { Link } from 'react-router-dom'; // Registration disabled
@@ -90,6 +90,14 @@ const Login = () => {
               prefix={<LockOutlined />}
               placeholder="Mật khẩu"
             />
+          </Form.Item>
+
+          <Form.Item
+            name="remember_me"
+            valuePropName="checked"
+            style={{ marginBottom: 16 }}
+          >
+            <Checkbox>Ghi nhớ đăng nhập (30 ngày)</Checkbox>
           </Form.Item>
 
           <Form.Item>

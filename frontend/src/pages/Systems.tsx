@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, Typography, Tag, Input, Empty } from 'antd';
-import { PlusOutlined, SearchOutlined, InboxOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Typography, Tag, Input, Empty, Popconfirm, message } from 'antd';
+import { PlusOutlined, SearchOutlined, InboxOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../config/api';
+import { useAuthStore } from '../stores/authStore';
 import type { System, ApiResponse } from '../types';
 
 const { Title } = Typography;
 
 const Systems = () => {
   const navigate = useNavigate();
+  const { user, isAdmin } = useAuthStore();
   const [systems, setSystems] = useState<System[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -56,6 +58,26 @@ const Systems = () => {
 
   const handleTableChange = (pagination: any) => {
     fetchSystems(pagination.current);
+  };
+
+  const handleDelete = async (id: number, name: string) => {
+    try {
+      await api.delete(`/systems/${id}/`);
+      message.success(`Đã xóa hệ thống "${name}" thành công`);
+      fetchSystems(pagination.current);
+    } catch (error: any) {
+      console.error('Failed to delete system:', error);
+      const errorMessage = error.response?.data?.error || 'Có lỗi xảy ra khi xóa hệ thống';
+      message.error(errorMessage, 8);
+    }
+  };
+
+  const canDeleteSystem = (system: System): boolean => {
+    // Admin can delete any system
+    if (isAdmin) return true;
+    // Org user can only delete systems in their organization
+    if (user && system.org === user.organization) return true;
+    return false;
   };
 
   const getStatusColor = (status: string) => {
@@ -165,7 +187,7 @@ const Systems = () => {
     {
       title: 'Thao tác',
       key: 'action',
-      width: isMobile ? 100 : 120,
+      width: isMobile ? 120 : 200,
       fixed: isMobile ? undefined : 'right',
       render: (_: any, record: System) => (
         <Space direction={isMobile ? 'vertical' : 'horizontal'} size="small">
@@ -175,6 +197,27 @@ const Systems = () => {
           <Button type="link" size="small" onClick={() => navigate(`/systems/${record.id}/edit`)}>
             Sửa
           </Button>
+          {canDeleteSystem(record) && (
+            <Popconfirm
+              title="Xóa hệ thống"
+              description={
+                <div style={{ maxWidth: 300 }}>
+                  <p>Bạn có chắc chắn muốn xóa hệ thống <strong>"{record.system_name}"</strong>?</p>
+                  <p style={{ color: '#ff4d4f', marginTop: 8, marginBottom: 0 }}>
+                    <ExclamationCircleOutlined /> Thao tác này KHÔNG THỂ HOÀN TÁC!
+                  </p>
+                </div>
+              }
+              onConfirm={() => handleDelete(record.id, record.system_name)}
+              okText="Xóa"
+              cancelText="Hủy"
+              okButtonProps={{ danger: true }}
+            >
+              <Button type="text" danger size="small" icon={<DeleteOutlined />}>
+                Xóa
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },

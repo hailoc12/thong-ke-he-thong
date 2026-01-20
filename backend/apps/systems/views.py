@@ -128,6 +128,34 @@ class SystemViewSet(viewsets.ModelViewSet):
 
         return Response(stats)
 
+    def destroy(self, request, *args, **kwargs):
+        """
+        Soft delete system
+        - Admin can delete any system
+        - Org user can only delete systems in their organization
+        """
+        system = self.get_object()
+        user = request.user
+
+        # Check permission: Admin can delete any, org_user can only delete their org's systems
+        if user.role == 'org_user' and system.org != user.organization:
+            return Response(
+                {'error': 'Bạn không có quyền xóa hệ thống này'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Soft delete
+        from django.utils import timezone
+        system.is_deleted = True
+        system.deleted_at = timezone.now()
+        system.deleted_by = user
+        system.save()
+
+        return Response(
+            {'message': f'Đã xóa hệ thống "{system.system_name}" thành công'},
+            status=status.HTTP_204_NO_CONTENT
+        )
+
 
 class AttachmentViewSet(viewsets.ModelViewSet):
     """

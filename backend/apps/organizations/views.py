@@ -1,10 +1,10 @@
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 
-from apps.accounts.permissions import IsOrgUserOrAdmin
+from apps.accounts.permissions import IsOrgUserOrAdmin, IsAdmin
 from .models import Organization
 from .serializers import (
     OrganizationListSerializer,
@@ -67,3 +67,53 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         systems = org.systems.all()
         serializer = SystemListSerializer(systems, many=True, context={'request': request})
         return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete organization with extra safety checks
+        Only admin can delete organizations
+        Prevents deletion if organization has systems or users
+        """
+        # Only admin can delete organizations
+        if not request.user.role == 'admin':
+            return Response(
+                {'error': 'Chỉ quản trị viên mới có quyền xóa đơn vị'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        org = self.get_object()
+
+        # Import here to avoid circular imports
+        from apps.systems.models import System
+        from apps.accounts.models import User
+
+        # Check if organization has systems
+        systems_count = System.objects.filter(organization=org).count()
+        if systems_count > 0:
+            return Response(
+                {
+                    'error': f'Không thể xóa đơn vị vì có {systems_count} hệ thống đang sử dụng. '
+                             'Vui lòng xóa hoặc chuyển các hệ thống sang đơn vị khác trước.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check if organization has users
+        users_count = User.objects.filter(organization=org, is_active=True).count()
+        if users_count > 0:
+            return Response(
+                {
+                    'error': f'Không thể xóa đơn vị vì có {users_count} người dùng đang thuộc đơn vị này. '
+                             'Vui lòng xóa hoặc chuyển người dùng sang đơn vị khác trước.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # All checks passed, delete the organization
+        org_name = org.name
+        org.delete()
+
+        return Response(
+            {'message': f'Đã xóa đơn vị "{org_name}" thành công'},
+            status=status.HTTP_204_NO_CONTENT
+        )

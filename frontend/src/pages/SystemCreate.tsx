@@ -298,6 +298,59 @@ const securityLevelOptions = [
 ];
 
 /**
+ * P0.8 Phase 3: Integration & Operations options
+ */
+const computeTypeOptions = [
+  { label: 'Virtual Machine', value: 'vm' },
+  { label: 'Container', value: 'container' },
+  { label: 'Serverless', value: 'serverless' },
+  { label: 'Bare Metal', value: 'bare_metal' },
+];
+
+const deploymentFrequencyOptions = [
+  { label: 'Daily', value: 'daily' },
+  { label: 'Weekly', value: 'weekly' },
+  { label: 'Monthly', value: 'monthly' },
+  { label: 'Quarterly', value: 'quarterly' },
+  { label: 'Yearly', value: 'yearly' },
+  { label: 'On Demand', value: 'on_demand' },
+];
+
+const apiVersioningStandardOptions = [
+  { label: 'Semantic Versioning (v1.2.3)', value: 'semantic' },
+  { label: 'Date-based (2024-01-20)', value: 'date_based' },
+  { label: 'URL-based (/v1, /v2)', value: 'url_based' },
+  { label: 'Header-based', value: 'header_based' },
+  { label: 'Không có', value: 'none' },
+  { label: 'Khác', value: 'other' },
+];
+
+/**
+ * P0.8 Phase 4: Technical Debt Assessment options
+ */
+const integrationReadinessOptions = [
+  { label: 'Dễ chuẩn hóa', value: 'easy_to_standardize' },
+  { label: 'Có API tốt', value: 'good_api' },
+  { label: 'Dữ liệu rõ nguồn gốc', value: 'clear_data_source' },
+  { label: 'Có thể tách dịch vụ', value: 'can_split_service' },
+];
+
+const blockersOptions = [
+  { label: 'Công nghệ quá cũ', value: 'outdated_tech' },
+  { label: 'Không có tài liệu', value: 'no_documentation' },
+  { label: 'Không có API', value: 'no_api' },
+  { label: 'Dữ liệu không sạch', value: 'dirty_data' },
+  { label: 'Phụ thuộc nhà thầu', value: 'vendor_dependency' },
+];
+
+const recommendationOptions = [
+  { label: 'Giữ nguyên', value: 'keep' },
+  { label: 'Nâng cấp', value: 'upgrade' },
+  { label: 'Thay thế', value: 'replace' },
+  { label: 'Hợp nhất', value: 'merge' },
+];
+
+/**
  * Phase 4: Quick Input - CharField conversion options
  */
 const backendTechOptions = [
@@ -1576,6 +1629,50 @@ const SystemCreate = () => {
               </Form.Item>
             </Col>
 
+            {/* P0.8 Phase 3: API Documentation & Monitoring */}
+            <Col span={24}>
+              <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
+                API Documentation & Monitoring (P0.8 Phase 3)
+              </Text>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item
+                label="Tài liệu API"
+                name="api_documentation"
+                tooltip="Link tới tài liệu API hoặc mô tả chi tiết"
+              >
+                <TextArea
+                  rows={3}
+                  placeholder="Nhập link tới Swagger/OpenAPI docs hoặc mô tả API"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Chuẩn phiên bản API"
+                name="api_versioning_standard"
+                tooltip="Cách đánh version cho API"
+              >
+                <SelectWithOther
+                  options={apiVersioningStandardOptions}
+                  placeholder="Chọn chuẩn versioning"
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Có giám sát tích hợp?"
+                name="has_integration_monitoring"
+                valuePropName="checked"
+                tooltip="Monitoring cho integration endpoints và data flows"
+              >
+                <Switch />
+              </Form.Item>
+            </Col>
+
             <Col span={24}>
               <Form.Item
                 label="Hệ thống nội bộ tích hợp"
@@ -1721,6 +1818,47 @@ const SystemCreate = () => {
                 <Switch />
               </Form.Item>
             </Col>
+
+            {/* P0.8 Phase 4: Technical Debt Assessment */}
+            <Col span={24}>
+              <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
+                Đánh giá mức nợ kỹ thuật (P0.8 Phase 4)
+              </Text>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Điểm phù hợp cho tích hợp"
+                name="integration_readiness"
+                tooltip="Các đặc điểm thuận lợi cho việc tích hợp liên thông"
+              >
+                <CheckboxGroupWithOther options={integrationReadinessOptions} />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Điểm vướng mắc"
+                name="blockers"
+                tooltip="Các rào cản kỹ thuật cần xử lý"
+              >
+                <CheckboxGroupWithOther options={blockersOptions} />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Đề xuất của đơn vị"
+                name="recommendation"
+                tooltip="Đề xuất hành động cho hệ thống này"
+              >
+                <Select
+                  options={recommendationOptions}
+                  placeholder="Chọn đề xuất"
+                  allowClear
+                />
+              </Form.Item>
+            </Col>
           </Row>
         </Card>
       ),
@@ -1840,6 +1978,41 @@ const SystemCreate = () => {
                 <TextArea
                   rows={3}
                   placeholder="VD: 8 vCPU, 16GB RAM, 500GB SSD, Load Balancer với 2 nodes"
+                />
+              </Form.Item>
+            </Col>
+
+            {/* P0.8 Phase 3: Compute Type & Deployment Frequency */}
+            <Col span={24}>
+              <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
+                Loại hạ tầng & Tần suất triển khai (P0.8 Phase 3)
+              </Text>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Loại hạ tầng tính toán"
+                name="compute_type"
+                tooltip="Loại infrastructure được sử dụng"
+              >
+                <Select
+                  options={computeTypeOptions}
+                  placeholder="Chọn loại compute"
+                  allowClear
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Tần suất triển khai"
+                name="deployment_frequency"
+                tooltip="Tần suất deploy code lên production"
+              >
+                <Select
+                  options={deploymentFrequencyOptions}
+                  placeholder="Chọn tần suất deployment"
+                  allowClear
                 />
               </Form.Item>
             </Col>

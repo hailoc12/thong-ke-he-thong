@@ -12,6 +12,7 @@ export interface ApiResponse<T> {
 export interface LoginRequest {
   username: string;
   password: string;
+  remember_me?: boolean;
 }
 
 export interface TokenResponse {

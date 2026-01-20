@@ -328,6 +328,28 @@ class System(models.Model):
         verbose_name=_('Form Level')
     )
 
+    # Soft Delete Fields
+    is_deleted = models.BooleanField(
+        default=False,
+        help_text='Soft delete flag - True if system has been deleted',
+        verbose_name=_('Is Deleted')
+    )
+    deleted_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text='Timestamp when system was deleted',
+        verbose_name=_('Deleted At')
+    )
+    deleted_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='deleted_systems',
+        help_text='User who deleted this system',
+        verbose_name=_('Deleted By')
+    )
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -804,16 +826,46 @@ class SystemOperations(models.Model):
         ('hybrid', 'Hybrid'),
     ]
 
+    COMPUTE_TYPE_CHOICES = [
+        ('vm', 'Virtual Machine'),
+        ('container', 'Container'),
+        ('serverless', 'Serverless'),
+        ('bare_metal', 'Bare Metal'),
+    ]
+
+    DEPLOYMENT_FREQUENCY_CHOICES = [
+        ('daily', 'Daily'),
+        ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'),
+        ('quarterly', 'Quarterly'),
+        ('yearly', 'Yearly'),
+        ('on_demand', 'On Demand'),
+    ]
+
     deployment_location = models.CharField(
         max_length=50,
         choices=DEPLOYMENT_LOCATION_CHOICES,
         blank=True,
         verbose_name=_('Deployment Location')
     )
+    compute_type = models.CharField(
+        max_length=50,
+        choices=COMPUTE_TYPE_CHOICES,
+        blank=True,
+        verbose_name=_('Compute Type'),
+        help_text='Type of compute infrastructure used'
+    )
     compute_specifications = models.TextField(
         blank=True,
         verbose_name=_('Compute Specifications'),
         help_text='CPU, RAM, Storage specifications'
+    )
+    deployment_frequency = models.CharField(
+        max_length=50,
+        choices=DEPLOYMENT_FREQUENCY_CHOICES,
+        blank=True,
+        verbose_name=_('Deployment Frequency'),
+        help_text='How often code is deployed to production'
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -900,6 +952,24 @@ class SystemIntegration(models.Model):
         help_text='Số lượng API mà hệ thống gọi từ hệ thống khác'
     )
 
+    # P0.8 Phase 3: API Documentation & Monitoring
+    api_documentation = models.TextField(
+        blank=True,
+        verbose_name=_('API Documentation'),
+        help_text='Link to API documentation or description'
+    )
+    api_versioning_standard = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name=_('API Versioning Standard'),
+        help_text='Semantic versioning, date-based, etc.'
+    )
+    has_integration_monitoring = models.BooleanField(
+        default=False,
+        verbose_name=_('Has Integration Monitoring'),
+        help_text='Monitoring for integration endpoints and data flows'
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -970,6 +1040,34 @@ class SystemAssessment(models.Model):
         max_length=20,
         blank=True,
         help_text='high, medium, low'
+    )
+
+    # P0.8 Phase 4: Technical Debt Assessment (Customer Feedback)
+    RECOMMENDATION_CHOICES = [
+        ('keep', 'Giữ nguyên'),
+        ('upgrade', 'Nâng cấp'),
+        ('replace', 'Thay thế'),
+        ('merge', 'Hợp nhất'),
+    ]
+
+    integration_readiness = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_('Integration Readiness'),
+        help_text='Điểm phù hợp: ["easy_to_standardize", "good_api", "clear_data_source", "can_split_service"]'
+    )
+    blockers = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name=_('Blockers'),
+        help_text='Điểm vướng: ["outdated_tech", "no_documentation", "no_api", "dirty_data", "vendor_dependency"]'
+    )
+    recommendation = models.CharField(
+        max_length=20,
+        choices=RECOMMENDATION_CHOICES,
+        blank=True,
+        verbose_name=_('Recommendation'),
+        help_text='Đề xuất của đơn vị'
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

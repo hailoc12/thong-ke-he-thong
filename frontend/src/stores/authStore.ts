@@ -27,13 +27,16 @@ export const useAuthStore = create<AuthState>((set) => ({
       const response = await api.post<TokenResponse>('/token/', credentials);
       const { access, refresh, user } = response.data;
 
+      // Choose storage based on remember_me
+      const storage = credentials.remember_me ? localStorage : sessionStorage;
+
       // Save tokens
-      localStorage.setItem('access_token', access);
-      localStorage.setItem('refresh_token', refresh);
+      storage.setItem('access_token', access);
+      storage.setItem('refresh_token', refresh);
 
       // Save user data (now included in response)
       if (user) {
-        localStorage.setItem('user', JSON.stringify(user));
+        storage.setItem('user', JSON.stringify(user));
         set({
           user,
           isAuthenticated: true,
@@ -58,9 +61,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
+    // Clear from both storages
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('access_token');
+    sessionStorage.removeItem('refresh_token');
+    sessionStorage.removeItem('user');
     set({
       user: null,
       isAuthenticated: false,
@@ -70,8 +77,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   checkAuth: () => {
-    const token = localStorage.getItem('access_token');
-    const userStr = localStorage.getItem('user');
+    // Check both localStorage (remember_me=true) and sessionStorage (remember_me=false)
+    const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+    const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
 
     if (token && userStr) {
       try {
@@ -86,6 +94,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
+        sessionStorage.removeItem('access_token');
+        sessionStorage.removeItem('refresh_token');
+        sessionStorage.removeItem('user');
         set({
           isAuthenticated: false,
           isAdmin: false,

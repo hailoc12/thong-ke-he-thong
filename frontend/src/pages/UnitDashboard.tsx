@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Row, Col, Statistic, Typography, Skeleton, Button, Table, Progress, Space, Tag, message } from 'antd';
 import { motion } from 'framer-motion';
 import {
@@ -12,6 +13,7 @@ import CountUp from 'react-countup';
 import dayjs from 'dayjs';
 import api from '../config/api';
 import { colors, shadows, borderRadius } from '../theme/tokens';
+import { useAuthStore } from '../stores/authStore';
 
 const { Title, Text } = Typography;
 
@@ -40,13 +42,25 @@ interface SystemProgressItem {
 }
 
 const UnitDashboard = () => {
+  const navigate = useNavigate();
+  const { isAdmin } = useAuthStore();
   const [dashboardData, setDashboardData] = useState<UnitDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
+  // Redirect admin users to home page
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (isAdmin) {
+      message.warning('Trang này chỉ dành cho người dùng đơn vị');
+      navigate('/');
+    }
+  }, [isAdmin, navigate]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      fetchDashboardData();
+    }
+  }, [isAdmin]);
 
   const fetchDashboardData = async () => {
     try {

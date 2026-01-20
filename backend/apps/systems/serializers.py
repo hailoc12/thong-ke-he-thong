@@ -230,20 +230,20 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating System with nested writes"""
 
     # Nested writes for related models
-    architecture_data = SystemArchitectureSerializer(required=False)
-    data_info_data = SystemDataInfoSerializer(required=False)
-    operations_data = SystemOperationsSerializer(required=False)
-    integration_data = SystemIntegrationSerializer(required=False)
-    assessment_data = SystemAssessmentSerializer(required=False)
+    architecture_data = SystemArchitectureSerializer(source='architecture', required=False)
+    data_info_data = SystemDataInfoSerializer(source='data_info', required=False)
+    operations_data = SystemOperationsSerializer(source='operations', required=False)
+    integration_data = SystemIntegrationSerializer(source='integration', required=False)
+    assessment_data = SystemAssessmentSerializer(source='assessment', required=False)
 
     # P0.8 Phase 1 - Integration Connections (nested list)
-    integration_connections_data = SystemIntegrationConnectionSerializer(many=True, required=False)
+    integration_connections_data = SystemIntegrationConnectionSerializer(source='integration_connections', many=True, required=False)
 
     # Level 2 nested writes
-    cost_data = SystemCostSerializer(required=False)
-    vendor_data = SystemVendorSerializer(required=False)
-    infrastructure_data = SystemInfrastructureSerializer(required=False)
-    security_data = SystemSecuritySerializer(required=False)
+    cost_data = SystemCostSerializer(source='cost', required=False)
+    vendor_data = SystemVendorSerializer(source='vendor', required=False)
+    infrastructure_data = SystemInfrastructureSerializer(source='infrastructure', required=False)
+    security_data = SystemSecuritySerializer(source='security', required=False)
 
     class Meta:
         model = System
@@ -307,17 +307,17 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Create System with nested related models"""
-        # Extract nested data
-        architecture_data = validated_data.pop('architecture_data', {})
-        data_info_data = validated_data.pop('data_info_data', {})
-        operations_data = validated_data.pop('operations_data', {})
-        integration_data = validated_data.pop('integration_data', {})
-        assessment_data = validated_data.pop('assessment_data', {})
-        integration_connections_data = validated_data.pop('integration_connections_data', [])  # P0.8 Phase 1
-        cost_data = validated_data.pop('cost_data', {})
-        vendor_data = validated_data.pop('vendor_data', {})
-        infrastructure_data = validated_data.pop('infrastructure_data', {})
-        security_data = validated_data.pop('security_data', {})
+        # Extract nested data (now using relationship names due to source parameter)
+        architecture_data = validated_data.pop('architecture', {})
+        data_info_data = validated_data.pop('data_info', {})
+        operations_data = validated_data.pop('operations', {})
+        integration_data = validated_data.pop('integration', {})
+        assessment_data = validated_data.pop('assessment', {})
+        integration_connections_data = validated_data.pop('integration_connections', [])  # P0.8 Phase 1
+        cost_data = validated_data.pop('cost', {})
+        vendor_data = validated_data.pop('vendor', {})
+        infrastructure_data = validated_data.pop('infrastructure', {})
+        security_data = validated_data.pop('security', {})
 
         # Create System
         system = System.objects.create(**validated_data)
@@ -347,17 +347,17 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         """Update System and nested related models"""
-        # Extract nested data
-        architecture_data = validated_data.pop('architecture_data', None)
-        data_info_data = validated_data.pop('data_info_data', None)
-        operations_data = validated_data.pop('operations_data', None)
-        integration_data = validated_data.pop('integration_data', None)
-        assessment_data = validated_data.pop('assessment_data', None)
-        integration_connections_data = validated_data.pop('integration_connections_data', None)  # P0.8 Phase 1
-        cost_data = validated_data.pop('cost_data', None)
-        vendor_data = validated_data.pop('vendor_data', None)
-        infrastructure_data = validated_data.pop('infrastructure_data', None)
-        security_data = validated_data.pop('security_data', None)
+        # Extract nested data (now using relationship names due to source parameter)
+        architecture_data = validated_data.pop('architecture', None)
+        data_info_data = validated_data.pop('data_info', None)
+        operations_data = validated_data.pop('operations', None)
+        integration_data = validated_data.pop('integration', None)
+        assessment_data = validated_data.pop('assessment', None)
+        integration_connections_data = validated_data.pop('integration_connections', None)  # P0.8 Phase 1
+        cost_data = validated_data.pop('cost', None)
+        vendor_data = validated_data.pop('vendor', None)
+        infrastructure_data = validated_data.pop('infrastructure', None)
+        security_data = validated_data.pop('security', None)
 
         # Update System fields
         for attr, value in validated_data.items():

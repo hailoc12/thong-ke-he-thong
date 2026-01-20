@@ -2137,7 +2137,14 @@ const SystemCreate = () => {
           </div>
 
           <Form form={form} layout="vertical" scrollToFirstError>
-            <Tabs items={tabItems} />
+            <Tabs
+              items={tabItems}
+              tabBarStyle={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                marginBottom: 16,
+              }}
+            />
 
             <div style={{ marginTop: 24, textAlign: 'right' }}>
               <Space>

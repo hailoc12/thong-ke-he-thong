@@ -249,6 +249,9 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
         model = System
         fields = '__all__'
         read_only_fields = ['system_code']  # P0.8: Auto-generated, not editable
+        extra_kwargs = {
+            'org': {'required': False},  # Auto-set in perform_create() for org_users
+        }
 
     def validate_business_objectives(self, value):
         """P0.8: Validate business objectives (max 5 recommended)"""

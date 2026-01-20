@@ -249,13 +249,13 @@ class System(models.Model):
     )
 
     # System Group & Status
+    # P0.8: Removed choices constraint to allow custom input (dropdown + "Khác" → custom text)
     system_group = models.CharField(
-        max_length=50,
-        choices=GROUP_CHOICES,
+        max_length=255,  # Increased from 50 to allow longer custom values
         blank=False,
         default='other',
         verbose_name=_('System Group'),
-        help_text='Nhóm hệ thống (REQUIRED)'
+        help_text='Nhóm hệ thống (REQUIRED) - Accepts predefined or custom values'
     )
     status = models.CharField(
         max_length=20,

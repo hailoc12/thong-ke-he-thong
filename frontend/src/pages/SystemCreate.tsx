@@ -24,7 +24,7 @@ import {
 } from 'antd';
 import {
   ArrowLeftOutlined,
-  // ArrowRightOutlined, // TODO: Add back when implementing "Lưu & Tiếp tục" button
+  ArrowRightOutlined,
   SaveOutlined,
   InfoCircleOutlined,
   AppstoreOutlined,
@@ -912,14 +912,21 @@ const SystemCreate = () => {
     }
   };
 
-  // Save current tab (draft save) - placeholder for now
+  // Save current tab as draft
   const handleSaveCurrentTab = async () => {
     try {
-      // const values = form.getFieldsValue(); // TODO: Use this when implementing draft save
+      const values = form.getFieldsValue();
       setLoading(true);
 
-      // TODO: Implement draft save logic
-      message.info('Draft save function - to be implemented');
+      // Call API to save draft
+      if (_systemId) {
+        // Edit mode - PATCH existing
+        await api.patch(`/systems/${_systemId}/`, values);
+      } else {
+        // Create mode - POST new (returns ID for subsequent saves)
+        const response = await api.post('/systems/', { ...values, is_draft: true });
+        _setSystemId(response.data.id); // Store ID for next saves
+      }
 
       // Update tab state
       setTabStates(prev => ({
@@ -933,32 +940,90 @@ const SystemCreate = () => {
 
       message.success('Đã lưu thông tin!');
     } catch (error: any) {
-      message.error('Lỗi khi lưu thông tin');
+      console.error('Failed to save tab:', error);
+      message.error(error.response?.data?.message || 'Lỗi khi lưu thông tin');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async () => {
+  // Save & Continue (save current tab + move to next)
+  const handleSaveAndContinue = async () => {
+    await handleSaveCurrentTab();
+
+    // Move to next tab
+    const nextTabKey = (parseInt(currentTab) + 1).toString();
+    if (parseInt(nextTabKey) <= 9) {
+      setCurrentTab(nextTabKey);
+    }
+  };
+
+  // Final Save (submit form, mark as not draft)
+  const handleFinalSave = async () => {
     try {
-      const values = await form.validateFields();
+      // Validate all fields
+      await form.validateFields();
+
+      const values = form.getFieldsValue();
       setLoading(true);
 
-      // Build payload - all fields are now flat (no nested _data objects)
-      const payload = {
-        ...values,
-        // org will be auto-filled by backend for org users
-      };
+      if (_systemId) {
+        // Final update - mark as not draft
+        await api.patch(`/systems/${_systemId}/`, { ...values, is_draft: false });
+        message.success('Lưu hệ thống thành công!');
+      } else {
+        // Create final (no draft ID yet)
+        await api.post('/systems/', { ...values, is_draft: false });
+        message.success('Tạo hệ thống thành công!');
+      }
 
-      await api.post('/systems/', payload);
-      message.success('Tạo hệ thống thành công!');
       navigate('/systems');
     } catch (error: any) {
-      console.error('Failed to create system:', error);
-      message.error(error.response?.data?.message || 'Tạo hệ thống thất bại!');
+      console.error('Failed to save system:', error);
+      message.error(error.response?.data?.message || 'Vui lòng kiểm tra lại thông tin');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Render action buttons based on current tab
+  const renderActionButtons = () => {
+    const isLastTab = currentTab === '9';
+    const isDirty = tabStates[currentTab].isDirty;
+
+    return (
+      <Space>
+        <Button onClick={handleCancel}>Hủy</Button>
+
+        {/* Save button (all tabs) */}
+        <Button
+          onClick={handleSaveCurrentTab}
+          disabled={!isDirty}
+        >
+          Lưu
+        </Button>
+
+        {!isLastTab ? (
+          // Tabs 1-8: Save & Continue
+          <Button
+            type="primary"
+            onClick={handleSaveAndContinue}
+            icon={<ArrowRightOutlined />}
+          >
+            Lưu & Tiếp tục
+          </Button>
+        ) : (
+          // Tab 9: Final Save
+          <Button
+            type="primary"
+            onClick={handleFinalSave}
+            icon={<SaveOutlined />}
+          >
+            Lưu hệ thống
+          </Button>
+        )}
+      </Space>
+    );
   };
 
   const handleCancel = () => {
@@ -2230,12 +2295,7 @@ const SystemCreate = () => {
             />
 
             <div style={{ marginTop: 24, textAlign: 'right' }}>
-              <Space>
-                <Button onClick={handleCancel}>Hủy</Button>
-                <Button type="primary" icon={<SaveOutlined />} onClick={handleSubmit}>
-                  Lưu hệ thống
-                </Button>
-              </Space>
+              {renderActionButtons()}
             </div>
           </Form>
         </Card>

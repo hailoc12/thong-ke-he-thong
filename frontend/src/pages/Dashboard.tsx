@@ -255,7 +255,7 @@ const Dashboard = () => {
 
   const getCriticalRate = () => {
     if (!statistics?.total || statistics.total === 0) return 0;
-    const critical = statistics.by_criticality?.critical ?? 0;
+    const critical = statistics.by_criticality?.high ?? 0;
     return ((critical / statistics.total) * 100).toFixed(1);
   };
 

@@ -1151,7 +1151,7 @@ const SystemEdit = () => {
             <Col span={24}>
               <Form.Item
                 label="Mô tả"
-                name="description"
+                name="purpose"
                 rules={[{ required: true, message: 'Vui lòng nhập mô tả' }]}
               >
                 <TextArea rows={4} placeholder="Mô tả chức năng và mục đích của hệ thống" />

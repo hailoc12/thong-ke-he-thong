@@ -1497,7 +1497,7 @@ const SystemCreate = () => {
             {/* Section 4: Data Volume Metrics */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
-                Dung lượng dữ liệu (REQUIRED)
+                Dung lượng dữ liệu
               </Text>
             </Col>
 
@@ -1789,7 +1789,7 @@ const SystemCreate = () => {
             {/* Section 5: Integration Connections (Complex Dynamic Form) */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 24, marginBottom: 16 }}>
-                Danh sách tích hợp chi tiết (CRITICAL)
+                Danh sách tích hợp chi tiết
               </Text>
               <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
                 Liệt kê chi tiết các kết nối tích hợp giữa hệ thống này với các hệ thống khác

@@ -1078,7 +1078,7 @@ const SystemEdit = () => {
                 label="Phạm vi sử dụng"
                 name="scope"
                 rules={[{ required: true, message: 'Vui lòng chọn phạm vi sử dụng' }]}
-                tooltip="REQUIRED field - Phạm vi sử dụng của hệ thống"
+                tooltip="Phạm vi sử dụng của hệ thống"
               >
                 <Select>
                   <Select.Option value="internal_unit">Nội bộ đơn vị</Select.Option>
@@ -1524,7 +1524,7 @@ const SystemEdit = () => {
             {/* Section 4: Data Volume Metrics */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
-                Dung lượng dữ liệu (REQUIRED)
+                Dung lượng dữ liệu
               </Text>
             </Col>
 
@@ -1808,7 +1808,7 @@ const SystemEdit = () => {
             {/* Section 5: Integration Connections (Complex Dynamic Form) */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 24, marginBottom: 16 }}>
-                Danh sách tích hợp chi tiết (CRITICAL)
+                Danh sách tích hợp chi tiết
               </Text>
               <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
                 Liệt kê chi tiết các kết nối tích hợp giữa hệ thống này với các hệ thống khác

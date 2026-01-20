@@ -20,9 +20,11 @@ import {
   Typography,
   Tag,
   Space,
+  Modal,
 } from 'antd';
 import {
   ArrowLeftOutlined,
+  ArrowRightOutlined,
   SaveOutlined,
   InfoCircleOutlined,
   AppstoreOutlined,
@@ -834,6 +836,15 @@ const IntegrationConnectionList = ({ value = [], onChange }: any) => {
   );
 };
 
+// Tab save state tracking interface
+interface TabSaveState {
+  [tabKey: string]: {
+    isDirty: boolean;      // Has unsaved changes
+    isSaved: boolean;      // Has been saved at least once
+    lastSavedAt: Date | null;
+  };
+}
+
 const SystemEdit = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -842,6 +853,22 @@ const SystemEdit = () => {
   const [fetching, setFetching] = useState(true);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [userRole, setUserRole] = useState<string>('');
+
+  // Tab navigation save flow state
+  const [tabStates, setTabStates] = useState<TabSaveState>({
+    '1': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '2': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '3': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '4': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '5': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '6': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '7': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '8': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '9': { isDirty: false, isSaved: false, lastSavedAt: null },
+  });
+  const [currentTab, setCurrentTab] = useState<string>('1');
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
+  const [showWarningModal, setShowWarningModal] = useState(false);
 
   useEffect(() => {
     fetchOrganizations();
@@ -865,6 +892,118 @@ const SystemEdit = () => {
     } catch (error) {
       console.error('Failed to fetch user info:', error);
     }
+  };
+
+  // Track form field changes
+  const handleFormChange = () => {
+    setTabStates(prev => ({
+      ...prev,
+      [currentTab]: {
+        ...prev[currentTab],
+        isDirty: true,
+      },
+    }));
+  };
+
+  // Navigation guard - check if current tab has unsaved changes
+  const handleTabChange = (newTabKey: string) => {
+    const currentState = tabStates[currentTab];
+
+    if (currentState.isDirty && !currentState.isSaved) {
+      setPendingTab(newTabKey);
+      setShowWarningModal(true);
+    } else {
+      setCurrentTab(newTabKey);
+    }
+  };
+
+  // Save current tab (draft save)
+  const handleSaveCurrentTab = async () => {
+    try {
+      const values = form.getFieldsValue();
+      setLoading(true);
+
+      // For edit mode, always PATCH existing system
+      await api.patch(`/systems/${id}/`, values);
+
+      setTabStates(prev => ({
+        ...prev,
+        [currentTab]: {
+          isDirty: false,
+          isSaved: true,
+          lastSavedAt: new Date(),
+        },
+      }));
+
+      message.success('Đã lưu thông tin!');
+    } catch (error: any) {
+      message.error(error.response?.data?.message || 'Lỗi khi lưu thông tin');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Save & Continue (save + move to next tab)
+  const handleSaveAndContinue = async () => {
+    await handleSaveCurrentTab();
+
+    const nextTabKey = (parseInt(currentTab) + 1).toString();
+    if (parseInt(nextTabKey) <= 9) {
+      setCurrentTab(nextTabKey);
+    }
+  };
+
+  // Final Save (submit form)
+  const handleFinalSave = async () => {
+    try {
+      await form.validateFields();
+      const values = form.getFieldsValue();
+      setLoading(true);
+
+      // Final update - mark as not draft
+      await api.patch(`/systems/${id}/`, { ...values, is_draft: false });
+      message.success('Cập nhật hệ thống thành công!');
+
+      navigate('/systems');
+    } catch (error: any) {
+      message.error(error.response?.data?.message || 'Vui lòng kiểm tra lại thông tin');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Render buttons based on current tab
+  const renderActionButtons = () => {
+    const isLastTab = currentTab === '9';
+    const isDirty = tabStates[currentTab].isDirty;
+
+    return (
+      <Space>
+        <Button onClick={handleCancel}>Hủy</Button>
+
+        <Button onClick={handleSaveCurrentTab} disabled={!isDirty}>
+          Lưu
+        </Button>
+
+        {!isLastTab ? (
+          <Button
+            type="primary"
+            onClick={handleSaveAndContinue}
+            icon={<ArrowRightOutlined />}
+          >
+            Lưu & Tiếp tục
+          </Button>
+        ) : (
+          <Button
+            type="primary"
+            onClick={handleFinalSave}
+            icon={<SaveOutlined />}
+          >
+            Lưu hệ thống
+          </Button>
+        )}
+      </Space>
+    );
   };
 
   const fetchSystemData = async () => {
@@ -893,27 +1032,6 @@ const SystemEdit = () => {
       navigate('/systems');
     } finally {
       setFetching(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-      setLoading(true);
-
-      // Build payload - all fields are now flat (no nested _data objects)
-      const payload = {
-        ...values,
-      };
-
-      await api.put(`/systems/${id}/`, payload);
-      message.success('Cập nhật hệ thống thành công!');
-      navigate('/systems');
-    } catch (error: any) {
-      console.error('Failed to update system:', error);
-      message.error(error.response?.data?.message || 'Cập nhật hệ thống thất bại!');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -2154,8 +2272,10 @@ const SystemEdit = () => {
             </Text>
           </div>
 
-          <Form form={form} layout="vertical" scrollToFirstError>
+          <Form form={form} layout="vertical" scrollToFirstError onValuesChange={handleFormChange}>
             <Tabs
+              activeKey={currentTab}
+              onChange={handleTabChange}
               items={tabItems}
               tabBarStyle={{
                 display: 'flex',
@@ -2165,16 +2285,57 @@ const SystemEdit = () => {
             />
 
             <div style={{ marginTop: 24, textAlign: 'right' }}>
-              <Space>
-                <Button onClick={handleCancel}>Hủy</Button>
-                <Button type="primary" icon={<SaveOutlined />} onClick={handleSubmit}>
-                  Lưu thay đổi
-                </Button>
-              </Space>
+              {renderActionButtons()}
             </div>
           </Form>
         </Card>
       </div>
+
+      {/* Warning Modal */}
+      <Modal
+        open={showWarningModal}
+        title="Cảnh báo"
+        onCancel={() => {
+          setShowWarningModal(false);
+          setPendingTab(null);
+        }}
+        footer={[
+          <Button
+            key="stay"
+            onClick={() => {
+              setShowWarningModal(false);
+              setPendingTab(null);
+            }}
+          >
+            Ở lại tab hiện tại
+          </Button>,
+          <Button
+            key="continue"
+            onClick={() => {
+              setShowWarningModal(false);
+              setCurrentTab(pendingTab!);
+              setPendingTab(null);
+            }}
+          >
+            Tiếp tục (không lưu)
+          </Button>,
+          <Button
+            key="save"
+            type="primary"
+            onClick={async () => {
+              await handleSaveCurrentTab();
+              setShowWarningModal(false);
+              setCurrentTab(pendingTab!);
+              setPendingTab(null);
+            }}
+          >
+            Lưu & Tiếp tục
+          </Button>,
+        ]}
+      >
+        <p>Bạn cần hoàn thiện nhập thông tin ở tab hiện tại trước khi di chuyển sang hạng mục tiếp theo.</p>
+        <p>Bạn có muốn lưu thông tin trước khi chuyển tab?</p>
+      </Modal>
     </Spin>
   );
 };

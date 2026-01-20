@@ -326,6 +326,31 @@ const apiVersioningStandardOptions = [
 ];
 
 /**
+ * P0.8 Phase 4: Technical Debt Assessment options
+ */
+const integrationReadinessOptions = [
+  { label: 'Dễ chuẩn hóa', value: 'easy_to_standardize' },
+  { label: 'Có API tốt', value: 'good_api' },
+  { label: 'Dữ liệu rõ nguồn gốc', value: 'clear_data_source' },
+  { label: 'Có thể tách dịch vụ', value: 'can_split_service' },
+];
+
+const blockersOptions = [
+  { label: 'Công nghệ quá cũ', value: 'outdated_tech' },
+  { label: 'Không có tài liệu', value: 'no_documentation' },
+  { label: 'Không có API', value: 'no_api' },
+  { label: 'Dữ liệu không sạch', value: 'dirty_data' },
+  { label: 'Phụ thuộc nhà thầu', value: 'vendor_dependency' },
+];
+
+const recommendationOptions = [
+  { label: 'Giữ nguyên', value: 'keep' },
+  { label: 'Nâng cấp', value: 'upgrade' },
+  { label: 'Thay thế', value: 'replace' },
+  { label: 'Hợp nhất', value: 'merge' },
+];
+
+/**
  * Phase 4: Quick Input - CharField conversion options
  */
 const backendTechOptions = [

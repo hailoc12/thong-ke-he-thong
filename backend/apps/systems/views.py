@@ -285,7 +285,7 @@ class UnitProgressDashboardView(APIView):
             'organization': {
                 'id': organization.id,
                 'name': organization.name,
-                'org_code': organization.org_code,
+                'org_code': organization.code,
             },
             'total_systems': total_systems,
             'overall_completion_percentage': overall_completion_percentage,

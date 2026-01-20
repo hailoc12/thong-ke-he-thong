@@ -84,6 +84,27 @@ class SystemViewSet(viewsets.ModelViewSet):
         # If user has no organization assigned, return empty queryset
         return queryset.none()
 
+    def perform_create(self, serializer):
+        """
+        Auto-set org field from logged-in user's organization
+        - Org users: auto-set from their organization
+        - Admin users: allow explicit org in request (can create for any org)
+        """
+        user = self.request.user
+
+        # Org users: use their organization
+        if user.role == 'org_user':
+            if not user.organization:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({'error': 'User must be assigned to an organization'})
+            serializer.save(org=user.organization)
+        # Admin users: require explicit org in request
+        elif user.role == 'admin':
+            serializer.save()
+        else:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({'error': 'Invalid user role'})
+
     @action(detail=True, methods=['post'])
     def save_draft(self, request, pk=None):
         """Save system as draft"""

@@ -249,17 +249,20 @@ const Dashboard = () => {
   // Calculate secondary metrics
   const getActiveRate = () => {
     if (!statistics?.total || statistics.total === 0) return 0;
-    return ((statistics.by_status.active / statistics.total) * 100).toFixed(1);
+    const active = statistics.by_status?.active ?? 0;
+    return ((active / statistics.total) * 100).toFixed(1);
   };
 
   const getCriticalRate = () => {
     if (!statistics?.total || statistics.total === 0) return 0;
-    return ((statistics.by_criticality.critical / statistics.total) * 100).toFixed(1);
+    const critical = statistics.by_criticality?.critical ?? 0;
+    return ((critical / statistics.total) * 100).toFixed(1);
   };
 
   const getMaintenanceRate = () => {
     if (!statistics?.total || statistics.total === 0) return 0;
-    return ((statistics.by_status.maintenance / statistics.total) * 100).toFixed(1);
+    const maintenance = statistics.by_status?.maintenance ?? 0;
+    return ((maintenance / statistics.total) * 100).toFixed(1);
   };
 
   // Generate sparkline data (7-day mini trend)

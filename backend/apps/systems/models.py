@@ -551,84 +551,86 @@ class SystemArchitecture(models.Model):
     #     help_text='Presentation, Business Logic, Data Access, Integration'
     # )
 
-    # Containerization & Orchestration
-    containerization = models.CharField(
-        max_length=50,
-        choices=CONTAINERIZATION_CHOICES,
-        blank=True,
-        verbose_name=_('Containerization')
-    )
-
-    # API & Integration
-    api_style = models.CharField(
-        max_length=50,
-        choices=API_STYLE_CHOICES,
-        blank=True,
-        verbose_name=_('API Style')
-    )
-
-    # Messaging & Queue
-    messaging_queue = models.CharField(
-        max_length=50,
-        choices=MESSAGING_QUEUE_CHOICES,
-        blank=True,
-        verbose_name=_('Messaging/Queue System')
-    )
-
-    # Cache
-    cache_system = models.CharField(
-        max_length=50,
-        choices=CACHE_SYSTEM_CHOICES,
-        blank=True,
-        verbose_name=_('Cache System')
-    )
-
-    # Search Engine
-    search_engine = models.CharField(
-        max_length=50,
-        choices=SEARCH_ENGINE_CHOICES,
-        blank=True,
-        verbose_name=_('Search Engine')
-    )
-
-    # Reporting & BI
-    reporting_bi_tool = models.CharField(
-        max_length=50,
-        choices=REPORTING_BI_CHOICES,
-        blank=True,
-        verbose_name=_('Reporting/BI Tool')
-    )
-
-    # Source Code Management
-    source_repository = models.CharField(
-        max_length=50,
-        choices=SOURCE_REPOSITORY_CHOICES,
-        blank=True,
-        verbose_name=_('Source Code Repository')
-    )
-
-    # CI/CD
-    has_cicd = models.BooleanField(
-        default=False,
-        verbose_name=_('Has CI/CD Pipeline')
-    )
-    cicd_tool = models.CharField(
-        max_length=50,
-        choices=CICD_TOOL_CHOICES,
-        blank=True,
-        verbose_name=_('CI/CD Tool')
-    )
-
-    # Automated Testing
-    has_automated_testing = models.BooleanField(
-        default=False,
-        verbose_name=_('Has Automated Testing')
-    )
-    automated_testing_tools = models.CharField(
-        max_length=255,
-        blank=True,
-        help_text='e.g., Jest, Pytest, Selenium, JUnit'
-    )
+    # NOTE: All fields below were added without migrations, causing 500 errors. Commented out.
+    # TODO: Re-add via proper migrations if needed in future
+    # # Containerization & Orchestration
+    # containerization = models.CharField(
+    #     max_length=50,
+    #     choices=CONTAINERIZATION_CHOICES,
+    #     blank=True,
+    #     verbose_name=_('Containerization')
+    # )
+    #
+    # # API & Integration
+    # api_style = models.CharField(
+    #     max_length=50,
+    #     choices=API_STYLE_CHOICES,
+    #     blank=True,
+    #     verbose_name=_('API Style')
+    # )
+    #
+    # # Messaging & Queue
+    # messaging_queue = models.CharField(
+    #     max_length=50,
+    #     choices=MESSAGING_QUEUE_CHOICES,
+    #     blank=True,
+    #     verbose_name=_('Messaging/Queue System')
+    # )
+    #
+    # # Cache
+    # cache_system = models.CharField(
+    #     max_length=50,
+    #     choices=CACHE_SYSTEM_CHOICES,
+    #     blank=True,
+    #     verbose_name=_('Cache System')
+    # )
+    #
+    # # Search Engine
+    # search_engine = models.CharField(
+    #     max_length=50,
+    #     choices=SEARCH_ENGINE_CHOICES,
+    #     blank=True,
+    #     verbose_name=_('Search Engine')
+    # )
+    #
+    # # Reporting & BI
+    # reporting_bi_tool = models.CharField(
+    #     max_length=50,
+    #     choices=REPORTING_BI_CHOICES,
+    #     blank=True,
+    #     verbose_name=_('Reporting/BI Tool')
+    # )
+    #
+    # # Source Code Management
+    # source_repository = models.CharField(
+    #     max_length=50,
+    #     choices=SOURCE_REPOSITORY_CHOICES,
+    #     blank=True,
+    #     verbose_name=_('Source Code Repository')
+    # )
+    #
+    # # CI/CD
+    # has_cicd = models.BooleanField(
+    #     default=False,
+    #     verbose_name=_('Has CI/CD Pipeline')
+    # )
+    # cicd_tool = models.CharField(
+    #     max_length=50,
+    #     choices=CICD_TOOL_CHOICES,
+    #     blank=True,
+    #     verbose_name=_('CI/CD Tool')
+    # )
+    #
+    # # Automated Testing
+    # has_automated_testing = models.BooleanField(
+    #     default=False,
+    #     verbose_name=_('Has Automated Testing')
+    # )
+    # automated_testing_tools = models.CharField(
+    #     max_length=255,
+    #     blank=True,
+    #     help_text='e.g., Jest, Pytest, Selenium, JUnit'
+    # )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

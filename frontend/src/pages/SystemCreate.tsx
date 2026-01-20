@@ -20,9 +20,11 @@ import {
   Typography,
   Tag,
   Space,
+  Modal,
 } from 'antd';
 import {
   ArrowLeftOutlined,
+  // ArrowRightOutlined, // TODO: Add back when implementing "Lưu & Tiếp tục" button
   SaveOutlined,
   InfoCircleOutlined,
   AppstoreOutlined,
@@ -825,12 +827,38 @@ const IntegrationConnectionList = ({ value = [], onChange }: any) => {
   );
 };
 
+// Tab save state tracking interface
+interface TabSaveState {
+  [tabKey: string]: {
+    isDirty: boolean;      // Has unsaved changes
+    isSaved: boolean;      // Has been saved at least once
+    lastSavedAt: Date | null;
+  };
+}
+
 const SystemCreate = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [userRole, setUserRole] = useState<string>('');
+
+  // Tab navigation save flow state
+  const [tabStates, setTabStates] = useState<TabSaveState>({
+    '1': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '2': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '3': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '4': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '5': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '6': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '7': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '8': { isDirty: false, isSaved: false, lastSavedAt: null },
+    '9': { isDirty: false, isSaved: false, lastSavedAt: null },
+  });
+  const [currentTab, setCurrentTab] = useState<string>('1');
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [_systemId, _setSystemId] = useState<number | null>(null); // TODO: Remove _ prefix when implementing draft saves
 
   useEffect(() => {
     fetchOrganizations();
@@ -855,6 +883,59 @@ const SystemCreate = () => {
       }
     } catch (error) {
       console.error('Failed to fetch user info:', error);
+    }
+  };
+
+  // Track form changes to mark tab as dirty
+  const handleFormChange = () => {
+    setTabStates(prev => ({
+      ...prev,
+      [currentTab]: {
+        ...prev[currentTab],
+        isDirty: true,
+      },
+    }));
+  };
+
+  // Handle tab navigation with dirty state check
+  const handleTabChange = (newTabKey: string) => {
+    const currentState = tabStates[currentTab];
+
+    // Check if current tab has unsaved changes
+    if (currentState.isDirty && !currentState.isSaved) {
+      // Show warning modal
+      setPendingTab(newTabKey);
+      setShowWarningModal(true);
+    } else {
+      // Allow navigation
+      setCurrentTab(newTabKey);
+    }
+  };
+
+  // Save current tab (draft save) - placeholder for now
+  const handleSaveCurrentTab = async () => {
+    try {
+      // const values = form.getFieldsValue(); // TODO: Use this when implementing draft save
+      setLoading(true);
+
+      // TODO: Implement draft save logic
+      message.info('Draft save function - to be implemented');
+
+      // Update tab state
+      setTabStates(prev => ({
+        ...prev,
+        [currentTab]: {
+          isDirty: false,
+          isSaved: true,
+          lastSavedAt: new Date(),
+        },
+      }));
+
+      message.success('Đã lưu thông tin!');
+    } catch (error: any) {
+      message.error('Lỗi khi lưu thông tin');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -2136,8 +2217,10 @@ const SystemCreate = () => {
             </Text>
           </div>
 
-          <Form form={form} layout="vertical" scrollToFirstError>
+          <Form form={form} layout="vertical" scrollToFirstError onValuesChange={handleFormChange}>
             <Tabs
+              activeKey={currentTab}
+              onChange={handleTabChange}
               items={tabItems}
               tabBarStyle={{
                 display: 'flex',
@@ -2156,6 +2239,52 @@ const SystemCreate = () => {
             </div>
           </Form>
         </Card>
+
+        {/* Warning Modal for unsaved changes */}
+        <Modal
+          open={showWarningModal}
+          title="Cảnh báo"
+          onCancel={() => {
+            setShowWarningModal(false);
+            setPendingTab(null);
+          }}
+          footer={[
+            <Button
+              key="stay"
+              onClick={() => {
+                setShowWarningModal(false);
+                setPendingTab(null);
+              }}
+            >
+              Ở lại tab hiện tại
+            </Button>,
+            <Button
+              key="continue"
+              onClick={() => {
+                setShowWarningModal(false);
+                setCurrentTab(pendingTab!);
+                setPendingTab(null);
+              }}
+            >
+              Tiếp tục (không lưu)
+            </Button>,
+            <Button
+              key="save"
+              type="primary"
+              onClick={async () => {
+                await handleSaveCurrentTab();
+                setShowWarningModal(false);
+                setCurrentTab(pendingTab!);
+                setPendingTab(null);
+              }}
+            >
+              Lưu & Tiếp tục
+            </Button>,
+          ]}
+        >
+          <p>Bạn cần hoàn thiện nhập thông tin ở tab hiện tại trước khi di chuyển sang hạng mục tiếp theo.</p>
+          <p>Bạn có muốn lưu thông tin trước khi chuyển tab?</p>
+        </Modal>
       </div>
     </Spin>
   );

@@ -46,7 +46,7 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 /**
- * Phase 1: Predefined options for SelectWithOther components
+ * Predefined options for SelectWithOther components
  */
 const systemGroupOptions = [
   { label: 'Nền tảng quốc gia', value: 'national_platform' },
@@ -345,7 +345,7 @@ const recommendationOptions = [
 ];
 
 /**
- * Phase 4: Quick Input - CharField conversion options
+ * Quick Input - CharField conversion options
  */
 const backendTechOptions = [
   { label: 'Node.js', value: 'nodejs' },
@@ -515,7 +515,7 @@ const integratedExternalSystemsOptions = [
 ];
 
 /**
- * Phase 1 - Section 5: Integration Connection List Component
+ * Section 5: Integration Connection List Component
  * Complex dynamic form for managing integration connections
  */
 interface IntegrationConnection {
@@ -884,7 +884,7 @@ const SystemEdit = () => {
         integrated_internal_systems: systemData.integrated_internal_systems || [],
         integrated_external_systems: systemData.integrated_external_systems || [],
         api_list: systemData.api_list || [],
-        // Phase 1: Initialize integration_connections from nested response
+        // Initialize integration_connections from nested response
         integration_connections_data: systemData.integration_connections || [],
       });
     } catch (error: any) {
@@ -1072,13 +1072,13 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
-            {/* Phase 1 - Section 1: New Required Fields */}
+            {/* Section 1: New Required Fields */}
             <Col span={12}>
               <Form.Item
                 label="Phạm vi sử dụng"
                 name="scope"
                 rules={[{ required: true, message: 'Vui lòng chọn phạm vi sử dụng' }]}
-                tooltip="Phase 1: REQUIRED field - Phạm vi sử dụng của hệ thống"
+                tooltip="REQUIRED field - Phạm vi sử dụng của hệ thống"
               >
                 <Select>
                   <Select.Option value="internal_unit">Nội bộ đơn vị</Select.Option>
@@ -1093,7 +1093,7 @@ const SystemEdit = () => {
                 label="Nhóm hệ thống"
                 name="system_group"
                 rules={[{ required: true, message: 'Vui lòng chọn nhóm hệ thống' }]}
-                tooltip="Phase 1: Dropdown với tùy chọn 'Khác' cho phép nhập tùy chỉnh"
+                tooltip="Dropdown với tùy chọn 'Khác' cho phép nhập tùy chỉnh"
               >
                 <SelectWithOther
                   options={systemGroupOptions}
@@ -1167,7 +1167,7 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
-            {/* Phase 1 - Section 2: User Metrics */}
+            {/* Section 2: User Metrics */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
                 Thống kê người dùng
@@ -1178,7 +1178,7 @@ const SystemEdit = () => {
               <Form.Item
                 label="Tổng số tài khoản"
                 name="total_accounts"
-                tooltip="Phase 1: Tổng số tài khoản đã tạo trong hệ thống"
+                tooltip="Tổng số tài khoản đã tạo trong hệ thống"
               >
                 <InputNumber
                   min={0}
@@ -1193,7 +1193,7 @@ const SystemEdit = () => {
               <Form.Item
                 label="MAU (Monthly Active Users)"
                 name="users_mau"
-                tooltip="Phase 1: Số người dùng hoạt động hàng tháng"
+                tooltip="Số người dùng hoạt động hàng tháng"
               >
                 <InputNumber
                   min={0}
@@ -1208,7 +1208,7 @@ const SystemEdit = () => {
               <Form.Item
                 label="DAU (Daily Active Users)"
                 name="users_dau"
-                tooltip="Phase 1: Số người dùng hoạt động hàng ngày"
+                tooltip="Số người dùng hoạt động hàng ngày"
               >
                 <InputNumber
                   min={0}
@@ -1223,7 +1223,7 @@ const SystemEdit = () => {
               <Form.Item
                 label="Số đơn vị/địa phương sử dụng"
                 name="num_organizations"
-                tooltip="Phase 1: Số đơn vị/địa phương sử dụng hệ thống"
+                tooltip="Số đơn vị/địa phương sử dụng hệ thống"
               >
                 <InputNumber
                   min={0}
@@ -1521,10 +1521,10 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
-            {/* Phase 1 - Section 4: Data Volume Metrics */}
+            {/* Section 4: Data Volume Metrics */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
-                Dung lượng dữ liệu (Phase 1 - REQUIRED)
+                Dung lượng dữ liệu (REQUIRED)
               </Text>
             </Col>
 
@@ -1532,7 +1532,7 @@ const SystemEdit = () => {
               <Form.Item
                 label="Dung lượng CSDL hiện tại (GB)"
                 name="storage_size_gb"
-                tooltip="Phase 1 - REQUIRED: Dung lượng cơ sở dữ liệu hiện tại"
+                tooltip="Dung lượng cơ sở dữ liệu hiện tại"
               >
                 <InputNumber
                   min={0}
@@ -1548,7 +1548,7 @@ const SystemEdit = () => {
               <Form.Item
                 label="Dung lượng file đính kèm (GB)"
                 name="file_storage_size_gb"
-                tooltip="Phase 1 - REQUIRED: Dung lượng file, tài liệu lưu trữ"
+                tooltip="Dung lượng file, tài liệu lưu trữ"
               >
                 <InputNumber
                   min={0}
@@ -1564,7 +1564,7 @@ const SystemEdit = () => {
               <Form.Item
                 label="Tốc độ tăng trưởng dữ liệu (%)"
                 name="growth_rate_percent"
-                tooltip="Phase 1 - REQUIRED: Tốc độ tăng trưởng (%/năm hoặc GB/tháng)"
+                tooltip="Tốc độ tăng trưởng (%/năm hoặc GB/tháng)"
               >
                 <InputNumber
                   min={0}
@@ -1640,10 +1640,10 @@ const SystemEdit = () => {
       children: (
         <Card>
           <Row gutter={[16, 16]}>
-            {/* Phase 1 - Section 5: API Inventory */}
+            {/* Section 5: API Inventory */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>
-                Thống kê API (Phase 1)
+                Thống kê API 
               </Text>
             </Col>
 
@@ -1651,7 +1651,7 @@ const SystemEdit = () => {
               <Form.Item
                 label="Số API cung cấp"
                 name="api_provided_count"
-                tooltip="Phase 1: Tổng số API mà hệ thống này cung cấp cho hệ thống khác"
+                tooltip="Tổng số API mà hệ thống này cung cấp cho hệ thống khác"
               >
                 <InputNumber
                   min={0}
@@ -1665,7 +1665,7 @@ const SystemEdit = () => {
               <Form.Item
                 label="Số API tiêu thụ"
                 name="api_consumed_count"
-                tooltip="Phase 1: Tổng số API mà hệ thống này gọi từ hệ thống khác"
+                tooltip="Tổng số API mà hệ thống này gọi từ hệ thống khác"
               >
                 <InputNumber
                   min={0}
@@ -1675,7 +1675,7 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
-            {/* Phase 4: Quick Input - API Standard */}
+            {/* Quick Input - API Standard */}
             <Col span={24}>
               <Form.Item
                 label="Chuẩn API"
@@ -1805,10 +1805,10 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
-            {/* Phase 1 - Section 5: Integration Connections (Complex Dynamic Form) */}
+            {/* Section 5: Integration Connections (Complex Dynamic Form) */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 24, marginBottom: 16 }}>
-                Danh sách tích hợp chi tiết (Phase 1 - CRITICAL)
+                Danh sách tích hợp chi tiết (CRITICAL)
               </Text>
               <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
                 Liệt kê chi tiết các kết nối tích hợp giữa hệ thống này với các hệ thống khác
@@ -2001,7 +2001,7 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
-            {/* Phase 4: Quick Input - Support Level */}
+            {/* Quick Input - Support Level */}
             <Col span={12}>
               <Form.Item label="Mức độ hỗ trợ" name="support_level">
                 <SelectWithOther

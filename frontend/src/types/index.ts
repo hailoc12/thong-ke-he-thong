@@ -276,6 +276,7 @@ export interface OrganizationCreatePayload {
 export interface SystemStatistics {
   total: number;
   users_total?: number;
+  average_completion_percentage?: number;
   by_status: {
     operating: number;
     pilot: number;

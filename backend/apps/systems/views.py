@@ -125,11 +125,23 @@ class SystemViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def statistics(self, request):
-        """Get system statistics"""
+        """Get system statistics with average completion percentage"""
         queryset = self.get_queryset()
+
+        # Calculate average completion percentage
+        systems = list(queryset)
+        if systems:
+            total_completion = sum(
+                calculate_system_completion_percentage(system)
+                for system in systems
+            )
+            avg_completion = round(total_completion / len(systems), 1)
+        else:
+            avg_completion = 0.0
 
         stats = {
             'total': queryset.count(),
+            'average_completion_percentage': avg_completion,
             'by_status': {
                 'operating': queryset.filter(status='operating').count(),
                 'pilot': queryset.filter(status='pilot').count(),

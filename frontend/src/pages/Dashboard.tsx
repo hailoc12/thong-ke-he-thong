@@ -11,10 +11,6 @@ import {
   MinusOutlined,
   ReloadOutlined,
   DownloadOutlined,
-  ClockCircleOutlined,
-  PlusCircleOutlined,
-  EditOutlined,
-  ExclamationCircleOutlined,
   FilterOutlined,
   ClearOutlined,
   FileTextOutlined,
@@ -26,6 +22,8 @@ import dayjs from 'dayjs';
 import api from '../config/api';
 import type { SystemStatistics } from '../types';
 import { colors, shadows, borderRadius, spacing } from '../theme/tokens';
+import { useAuthStore } from '../stores/authStore';
+import OrganizationDashboard from './OrganizationDashboard';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -40,6 +38,14 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const Dashboard = () => {
+  const { user } = useAuthStore();
+
+  // If user is org_user, show OrganizationDashboard instead
+  if (user?.role === 'org_user') {
+    return <OrganizationDashboard />;
+  }
+
+  // Admin dashboard (existing implementation)
   const [statistics, setStatistics] = useState<SystemStatistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -127,12 +133,7 @@ const Dashboard = () => {
       byStatus: statistics?.by_status || {},
       byCriticality: statistics?.by_criticality || {},
       trendData: trendChartData,
-      recentActivities: recentActivities.map(activity => ({
-        user: activity.user,
-        action: activity.text,
-        system: activity.system,
-        time: activity.time,
-      })),
+      recentActivities: [], // Empty - no recent activities
     };
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -325,32 +326,10 @@ const Dashboard = () => {
     return data;
   };
 
-  // Generate mock recent activities (memoized)
+  // Recent activities - cleared dummy data
+  // TODO: Replace with real activity log API when available
   const recentActivities = useMemo(() => {
-    const activityTypes = [
-      { type: 'created', icon: <PlusCircleOutlined />, color: '#52c41a', text: 'đã tạo hệ thống mới' },
-      { type: 'updated', icon: <EditOutlined />, color: '#1890ff', text: 'đã cập nhật hệ thống' },
-      { type: 'maintenance', icon: <ExclamationCircleOutlined />, color: '#faad14', text: 'đã chuyển sang bảo trì' },
-      { type: 'activated', icon: <CheckCircleOutlined />, color: '#52c41a', text: 'đã kích hoạt hệ thống' },
-    ];
-
-    const systems = ['Hệ thống Quản lý Văn bản', 'Portal Dịch vụ công', 'Hệ thống Email nội bộ', 'Quản lý Nhân sự'];
-    const users = ['Nguyễn Văn A', 'Trần Thị B', 'Lê Văn C', 'Phạm Thị D'];
-
-    return Array.from({ length: 8 }, (_, i) => {
-      const activity = activityTypes[Math.floor(Math.random() * activityTypes.length)];
-      const system = systems[Math.floor(Math.random() * systems.length)];
-      const user = users[Math.floor(Math.random() * users.length)];
-      const minutesAgo = i * 15 + Math.floor(Math.random() * 15);
-
-      return {
-        ...activity,
-        system,
-        user,
-        time: dayjs().subtract(minutesAgo, 'minute').format('HH:mm DD/MM'),
-        timeAgo: minutesAgo < 60 ? `${minutesAgo} phút trước` : `${Math.floor(minutesAgo / 60)} giờ trước`,
-      };
-    });
+    return []; // Empty - no dummy data
   }, [statistics]);
 
   // Generate mock 30-day trend data (memoized)
@@ -927,30 +906,15 @@ const Dashboard = () => {
             >
               <Skeleton loading={loading} active paragraph={{ rows: 6 }}>
                 <div style={{ maxHeight: isMobile ? 250 : 300, overflowY: 'auto' }}>
-                  <Timeline
-                    items={recentActivities.map((activity, index) => ({
-                      dot: <span style={{ color: activity.color }}>{activity.icon}</span>,
-                      children: (
-                        <div key={index}>
-                          <div style={{ marginBottom: 4 }}>
-                            <Typography.Text strong>{activity.user}</Typography.Text>
-                            {' '}{activity.text}
-                          </div>
-                          <div style={{ marginBottom: 4 }}>
-                            <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-                              {activity.system}
-                            </Typography.Text>
-                          </div>
-                          <div>
-                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                              <ClockCircleOutlined style={{ marginRight: 4 }} />
-                              {activity.timeAgo}
-                            </Typography.Text>
-                          </div>
-                        </div>
-                      ),
-                    }))}
-                  />
+                  {recentActivities.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#999' }}>
+                      <Typography.Text type="secondary">
+                        Chưa có hoạt động gần đây
+                      </Typography.Text>
+                    </div>
+                  ) : (
+                    <Timeline items={recentActivities} />
+                  )}
                 </div>
               </Skeleton>
             </Card>

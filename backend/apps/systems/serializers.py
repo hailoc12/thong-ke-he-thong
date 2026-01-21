@@ -157,6 +157,7 @@ class SystemListSerializer(serializers.ModelSerializer):
     org_name = serializers.CharField(source='org.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     criticality_display = serializers.CharField(source='get_criticality_level_display', read_only=True)
+    completion_percentage = serializers.SerializerMethodField()
 
     class Meta:
         model = System
@@ -180,7 +181,13 @@ class SystemListSerializer(serializers.ModelSerializer):
             'users_mau',
             'created_at',
             'updated_at',
+            'completion_percentage',
         ]
+
+    def get_completion_percentage(self, obj):
+        """Calculate completion percentage for the system"""
+        from .utils import calculate_system_completion_percentage
+        return calculate_system_completion_percentage(obj)
 
 
 class SystemDetailSerializer(serializers.ModelSerializer):

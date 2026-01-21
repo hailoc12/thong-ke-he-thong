@@ -2,6 +2,7 @@ from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import User
 from .serializers import (
@@ -12,6 +13,13 @@ from .serializers import (
     CustomTokenObtainPairSerializer
 )
 from .permissions import IsAdmin
+
+
+class CustomPagination(PageNumberPagination):
+    """Custom pagination class that allows client to control page size"""
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -90,6 +98,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     queryset = User.objects.select_related('organization').all()
     permission_classes = [IsAdmin]
+    pagination_class = CustomPagination
 
     def get_serializer_class(self):
         """Return appropriate serializer based on action"""

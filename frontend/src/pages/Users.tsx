@@ -57,7 +57,7 @@ const Users = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await api.get<any>('/users/');
+      const response = await api.get<any>('/users/?page_size=100');
       // Handle both array and paginated response
       const usersData = Array.isArray(response.data)
         ? response.data

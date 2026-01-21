@@ -176,7 +176,7 @@ const MainLayout = () => {
         >
           <img
             src="/logo-khcn.jpeg"
-            alt="Bộ KH&CN"
+            alt="Trung tâm CNTT - Bộ KH&CN"
             style={{
               width: isMobile || collapsed ? 36 : 48,
               height: 'auto',
@@ -185,12 +185,12 @@ const MainLayout = () => {
           />
           {!collapsed && !isMobile && (
             <Text strong style={{ color: 'white', fontSize: 15, whiteSpace: 'nowrap' }}>
-              Thống kê CNTT
+              Thống kê Hệ thống
             </Text>
           )}
           {isMobile && (
             <Text strong style={{ color: 'white', fontSize: 15, whiteSpace: 'nowrap' }}>
-              Thống kê CNTT
+              Thống kê Hệ thống
             </Text>
           )}
         </div>

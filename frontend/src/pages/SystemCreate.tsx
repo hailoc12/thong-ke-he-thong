@@ -884,7 +884,7 @@ const SystemCreate = () => {
 
   const checkUserRole = async () => {
     try {
-      const response = await api.get('/auth/me/');
+      const response = await api.get('/users/me/');
       setUserRole(response.data.role);
       if (response.data.organization) {
         form.setFieldsValue({ org: response.data.organization });

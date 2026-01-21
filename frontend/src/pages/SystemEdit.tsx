@@ -895,7 +895,7 @@ const SystemEdit = () => {
 
   const checkUserRole = async () => {
     try {
-      const response = await api.get('/auth/me/');
+      const response = await api.get('/users/me/');
       setUserRole(response.data.role);
     } catch (error) {
       console.error('Failed to fetch user info:', error);

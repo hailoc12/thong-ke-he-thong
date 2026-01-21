@@ -266,7 +266,7 @@ const Systems = () => {
               }
             >
               <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/systems/create')}>
-                Thêm hệ thống mới
+                Thêm hệ thống
               </Button>
             </Empty>
           ),

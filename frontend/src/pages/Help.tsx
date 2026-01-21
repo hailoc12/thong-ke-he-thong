@@ -1,4 +1,4 @@
-import { Typography, Row, Col, Card, Button, Divider, Space, Alert } from 'antd';
+import { Typography, Row, Col, Card, Button, Divider, Space } from 'antd';
 import {
   LoginOutlined,
   // UserAddOutlined, // Registration disabled
@@ -6,15 +6,13 @@ import {
   AppstoreOutlined,
   TeamOutlined,
   BookOutlined,
-  PhoneOutlined,
-  MailOutlined,
-  EnvironmentOutlined,
   CheckCircleOutlined,
   ArrowRightOutlined,
+  RocketOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
-const { Title, Paragraph, Text, Link } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 const Help = () => {
   const navigate = useNavigate();
@@ -31,7 +29,7 @@ const Help = () => {
   const sections = [
     {
       title: 'Bắt đầu',
-      icon: <EnvironmentOutlined />,
+      icon: <RocketOutlined />,
       content: [
         // Registration disabled - contact admin for account
         // {
@@ -124,7 +122,7 @@ const Help = () => {
     },
     {
       question: 'Liên hệ hỗ trợ ở đâu?',
-      answer: 'Vui lòng gửi email về support@mindmaid.ai hoặc liên hệ qua Bộ Khoa học và Công nghệ.',
+      answer: 'Vui lòng liên hệ qua Bộ Khoa học và Công nghệ để được hỗ trợ.',
     },
   ];
 
@@ -184,7 +182,7 @@ const Help = () => {
         }}
       >
         <Title level={3} style={{ marginBottom: 24 }}>
-          <EnvironmentOutlined style={{ marginRight: 8, color: '#52c41a' }} />
+          <RocketOutlined style={{ marginRight: 8, color: '#52c41a' }} />
           Bắt đầu nhanh
         </Title>
         <Row gutter={[32, 32]}>
@@ -323,36 +321,6 @@ const Help = () => {
         </Space>
       </Card>
 
-      {/* Support Info */}
-      <Alert
-        message="Cần hỗ trợ?"
-        description={
-          <div>
-            <Paragraph style={{ marginBottom: 8 }}>
-              Nếu bạn gặp vấn đề khi sử dụng hệ thống, hãy liên hệ với chúng tôi:
-            </Paragraph>
-            <Space direction="vertical" size={8}>
-              <div>
-                <PhoneOutlined style={{ marginRight: 8 }} />
-                Hotline: Chưa có thông tin
-              </div>
-              <div>
-                <MailOutlined style={{ marginRight: 8 }} />
-                Email: <Link href="mailto:support@mindmaid.ai">support@mindmaid.ai</Link>
-              </div>
-              <div>
-                <EnvironmentOutlined style={{ marginRight: 8 }} />
-                Website: <Link href="https://mindmaid.ai" target="_blank" rel="noopener noreferrer">
-                  mindmaid.ai
-                </Link>
-              </div>
-            </Space>
-          </div>
-        }
-        type="info"
-        showIcon
-        style={{ borderRadius: 8, borderLeft: '4px solid #1890ff' }}
-      />
     </div>
   );
 };

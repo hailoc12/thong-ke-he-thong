@@ -44,6 +44,12 @@ import api from '../config/api';
 import type { Organization } from '../types';
 import { SelectWithOther } from '../components/form/SelectWithOther';
 import { CheckboxGroupWithOther } from '../components/form/CheckboxGroupWithOther';
+import {
+  AllValidationRules,
+  validateTab,
+  validateAllTabs,
+  getTabDisplayName,
+} from '../utils/systemValidationRules';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -855,6 +861,13 @@ const SystemCreate = () => {
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [_systemId, _setSystemId] = useState<number | null>(null); // TODO: Remove _ prefix when implementing draft saves
 
+  // Validation state tracking
+  const [tabValidationStatus, setTabValidationStatus] = useState<Record<string, boolean>>({
+    '1': false, '2': false, '3': false, '4': false, '5': true,
+    '6': false, '7': true, '8': false, '9': true,
+  });
+  const [isCurrentTabValid, setIsCurrentTabValid] = useState(false);
+
   useEffect(() => {
     fetchOrganizations();
     checkUserRole();
@@ -892,6 +905,25 @@ const SystemCreate = () => {
     }));
   };
 
+  // Validate current tab whenever form values or tab changes
+  useEffect(() => {
+    const checkValidation = async () => {
+      const { isValid } = await validateTab(form, currentTab);
+      setIsCurrentTabValid(isValid);
+      setTabValidationStatus(prev => ({
+        ...prev,
+        [currentTab]: isValid,
+      }));
+    };
+
+    // Debounce validation to avoid excessive checks
+    const timer = setTimeout(() => {
+      checkValidation();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [form, currentTab]); // Re-run when tab changes
+
   // Handle tab navigation with dirty state check
   const handleTabChange = (newTabKey: string) => {
     const currentState = tabStates[currentTab];
@@ -908,9 +940,28 @@ const SystemCreate = () => {
   };
 
   // Save current tab as draft
-  const handleSaveCurrentTab = async () => {
+  const handleSaveCurrentTab = async (): Promise<boolean> => {
     try {
+      // STEP 1: Validate current tab before saving
+      const { isValid, errorFields, errorCount } = await validateTab(form, currentTab);
+
+      if (!isValid) {
+        message.error({
+          content: `Vui lòng điền đầy đủ ${errorCount} trường bắt buộc trong tab ${getTabDisplayName(currentTab)}`,
+          duration: 5,
+        });
+        // Scroll to first error field
+        if (errorFields.length > 0) {
+          form.scrollToField(errorFields[0]);
+        }
+        return false; // BLOCK save
+      }
+
+      // STEP 2: Proceed with save if valid
       const allValues = form.getFieldsValue();
+
+      // Store form values for conditional validators
+      (window as any).__formValues = allValues;
 
       // BUG-001 FIX: Filter out null/undefined/empty values to prevent sending garbage data
       const cleanedValues = Object.entries(allValues).reduce((acc, [key, value]) => {
@@ -968,6 +1019,7 @@ const SystemCreate = () => {
       }));
 
       message.success('Đã lưu thông tin!');
+      return true; // Save succeeded
     } catch (error: any) {
       console.error('Failed to save tab:', error);
 
@@ -994,6 +1046,7 @@ const SystemCreate = () => {
       } else {
         message.error('Lỗi khi lưu thông tin. Vui lòng kiểm tra kết nối mạng.');
       }
+      return false; // Save failed
     } finally {
       setLoading(false);
     }
@@ -1001,21 +1054,41 @@ const SystemCreate = () => {
 
   // Save & Continue (save current tab + move to next)
   const handleSaveAndContinue = async () => {
-    await handleSaveCurrentTab();
+    // handleSaveCurrentTab now includes validation and returns true if save succeeded
+    const saveSucceeded = await handleSaveCurrentTab();
 
-    // Move to next tab
-    const nextTabKey = (parseInt(currentTab) + 1).toString();
-    if (parseInt(nextTabKey) <= 9) {
-      setCurrentTab(nextTabKey);
+    // Only move to next tab if save succeeded (validation passed and API call succeeded)
+    if (saveSucceeded) {
+      const nextTabKey = (parseInt(currentTab) + 1).toString();
+      if (parseInt(nextTabKey) <= 9) {
+        setCurrentTab(nextTabKey);
+      }
     }
   };
 
   // Final Save (submit form, mark as not draft)
   const handleFinalSave = async () => {
     try {
-      // Validate all fields
-      await form.validateFields();
+      // STEP 1: Validate ALL tabs before final save
+      const { isValid, invalidTabs, errorCount, tabErrors } = await validateAllTabs(form);
 
+      if (!isValid) {
+        const tabNames = invalidTabs.map(t => getTabDisplayName(t)).join(', ');
+        message.error({
+          content: `Không thể lưu. Còn ${errorCount} trường bắt buộc chưa điền ở các tab: ${tabNames}`,
+          duration: 8,
+        });
+        // Jump to first invalid tab
+        setCurrentTab(invalidTabs[0]);
+        // Scroll to first error in that tab
+        const firstTabErrors = tabErrors[invalidTabs[0]];
+        if (firstTabErrors && firstTabErrors.length > 0) {
+          setTimeout(() => form.scrollToField(firstTabErrors[0]), 100);
+        }
+        return; // BLOCK final save
+      }
+
+      // STEP 2: Proceed with final save if all tabs are valid
       const values = form.getFieldsValue();
       setLoading(true);
 
@@ -1061,6 +1134,8 @@ const SystemCreate = () => {
             type="primary"
             onClick={handleSaveAndContinue}
             icon={<ArrowRightOutlined />}
+            disabled={!isCurrentTabValid}
+            title={!isCurrentTabValid ? 'Vui lòng điền đầy đủ các trường bắt buộc' : ''}
           >
             Lưu & Tiếp tục
           </Button>
@@ -1070,6 +1145,7 @@ const SystemCreate = () => {
             type="primary"
             onClick={handleFinalSave}
             icon={<SaveOutlined />}
+            title="Lưu toàn bộ hệ thống"
           >
             Lưu hệ thống
           </Button>
@@ -1137,6 +1213,9 @@ const SystemCreate = () => {
       label: (
         <span>
           <InfoCircleOutlined /> Thông tin cơ bản
+          {tabValidationStatus['1'] && (
+            <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
+          )}
         </span>
       ),
       children: (
@@ -1148,7 +1227,7 @@ const SystemCreate = () => {
                 <Form.Item
                   label="Tổ chức"
                   name="org"
-                  rules={[{ required: true, message: 'Vui lòng chọn tổ chức' }]}
+                  rules={AllValidationRules.org}
                 >
                   <Select
                     showSearch
@@ -1169,7 +1248,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Tên hệ thống"
                 name="system_name"
-                rules={[{ required: true, message: 'Vui lòng nhập tên hệ thống' }]}
+                rules={AllValidationRules.system_name}
               >
                 <Input placeholder="Nhập tên hệ thống" />
               </Form.Item>
@@ -1191,7 +1270,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Mô tả"
                 name="purpose"
-                rules={[{ required: true, message: 'Vui lòng nhập mô tả' }]}
+                rules={AllValidationRules.purpose}
               >
                 <TextArea rows={4} placeholder="Mô tả chức năng và mục đích của hệ thống" />
               </Form.Item>
@@ -1202,7 +1281,7 @@ const SystemCreate = () => {
                 label="Trạng thái"
                 name="status"
                 initialValue="operating"
-                rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
+                rules={AllValidationRules.status}
               >
                 <Select>
                   <Select.Option value="operating">Đang vận hành</Select.Option>
@@ -1220,7 +1299,7 @@ const SystemCreate = () => {
                 label="Mức độ quan trọng"
                 name="criticality_level"
                 initialValue="medium"
-                rules={[{ required: true, message: 'Vui lòng chọn mức độ quan trọng' }]}
+                rules={AllValidationRules.criticality_level}
                 tooltip="Đã bỏ 'Cực kỳ quan trọng' - chỉ còn 3 mức"
               >
                 <Select>
@@ -1237,7 +1316,7 @@ const SystemCreate = () => {
                 label="Phạm vi sử dụng"
                 name="scope"
                 initialValue="internal_unit"
-                rules={[{ required: true, message: 'Vui lòng chọn phạm vi sử dụng' }]}
+                rules={AllValidationRules.scope}
                 tooltip="Phạm vi sử dụng của hệ thống"
               >
                 <Select>
@@ -1284,7 +1363,7 @@ const SystemCreate = () => {
                 label="Nhóm hệ thống"
                 name="system_group"
                 initialValue="other"
-                rules={[{ required: true, message: 'Vui lòng chọn nhóm hệ thống' }]}
+                rules={AllValidationRules.system_group}
                 tooltip="Dropdown với tùy chọn 'Khác' cho phép nhập tùy chỉnh"
               >
                 <SelectWithOther
@@ -1314,6 +1393,9 @@ const SystemCreate = () => {
       label: (
         <span>
           <AppstoreOutlined /> Bối cảnh nghiệp vụ
+          {tabValidationStatus['2'] && (
+            <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
+          )}
         </span>
       ),
       children: (
@@ -1324,6 +1406,7 @@ const SystemCreate = () => {
                 label="Mục tiêu nghiệp vụ"
                 name="business_objectives"
                 initialValue={[]}
+                rules={AllValidationRules.business_objectives}
                 tooltip="Khuyến nghị tối đa 5 mục tiêu để tập trung"
               >
                 <CheckboxGroupWithOther
@@ -1338,6 +1421,7 @@ const SystemCreate = () => {
                 label="Quy trình nghiệp vụ chính"
                 name="business_processes"
                 initialValue={[]}
+                rules={AllValidationRules.business_processes}
               >
                 <CheckboxGroupWithOther
                   options={businessProcessesOptions}
@@ -1362,6 +1446,7 @@ const SystemCreate = () => {
                 label="Đối tượng sử dụng"
                 name="user_types"
                 initialValue={[]}
+                rules={AllValidationRules.user_types}
               >
                 <CheckboxGroupWithOther
                   options={userTypesOptions}
@@ -1468,6 +1553,9 @@ const SystemCreate = () => {
       label: (
         <span>
           <DatabaseOutlined /> Kiến trúc công nghệ
+          {tabValidationStatus['3'] && (
+            <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
+          )}
         </span>
       ),
       children: (
@@ -1477,6 +1565,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Ngôn ngữ lập trình"
                 name="programming_language"
+                rules={AllValidationRules.programming_language}
                 tooltip="Chọn ngôn ngữ lập trình chính của hệ thống"
               >
                 <SelectWithOther
@@ -1491,6 +1580,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Framework/Thư viện"
                 name="framework"
+                rules={AllValidationRules.framework}
                 tooltip="Chọn framework chính của hệ thống"
               >
                 <SelectWithOther
@@ -1505,6 +1595,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Cơ sở dữ liệu"
                 name="database_name"
+                rules={AllValidationRules.database_name}
                 tooltip="Chọn cơ sở dữ liệu chính của hệ thống"
               >
                 <SelectWithOther
@@ -1519,6 +1610,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Nền tảng triển khai"
                 name="hosting_platform"
+                rules={AllValidationRules.hosting_platform}
                 tooltip="Chọn nền tảng triển khai của hệ thống"
               >
                 <SelectWithOther
@@ -1606,7 +1698,12 @@ const SystemCreate = () => {
             </Col>
 
             <Col span={24}>
-              <Form.Item label="Chi tiết phân lớp" name="layered_architecture_details">
+              <Form.Item
+                label="Chi tiết phân lớp"
+                name="layered_architecture_details"
+                rules={AllValidationRules.layered_architecture_details}
+                dependencies={['has_layered_architecture']}
+              >
                 <TextArea rows={2} placeholder="VD: Presentation, Business Logic, Data Access, Integration" />
               </Form.Item>
             </Col>
@@ -1682,7 +1779,12 @@ const SystemCreate = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="CI/CD Tool" name="cicd_tool">
+              <Form.Item
+                label="CI/CD Tool"
+                name="cicd_tool"
+                rules={AllValidationRules.cicd_tool}
+                dependencies={['has_cicd']}
+              >
                 <SelectWithOther
                   options={cicdToolOptions}
                   placeholder="Chọn công cụ CI/CD"
@@ -1697,7 +1799,12 @@ const SystemCreate = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Testing Tools" name="automated_testing_tools">
+              <Form.Item
+                label="Testing Tools"
+                name="automated_testing_tools"
+                rules={AllValidationRules.automated_testing_tools}
+                dependencies={['has_automated_testing']}
+              >
                 <Input placeholder="VD: Jest, Pytest, Selenium, JUnit" />
               </Form.Item>
             </Col>
@@ -1722,13 +1829,21 @@ const SystemCreate = () => {
       label: (
         <span>
           <DatabaseOutlined /> Kiến trúc dữ liệu
+          {tabValidationStatus['4'] && (
+            <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
+          )}
         </span>
       ),
       children: (
         <Card>
           <Row gutter={[16, 16]}>
             <Col span={24}>
-              <Form.Item label="Nguồn dữ liệu" name="data_sources" initialValue={[]}>
+              <Form.Item
+                label="Nguồn dữ liệu"
+                name="data_sources"
+                initialValue={[]}
+                rules={AllValidationRules.data_sources}
+              >
                 <CheckboxGroupWithOther
                   options={dataSourcesOptions}
                   customInputPlaceholder="Nhập nguồn dữ liệu khác..."
@@ -1741,6 +1856,7 @@ const SystemCreate = () => {
                 label="Loại dữ liệu"
                 name="data_types"
                 initialValue={[]}
+                rules={AllValidationRules.data_types}
                 tooltip="Các loại dữ liệu được lưu trữ trong hệ thống"
               >
                 <CheckboxGroupWithOther
@@ -1755,6 +1871,7 @@ const SystemCreate = () => {
                 label="Phân loại dữ liệu"
                 name="data_classification_type"
                 initialValue={[]}
+                rules={AllValidationRules.data_classification_type}
                 tooltip="Có thể chọn nhiều loại (Bí mật + Mật)"
               >
                 <CheckboxGroupWithOther
@@ -1915,7 +2032,12 @@ const SystemCreate = () => {
               >
                 {({ getFieldValue }) =>
                   getFieldValue('has_data_catalog') ? (
-                    <Form.Item label="Ghi chú Data Catalog" name="data_catalog_notes">
+                    <Form.Item
+                      label="Ghi chú Data Catalog"
+                      name="data_catalog_notes"
+                      rules={AllValidationRules.data_catalog_notes}
+                      dependencies={['has_data_catalog']}
+                    >
                       <TextArea
                         rows={2}
                         placeholder="Nhập ghi chú về Data Catalog (công cụ, phạm vi, ...)"
@@ -1933,7 +2055,12 @@ const SystemCreate = () => {
               >
                 {({ getFieldValue }) =>
                   getFieldValue('has_mdm') ? (
-                    <Form.Item label="Ghi chú MDM" name="mdm_notes">
+                    <Form.Item
+                      label="Ghi chú MDM"
+                      name="mdm_notes"
+                      rules={AllValidationRules.mdm_notes}
+                      dependencies={['has_mdm']}
+                    >
                       <TextArea
                         rows={2}
                         placeholder="Nhập ghi chú về MDM (công cụ, phạm vi, dữ liệu master, ...)"
@@ -1964,6 +2091,9 @@ const SystemCreate = () => {
       label: (
         <span>
           <ApiOutlined /> Tích hợp hệ thống
+          {tabValidationStatus['5'] && (
+            <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
+          )}
         </span>
       ),
       children: (
@@ -2181,6 +2311,9 @@ const SystemCreate = () => {
       label: (
         <span>
           <SafetyOutlined /> An toàn thông tin
+          {tabValidationStatus['6'] && (
+            <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
+          )}
         </span>
       ),
       children: (
@@ -2191,6 +2324,7 @@ const SystemCreate = () => {
                 label="Phương thức xác thực"
                 name="authentication_method"
                 initialValue={[]}
+                rules={AllValidationRules.authentication_method}
                 tooltip="Có thể chọn nhiều (LDAP + Local + SSO + OAuth2)"
               >
                 <CheckboxGroupWithOther
@@ -2275,6 +2409,9 @@ const SystemCreate = () => {
       label: (
         <span>
           <CloudServerOutlined /> Hạ tầng kỹ thuật
+          {tabValidationStatus['7'] && (
+            <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
+          )}
         </span>
       ),
       children: (
@@ -2401,19 +2538,30 @@ const SystemCreate = () => {
       label: (
         <span>
           <ToolOutlined /> Vận hành
+          {tabValidationStatus['8'] && (
+            <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
+          )}
         </span>
       ),
       children: (
         <Card>
           <Row gutter={[16, 16]}>
             <Col span={12}>
-              <Form.Item label="Người chịu trách nhiệm" name="business_owner">
+              <Form.Item
+                label="Người chịu trách nhiệm"
+                name="business_owner"
+                rules={AllValidationRules.business_owner}
+              >
                 <Input placeholder="Tên người chịu trách nhiệm" />
               </Form.Item>
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Người quản trị kỹ thuật" name="technical_owner">
+              <Form.Item
+                label="Người quản trị kỹ thuật"
+                name="technical_owner"
+                rules={AllValidationRules.technical_owner}
+              >
                 <Input placeholder="Tên người quản trị kỹ thuật" />
               </Form.Item>
             </Col>
@@ -2460,6 +2608,9 @@ const SystemCreate = () => {
       label: (
         <span>
           <CheckCircleOutlined /> Đánh giá hệ thống
+          {tabValidationStatus['9'] && (
+            <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
+          )}
         </span>
       ),
       children: (
@@ -2582,6 +2733,8 @@ const SystemCreate = () => {
                   setCurrentTab(pendingTab!);
                   setPendingTab(null);
                 }}
+                disabled={!isCurrentTabValid}
+                title={!isCurrentTabValid ? 'Vui lòng điền đầy đủ các trường bắt buộc' : ''}
               >
                 Lưu & Tiếp tục
               </Button>

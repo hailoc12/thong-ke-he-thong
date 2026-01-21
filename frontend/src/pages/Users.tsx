@@ -174,23 +174,25 @@ const Users = () => {
         </Space>
       ),
     },
-    {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-      width: 200,
-    },
-    {
-      title: 'Họ và tên',
-      key: 'fullname',
-      width: 180,
-      render: (_, record) => {
-        const fullName = [record.first_name, record.last_name]
-          .filter(Boolean)
-          .join(' ');
-        return fullName || '-';
-      },
-    },
+    // Hidden: Email column
+    // {
+    //   title: 'Email',
+    //   dataIndex: 'email',
+    //   key: 'email',
+    //   width: 200,
+    // },
+    // Hidden: Họ và tên column
+    // {
+    //   title: 'Họ và tên',
+    //   key: 'fullname',
+    //   width: 180,
+    //   render: (_, record) => {
+    //     const fullName = [record.first_name, record.last_name]
+    //       .filter(Boolean)
+    //       .join(' ');
+    //     return fullName || '-';
+    //   },
+    // },
     {
       title: 'Vai trò',
       dataIndex: 'role',

@@ -1,0 +1,36 @@
+Unit Name	Username	Password
+--------------------------------------------------------------------------------
+Vụ Bưu chính	vu-buuchinh	ThongkeCDS@2026#
+Vụ Đánh giá và Thẩm định công nghệ	vu-dgtd	ThongkeCDS@2026#
+Vụ Khoa học kỹ thuật và công nghệ	vu-khkt	ThongkeCDS@2026#
+Vụ Khoa học Xã hội, Nhân văn và Tự nhiên	vu-khxh	ThongkeCDS@2026#
+Vụ Kinh tế và Xã hội số	vu-ktxhs	ThongkeCDS@2026#
+Văn phòng Bộ	vpb	ThongkeCDS@2026#
+Cục An toàn bức xạ và hạt nhân	cuc-atbx	ThongkeCDS@2026#
+Cục Bưu điện điện Trung ương	cuc-bdtw	ThongkeCDS@2026#
+Cục Công nghiệp Công nghệ thông tin	cuc-cncntt	ThongkeCDS@2026#
+Cục Chuyển đổi số quốc gia	cds	ThongkeCDS@2026#
+Cục Đổi mới sáng tạo	cuc-dmst	ThongkeCDS@2026#
+Cục Khởi nghiệp và Doanh nghiệp công nghệ	cuc-kncn	ThongkeCDS@2026#
+Cục Sở hữu trí tuệ	shtt	ThongkeCDS@2026#
+Cục Tần số vô tuyến điện	cuc-tswtd	ThongkeCDS@2026#
+Cục Thông tin, Thống kê	cuc-tttk	ThongkeCDS@2026#
+Cục Viễn thông	vienthong	ThongkeCDS@2026#
+Uỷ ban Tiêu chuẩn Đo lường Chất lượng quốc gia	ub-tcclqg	ThongkeCDS@2026#
+Trung tâm Công nghệ thông tin	cntt	ThongkeCDS@2026#
+Học viện Công nghệ Bưu chính Viễn thông	ptit	ThongkeCDS@2026#
+Học viện Chiến lược Khoa học và Công nghệ	hv-clkhcn	ThongkeCDS@2026#
+Báo VNExpress	vnexpress	ThongkeCDS@2026#
+Quỹ Phát triển khoa học và công nghệ quốc gia	quy-ptkhcn	ThongkeCDS@2026#
+Quỹ Đổi mới công nghệ quốc gia	quy-dmcn	ThongkeCDS@2026#
+Quỹ Dịch vụ viễn thông công ích Việt Nam	quy-dvvtci	ThongkeCDS@2026#
+Viện Công nghệ số và Chuyển đổi số quốc gia	vien-cnscds	ThongkeCDS@2026#
+Viện Năng lượng nguyên tử Việt Nam	vien-nlnt	ThongkeCDS@2026#
+Viện Khoa học và Công nghệ Việt Nam - Hàn Quốc	vien-vn-han	ThongkeCDS@2026#
+Viện Sở hữu trí tuệ quốc gia	vien-shtt	ThongkeCDS@2026#
+Viện Ứng dụng công nghệ	vien-udcn	ThongkeCDS@2026#
+Trung tâm Chứng thực điện tử quốc gia	vnnic	ThongkeCDS@2026#
+Trung tâm Internet Việt Nam	tt-internet	ThongkeCDS@2026#
+Trung tâm Truyền thông khoa học và công nghệ	tt-ttkhcn	ThongkeCDS@2026#
+Nhà Xuất bản Khoa học - Công nghệ - Truyền thông	nxb-khcntt	ThongkeCDS@2026#
+Trường Cao đẳng Thông tin và Truyền thông	cd-tttt	ThongkeCDS@2026#

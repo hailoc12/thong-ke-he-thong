@@ -1,0 +1,36 @@
+-- Update organization codes to match usernames
+
+UPDATE organizations SET code = 'VU-BUUCHINH' WHERE name = 'Vụ Bưu chính';
+UPDATE organizations SET code = 'VU-DGTD' WHERE name = 'Vụ Đánh giá và Thẩm định công nghệ';
+UPDATE organizations SET code = 'VU-KHKT' WHERE name = 'Vụ Khoa học kỹ thuật và công nghệ';
+UPDATE organizations SET code = 'VU-KHXH' WHERE name = 'Vụ Khoa học Xã hội, Nhân văn và Tự nhiên';
+UPDATE organizations SET code = 'VU-KTXHS' WHERE name = 'Vụ Kinh tế và Xã hội số';
+UPDATE organizations SET code = 'VPB' WHERE name = 'Văn phòng Bộ';
+UPDATE organizations SET code = 'CUC-ATBX' WHERE name = 'Cục An toàn bức xạ và hạt nhân';
+UPDATE organizations SET code = 'CUC-BDTW' WHERE name = 'Cục Bưu điện điện Trung ương';
+UPDATE organizations SET code = 'CUC-CNCNTT' WHERE name = 'Cục Công nghiệp Công nghệ thông tin';
+UPDATE organizations SET code = 'CDS' WHERE name = 'Cục Chuyển đổi số quốc gia';
+UPDATE organizations SET code = 'CUC-DMST' WHERE name = 'Cục Đổi mới sáng tạo';
+UPDATE organizations SET code = 'CUC-KNCN' WHERE name = 'Cục Khởi nghiệp và Doanh nghiệp công nghệ';
+UPDATE organizations SET code = 'SHTT' WHERE name = 'Cục Sở hữu trí tuệ';
+UPDATE organizations SET code = 'CUC-TSWTD' WHERE name = 'Cục Tần số vô tuyến điện';
+UPDATE organizations SET code = 'CUC-TTTK' WHERE name = 'Cục Thông tin, Thống kê';
+UPDATE organizations SET code = 'VIENTHONG' WHERE name = 'Cục Viễn thông';
+UPDATE organizations SET code = 'UB-TCCLQG' WHERE name = 'Uỷ ban Tiêu chuẩn Đo lường Chất lượng quốc gia';
+UPDATE organizations SET code = 'CNTT' WHERE name = 'Trung tâm Công nghệ thông tin';
+UPDATE organizations SET code = 'PTIT' WHERE name = 'Học viện Công nghệ Bưu chính Viễn thông';
+UPDATE organizations SET code = 'HV-CLKHCN' WHERE name = 'Học viện Chiến lược Khoa học và Công nghệ';
+UPDATE organizations SET code = 'VNEXPRESS' WHERE name = 'Báo VNExpress';
+UPDATE organizations SET code = 'QUY-PTKHCN' WHERE name = 'Quỹ Phát triển khoa học và công nghệ quốc gia';
+UPDATE organizations SET code = 'QUY-DMCN' WHERE name = 'Quỹ Đổi mới công nghệ quốc gia';
+UPDATE organizations SET code = 'QUY-DVVTCI' WHERE name = 'Quỹ Dịch vụ viễn thông công ích Việt Nam';
+UPDATE organizations SET code = 'VIEN-CNSCDS' WHERE name = 'Viện Công nghệ số và Chuyển đổi số quốc gia';
+UPDATE organizations SET code = 'VIEN-NLNT' WHERE name = 'Viện Năng lượng nguyên tử Việt Nam';
+UPDATE organizations SET code = 'VIEN-VN-HAN' WHERE name = 'Viện Khoa học và Công nghệ Việt Nam - Hàn Quốc';
+UPDATE organizations SET code = 'VIEN-SHTT' WHERE name = 'Viện Sở hữu trí tuệ quốc gia';
+UPDATE organizations SET code = 'VIEN-UDCN' WHERE name = 'Viện Ứng dụng công nghệ';
+UPDATE organizations SET code = 'VNNIC' WHERE name = 'Trung tâm Chứng thực điện tử quốc gia';
+UPDATE organizations SET code = 'TT-INTERNET' WHERE name = 'Trung tâm Internet Việt Nam';
+UPDATE organizations SET code = 'TT-TTKHCN' WHERE name = 'Trung tâm Truyền thông khoa học và công nghệ';
+UPDATE organizations SET code = 'NXB-KHCNTT' WHERE name = 'Nhà Xuất bản Khoa học - Công nghệ - Truyền thông';
+UPDATE organizations SET code = 'CD-TTTT' WHERE name = 'Trường Cao đẳng Thông tin và Truyền thông';

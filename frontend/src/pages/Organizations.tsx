@@ -172,9 +172,14 @@ const Organizations = () => {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={2} style={{ margin: 0 }}>
-          Danh sách Đơn vị
-        </Title>
+        <div>
+          <Title level={2} style={{ margin: 0 }}>
+            Danh sách Đơn vị
+          </Title>
+          <div style={{ color: '#666', fontSize: '14px', marginTop: 4 }}>
+            Tổng số: <strong style={{ color: '#1890ff', fontSize: '16px' }}>{pagination.total}</strong> đơn vị
+          </div>
+        </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={showModal}>
           Thêm đơn vị
         </Button>

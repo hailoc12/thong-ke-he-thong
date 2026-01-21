@@ -13,9 +13,6 @@ import {
   ReloadOutlined,
   DownloadOutlined,
   ClockCircleOutlined,
-  PlusCircleOutlined,
-  EditOutlined,
-  ExclamationCircleOutlined,
   FilterOutlined,
   ClearOutlined,
   FileTextOutlined,
@@ -40,6 +37,18 @@ const STATUS_LABELS: Record<string, string> = {
   stopped: 'Dừng',
   replacing: 'Sắp thay thế',
 };
+
+// Activity type definition
+interface Activity {
+  type: string;
+  icon: React.ReactNode;
+  color: string;
+  text: string;
+  system: string;
+  user: string;
+  time: string;
+  timeAgo: string;
+}
 
 const UnitDashboard = () => {
   const navigate = useNavigate();
@@ -305,32 +314,9 @@ const UnitDashboard = () => {
     return data;
   };
 
-  // Generate mock recent activities (memoized)
-  const recentActivities = useMemo(() => {
-    const activityTypes = [
-      { type: 'created', icon: <PlusCircleOutlined />, color: '#52c41a', text: 'đã tạo hệ thống mới' },
-      { type: 'updated', icon: <EditOutlined />, color: '#1890ff', text: 'đã cập nhật hệ thống' },
-      { type: 'maintenance', icon: <ExclamationCircleOutlined />, color: '#faad14', text: 'đã chuyển sang bảo trì' },
-      { type: 'activated', icon: <CheckCircleOutlined />, color: '#52c41a', text: 'đã kích hoạt hệ thống' },
-    ];
-
-    const systems = ['Hệ thống Quản lý Văn bản', 'Portal Dịch vụ công', 'Hệ thống Email nội bộ', 'Quản lý Nhân sự'];
-    const users = ['Nguyễn Văn A', 'Trần Thị B', 'Lê Văn C', 'Phạm Thị D'];
-
-    return Array.from({ length: 8 }, (_, i) => {
-      const activity = activityTypes[Math.floor(Math.random() * activityTypes.length)];
-      const system = systems[Math.floor(Math.random() * systems.length)];
-      const user = users[Math.floor(Math.random() * users.length)];
-      const minutesAgo = i * 15 + Math.floor(Math.random() * 15);
-
-      return {
-        ...activity,
-        system,
-        user,
-        time: dayjs().subtract(minutesAgo, 'minute').format('HH:mm DD/MM'),
-        timeAgo: minutesAgo < 60 ? `${minutesAgo} phút trước` : `${Math.floor(minutesAgo / 60)} giờ trước`,
-      };
-    });
+  // Recent activities (empty - no dummy data)
+  const recentActivities = useMemo<Activity[]>(() => {
+    return [];
   }, [statistics]);
 
   // Generate mock 30-day trend data (memoized)
@@ -885,30 +871,36 @@ const UnitDashboard = () => {
             >
               <Skeleton loading={loading} active paragraph={{ rows: 6 }}>
                 <div style={{ maxHeight: isMobile ? 250 : 300, overflowY: 'auto' }}>
-                  <Timeline
-                    items={recentActivities.map((activity, index) => ({
-                      dot: <span style={{ color: activity.color }}>{activity.icon}</span>,
-                      children: (
-                        <div key={index}>
-                          <div style={{ marginBottom: 4 }}>
-                            <Typography.Text strong>{activity.user}</Typography.Text>
-                            {' '}{activity.text}
+                  {recentActivities.length === 0 ? (
+                    <Typography.Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: '40px 0' }}>
+                      Chưa có hoạt động gần đây
+                    </Typography.Text>
+                  ) : (
+                    <Timeline
+                      items={recentActivities.map((activity, index) => ({
+                        dot: <span style={{ color: activity.color }}>{activity.icon}</span>,
+                        children: (
+                          <div key={index}>
+                            <div style={{ marginBottom: 4 }}>
+                              <Typography.Text strong>{activity.user}</Typography.Text>
+                              {' '}{activity.text}
+                            </div>
+                            <div style={{ marginBottom: 4 }}>
+                              <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                                {activity.system}
+                              </Typography.Text>
+                            </div>
+                            <div>
+                              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                <ClockCircleOutlined style={{ marginRight: 4 }} />
+                                {activity.timeAgo}
+                              </Typography.Text>
+                            </div>
                           </div>
-                          <div style={{ marginBottom: 4 }}>
-                            <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-                              {activity.system}
-                            </Typography.Text>
-                          </div>
-                          <div>
-                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                              <ClockCircleOutlined style={{ marginRight: 4 }} />
-                              {activity.timeAgo}
-                            </Typography.Text>
-                          </div>
-                        </div>
-                      ),
-                    }))}
-                  />
+                        ),
+                      }))}
+                    />
+                  )}
                 </div>
               </Skeleton>
             </Card>

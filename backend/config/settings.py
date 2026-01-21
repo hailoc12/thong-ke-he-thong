@@ -141,6 +141,8 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'PAGE_SIZE_QUERY_PARAM': 'page_size',  # Allow client to control page_size with ?page_size=100
+    'MAX_PAGE_SIZE': 100,  # Maximum allowed page_size to prevent abuse
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',

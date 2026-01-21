@@ -29,6 +29,14 @@ class System(models.Model):
         ('replacing', 'Sắp thay thế'),
     ]
 
+    REQUIREMENT_TYPE_CHOICES = [
+        ('new_build', 'Xây mới'),
+        ('upgrade', 'Nâng cấp'),
+        ('integration', 'Tích hợp - Liên thông'),
+        ('replacement', 'Thay thế hệ thống cũ'),
+        ('expansion', 'Mở rộng module - chức năng'),
+    ]
+
     CRITICALITY_CHOICES = [
         ('high', 'Quan trọng'),
         ('medium', 'Trung bình'),
@@ -62,6 +70,19 @@ class System(models.Model):
         default='internal_unit',
         verbose_name=_('Scope'),
         help_text='Phạm vi sử dụng của hệ thống (REQUIRED)'
+    )
+    requirement_type = models.CharField(
+        max_length=50,
+        choices=REQUIREMENT_TYPE_CHOICES,
+        blank=True,
+        verbose_name=_('Requirement Type'),
+        help_text='Nhu cầu: Xây mới, Nâng cấp, Tích hợp, Thay thế, Mở rộng'
+    )
+    target_completion_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_('Target Completion Date'),
+        help_text='Thời gian mong muốn hoàn thành hệ thống'
     )
     target_users = models.JSONField(
         default=list,
@@ -358,6 +379,74 @@ class System(models.Model):
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # ======================================================================
+    # SECTION 7.5: Data Governance (Phase 3)
+    # ======================================================================
+    has_data_catalog = models.BooleanField(
+        default=False,
+        verbose_name=_('Has Data Catalog'),
+        help_text='Hệ thống có Data Catalog không?'
+    )
+    data_catalog_notes = models.TextField(
+        blank=True,
+        verbose_name=_('Data Catalog Notes'),
+        help_text='Ghi chú về Data Catalog (công cụ, phạm vi, ...)'
+    )
+    has_mdm = models.BooleanField(
+        default=False,
+        verbose_name=_('Has Master Data Management'),
+        help_text='Hệ thống có MDM (Master Data Management) không?'
+    )
+    mdm_notes = models.TextField(
+        blank=True,
+        verbose_name=_('MDM Notes'),
+        help_text='Ghi chú về MDM (công cụ, phạm vi, dữ liệu master, ...)'
+    )
+
+    # ======================================================================
+    # SECTION 8: Additional Notes (Per-Tab Free-form Input)
+    # ======================================================================
+    additional_notes_tab1 = models.TextField(
+        blank=True,
+        verbose_name=_('Additional Notes - Tab 1'),
+        help_text='Free-form notes for General Information tab'
+    )
+    additional_notes_tab2 = models.TextField(
+        blank=True,
+        verbose_name=_('Additional Notes - Tab 2'),
+        help_text='Free-form notes for Business Context tab'
+    )
+    additional_notes_tab3 = models.TextField(
+        blank=True,
+        verbose_name=_('Additional Notes - Tab 3'),
+        help_text='Free-form notes for Technology Architecture tab'
+    )
+    additional_notes_tab4 = models.TextField(
+        blank=True,
+        verbose_name=_('Additional Notes - Tab 4'),
+        help_text='Free-form notes for Data Architecture tab'
+    )
+    additional_notes_tab5 = models.TextField(
+        blank=True,
+        verbose_name=_('Additional Notes - Tab 5'),
+        help_text='Free-form notes for Integration tab'
+    )
+    additional_notes_tab6 = models.TextField(
+        blank=True,
+        verbose_name=_('Additional Notes - Tab 6'),
+        help_text='Free-form notes for Security tab'
+    )
+    additional_notes_tab7 = models.TextField(
+        blank=True,
+        verbose_name=_('Additional Notes - Tab 7'),
+        help_text='Free-form notes for Infrastructure tab'
+    )
+    additional_notes_tab8 = models.TextField(
+        blank=True,
+        verbose_name=_('Additional Notes - Tab 8'),
+        help_text='Free-form notes for Operations tab'
+    )
 
     class Meta:
         db_table = 'systems'

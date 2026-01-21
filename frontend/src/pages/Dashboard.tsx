@@ -44,14 +44,17 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [organizations, setOrganizations] = useState<Array<{ id: number; name: string }>>([]);
 
   // Filter states
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [criticalityFilter, setCriticalityFilter] = useState<string>('all');
+  const [organizationFilter, setOrganizationFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchStatistics();
+    fetchOrganizations();
   }, []);
 
   useEffect(() => {
@@ -63,9 +66,28 @@ const Dashboard = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    // Refetch statistics when organization filter changes
+    fetchStatistics();
+  }, [organizationFilter]);
+
+  const fetchOrganizations = async () => {
+    try {
+      const response = await api.get('/organizations/');
+      setOrganizations(response.data.results || response.data);
+    } catch (error) {
+      console.error('Failed to fetch organizations:', error);
+    }
+  };
+
   const fetchStatistics = async () => {
     try {
-      const response = await api.get<SystemStatistics>('/systems/statistics/');
+      const params = new URLSearchParams();
+      if (organizationFilter !== 'all') {
+        params.append('org', organizationFilter);
+      }
+      const url = `/systems/statistics/${params.toString() ? '?' + params.toString() : ''}`;
+      const response = await api.get<SystemStatistics>(url);
       setStatistics(response.data);
       setLastUpdated(new Date());
     } catch (error) {
@@ -81,6 +103,7 @@ const Dashboard = () => {
   }, []);
 
   const exportToJSON = () => {
+    const selectedOrg = organizations.find(org => org.id.toString() === organizationFilter);
     const exportData = {
       metadata: {
         exportDate: new Date().toISOString(),
@@ -89,6 +112,7 @@ const Dashboard = () => {
           dateRange: dateRange ? [dateRange[0]?.format('DD/MM/YYYY'), dateRange[1]?.format('DD/MM/YYYY')] : null,
           status: statusFilter !== 'all' ? statusFilter : null,
           criticality: criticalityFilter !== 'all' ? criticalityFilter : null,
+          organization: organizationFilter !== 'all' ? selectedOrg?.name : null,
         },
       },
       summary: {
@@ -176,10 +200,15 @@ const Dashboard = () => {
     console.log('Criticality filter changed:', value);
   }, []);
 
+  const handleOrganizationFilterChange = useCallback((value: string) => {
+    setOrganizationFilter(value);
+  }, []);
+
   const handleClearFilters = useCallback(() => {
     setDateRange(null);
     setStatusFilter('all');
     setCriticalityFilter('all');
+    setOrganizationFilter('all');
     // Stub: In real implementation, this would trigger API call without filters
     console.log('Filters cleared');
   }, []);
@@ -522,10 +551,29 @@ const Dashboard = () => {
             <Option value="low">Thấp</Option>
           </Select>
 
+          <Select
+            value={organizationFilter}
+            onChange={handleOrganizationFilterChange}
+            placeholder="Đơn vị"
+            style={{ width: isMobile ? '100%' : 220 }}
+            size={isMobile ? 'middle' : 'middle'}
+            aria-label="Lọc theo đơn vị"
+            showSearch
+            optionFilterProp="children"
+            filterOption={(input, option) =>
+              String(option?.children || '').toLowerCase().indexOf(input.toLowerCase()) >= 0
+            }
+          >
+            <Option value="all">Tất cả đơn vị</Option>
+            {organizations.map(org => (
+              <Option key={org.id} value={org.id.toString()}>{org.name}</Option>
+            ))}
+          </Select>
+
           <Button
             icon={<ClearOutlined />}
             onClick={handleClearFilters}
-            disabled={dateRange === null && statusFilter === 'all' && criticalityFilter === 'all'}
+            disabled={dateRange === null && statusFilter === 'all' && criticalityFilter === 'all' && organizationFilter === 'all'}
             style={{ width: isMobile ? '100%' : 'auto' }}
             size={isMobile ? 'middle' : 'middle'}
             aria-label="Xóa tất cả bộ lọc"

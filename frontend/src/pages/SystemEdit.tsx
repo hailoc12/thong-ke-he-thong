@@ -21,6 +21,7 @@ import {
   Tag,
   Space,
   Modal,
+  DatePicker,
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -236,6 +237,15 @@ const fileStorageTypeOptions = [
   { label: 'Khác', value: 'other' },
 ];
 
+const dataTypesOptions = [
+  { label: 'Business Data (Dữ liệu nghiệp vụ)', value: 'business' },
+  { label: 'Documents (Tài liệu)', value: 'documents' },
+  { label: 'Statistics (Thống kê)', value: 'stats' },
+  { label: 'Master Data (Dữ liệu gốc)', value: 'master' },
+  { label: 'Vector Database (CSDL Vector)', value: 'vector' },
+  { label: 'Khác', value: 'other' },
+];
+
 /**
  * Phase 3: Predefined options for checkbox groups
  */
@@ -448,18 +458,6 @@ const disasterRecoveryOptions = [
   { label: 'Cloud DR', value: 'cloud_dr' },
   { label: 'Geographic Redundancy', value: 'geo_redundancy' },
   { label: 'None (không có)', value: 'none' },
-  { label: 'Khác', value: 'other' },
-];
-
-const complianceStandardsOptions = [
-  { label: 'ISO 27001', value: 'iso_27001' },
-  { label: 'GDPR', value: 'gdpr' },
-  { label: 'SOC 2', value: 'soc2' },
-  { label: 'HIPAA', value: 'hipaa' },
-  { label: 'PCI DSS', value: 'pci_dss' },
-  { label: 'Luật An ninh mạng VN', value: 'vietnam_cybersecurity' },
-  { label: 'Nghị định 85/2016', value: 'decree_85' },
-  { label: 'Không có', value: 'none' },
   { label: 'Khác', value: 'other' },
 ];
 
@@ -1263,6 +1261,37 @@ const SystemEdit = () => {
 
             <Col span={12}>
               <Form.Item
+                label="Nhu cầu"
+                name="requirement_type"
+                tooltip="Loại nhu cầu của hệ thống"
+              >
+                <Select placeholder="Chọn loại nhu cầu" allowClear>
+                  <Select.Option value="new_build">Xây mới</Select.Option>
+                  <Select.Option value="upgrade">Nâng cấp</Select.Option>
+                  <Select.Option value="integration">Tích hợp - Liên thông</Select.Option>
+                  <Select.Option value="replacement">Thay thế hệ thống cũ</Select.Option>
+                  <Select.Option value="expansion">Mở rộng module - chức năng</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Thời gian mong muốn hoàn thành"
+                name="target_completion_date"
+                tooltip="Thời điểm dự kiến hoàn thành hệ thống"
+              >
+                <DatePicker
+                  placeholder="Chọn tháng/năm"
+                  format="MM/YYYY"
+                  picker="month"
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
                 label="Nhóm hệ thống"
                 name="system_group"
                 rules={[{ required: true, message: 'Vui lòng chọn nhóm hệ thống' }]}
@@ -1275,6 +1304,18 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
           </Row>
+
+          {/* Additional Notes for Tab 1 */}
+          <Form.Item
+            label="Ghi chú bổ sung"
+            name="additional_notes_tab1"
+            style={{ marginTop: 16 }}
+          >
+            <TextArea
+              rows={3}
+              placeholder="Nhập ghi chú, thông tin bổ sung cho tab này..."
+            />
+          </Form.Item>
         </Card>
       ),
     },
@@ -1407,6 +1448,18 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
           </Row>
+
+          {/* Additional Notes for Tab 2 */}
+          <Form.Item
+            label="Ghi chú bổ sung"
+            name="additional_notes_tab2"
+            style={{ marginTop: 16 }}
+          >
+            <TextArea
+              rows={3}
+              placeholder="Nhập ghi chú, thông tin bổ sung cho tab này..."
+            />
+          </Form.Item>
         </Card>
       ),
     },
@@ -1649,6 +1702,18 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
           </Row>
+
+          {/* Additional Notes for Tab 3 */}
+          <Form.Item
+            label="Ghi chú bổ sung"
+            name="additional_notes_tab3"
+            style={{ marginTop: 16 }}
+          >
+            <TextArea
+              rows={3}
+              placeholder="Nhập ghi chú, thông tin bổ sung cho tab này..."
+            />
+          </Form.Item>
         </Card>
       ),
     },
@@ -1667,6 +1732,20 @@ const SystemEdit = () => {
                 <CheckboxGroupWithOther
                   options={dataSourcesOptions}
                   customInputPlaceholder="Nhập nguồn dữ liệu khác..."
+                />
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item
+                label="Loại dữ liệu"
+                name="data_types"
+                initialValue={[]}
+                tooltip="Các loại dữ liệu được lưu trữ trong hệ thống"
+              >
+                <CheckboxGroupWithOther
+                  options={dataTypesOptions}
+                  customInputPlaceholder="Nhập loại dữ liệu khác..."
                 />
               </Form.Item>
             </Col>
@@ -1799,7 +1878,84 @@ const SystemEdit = () => {
                 <TextArea rows={3} placeholder="VD: Lưu 5 năm, sau đó archive; Xóa dữ liệu cá nhân sau 2 năm không hoạt động" />
               </Form.Item>
             </Col>
+
+            {/* Data Governance Section */}
+            <Col span={24}>
+              <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
+                Data Governance
+              </Text>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Data Catalog"
+                name="has_data_catalog"
+                valuePropName="checked"
+                tooltip="Hệ thống có Data Catalog không?"
+              >
+                <Switch />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Master Data Management (MDM)"
+                name="has_mdm"
+                valuePropName="checked"
+                tooltip="Hệ thống có MDM không?"
+              >
+                <Switch />
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item
+                noStyle
+                shouldUpdate={(prevValues, currentValues) => prevValues.has_data_catalog !== currentValues.has_data_catalog}
+              >
+                {({ getFieldValue }) =>
+                  getFieldValue('has_data_catalog') ? (
+                    <Form.Item label="Ghi chú Data Catalog" name="data_catalog_notes">
+                      <TextArea
+                        rows={2}
+                        placeholder="Nhập ghi chú về Data Catalog (công cụ, phạm vi, ...)"
+                      />
+                    </Form.Item>
+                  ) : null
+                }
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item
+                noStyle
+                shouldUpdate={(prevValues, currentValues) => prevValues.has_mdm !== currentValues.has_mdm}
+              >
+                {({ getFieldValue }) =>
+                  getFieldValue('has_mdm') ? (
+                    <Form.Item label="Ghi chú MDM" name="mdm_notes">
+                      <TextArea
+                        rows={2}
+                        placeholder="Nhập ghi chú về MDM (công cụ, phạm vi, dữ liệu master, ...)"
+                      />
+                    </Form.Item>
+                  ) : null
+                }
+              </Form.Item>
+            </Col>
           </Row>
+
+          {/* Additional Notes for Tab 4 */}
+          <Form.Item
+            label="Ghi chú bổ sung"
+            name="additional_notes_tab4"
+            style={{ marginTop: 16 }}
+          >
+            <TextArea
+              rows={3}
+              placeholder="Nhập ghi chú, thông tin bổ sung cho tab này..."
+            />
+          </Form.Item>
         </Card>
       ),
     },
@@ -1996,6 +2152,18 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
           </Row>
+
+          {/* Additional Notes for Tab 5 */}
+          <Form.Item
+            label="Ghi chú bổ sung"
+            name="additional_notes_tab5"
+            style={{ marginTop: 16 }}
+          >
+            <TextArea
+              rows={3}
+              placeholder="Nhập ghi chú, thông tin bổ sung cho tab này..."
+            />
+          </Form.Item>
         </Card>
       ),
     },
@@ -2035,20 +2203,6 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
 
-            <Col span={24}>
-              <Form.Item
-                label="Tuân thủ tiêu chuẩn"
-                name="compliance_standards_list"
-                initialValue={[]}
-                tooltip="Có thể chọn nhiều tiêu chuẩn (ISO 27001 + GDPR + Nghị định 85)"
-              >
-                <CheckboxGroupWithOther
-                  options={complianceStandardsOptions}
-                  customInputPlaceholder="Nhập tiêu chuẩn tuân thủ khác..."
-                />
-              </Form.Item>
-            </Col>
-
             {/* Security Level */}
             <Col span={24}>
               <Text strong style={{ fontSize: 16, display: 'block', marginTop: 16, marginBottom: 16 }}>
@@ -2083,6 +2237,18 @@ const SystemEdit = () => {
             </Col>
 
           </Row>
+
+          {/* Additional Notes for Tab 6 */}
+          <Form.Item
+            label="Ghi chú bổ sung"
+            name="additional_notes_tab6"
+            style={{ marginTop: 16 }}
+          >
+            <TextArea
+              rows={3}
+              placeholder="Nhập ghi chú, thông tin bổ sung cho tab này..."
+            />
+          </Form.Item>
         </Card>
       ),
     },
@@ -2197,6 +2363,18 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
           </Row>
+
+          {/* Additional Notes for Tab 7 */}
+          <Form.Item
+            label="Ghi chú bổ sung"
+            name="additional_notes_tab7"
+            style={{ marginTop: 16 }}
+          >
+            <TextArea
+              rows={3}
+              placeholder="Nhập ghi chú, thông tin bổ sung cho tab này..."
+            />
+          </Form.Item>
         </Card>
       ),
     },
@@ -2244,6 +2422,18 @@ const SystemEdit = () => {
               </Form.Item>
             </Col>
           </Row>
+
+          {/* Additional Notes for Tab 8 */}
+          <Form.Item
+            label="Ghi chú bổ sung"
+            name="additional_notes_tab8"
+            style={{ marginTop: 16 }}
+          >
+            <TextArea
+              rows={3}
+              placeholder="Nhập ghi chú, thông tin bổ sung cho tab này..."
+            />
+          </Form.Item>
         </Card>
       ),
     },

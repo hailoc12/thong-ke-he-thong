@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Select, Input, Space } from 'antd';
 
+const { TextArea } = Input;
+
 interface SelectWithOtherProps {
   value?: string | null;
   onChange?: (value: string | null) => void;
@@ -80,7 +82,7 @@ export const SelectWithOther = ({
   };
 
   // Handle custom input change
-  const handleCustomInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCustomInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setCustomValue(val);
     onChange?.(val || null);
@@ -104,12 +106,14 @@ export const SelectWithOther = ({
       </Select>
 
       {showCustomInput && (
-        <Input
+        <TextArea
           ref={customInputRef}
           value={customValue}
           onChange={handleCustomInputChange}
           placeholder={customInputPlaceholder}
           disabled={disabled}
+          rows={2}
+          autoSize={{ minRows: 2, maxRows: 4 }}
         />
       )}
     </Space>

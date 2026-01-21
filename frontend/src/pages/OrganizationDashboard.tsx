@@ -55,8 +55,15 @@ const OrganizationDashboard = () => {
       setStatistics(statsResponse.data);
       setSystems(systemsResponse.data.results || systemsResponse.data);
       setLastUpdated(new Date());
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch data:', error);
+      const errorMessage = error?.response?.data?.detail || error?.message || 'Không thể tải thống kê';
+      console.error('Error details:', {
+        status: error?.response?.status,
+        data: error?.response?.data,
+        message: errorMessage,
+      });
+      // Don't show notification for now, just log detailed error
     } finally {
       setLoading(false);
     }

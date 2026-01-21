@@ -21,7 +21,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { FormInstance, message } from 'antd';
+import { type FormInstance, message } from 'antd';
 import { validateTab, TabDisplayNames } from '../utils/systemValidationRules';
 
 export interface UseTabValidationProps {

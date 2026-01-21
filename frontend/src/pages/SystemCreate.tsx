@@ -896,6 +896,9 @@ const SystemCreate = () => {
 
   // Track form changes to mark tab as dirty
   const handleFormChange = () => {
+    // Update window.__formValues for conditional validation
+    (window as any).__formValues = form.getFieldsValue();
+
     setTabStates(prev => ({
       ...prev,
       [currentTab]: {

@@ -904,6 +904,9 @@ const SystemEdit = () => {
 
   // Track form field changes
   const handleFormChange = () => {
+    // Update window.__formValues for conditional validation
+    (window as any).__formValues = form.getFieldsValue();
+
     setTabStates(prev => ({
       ...prev,
       [currentTab]: {

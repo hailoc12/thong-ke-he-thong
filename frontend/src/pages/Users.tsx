@@ -306,7 +306,7 @@ const Users = () => {
         rowKey="id"
         loading={loading}
         pagination={{
-          pageSize: 20,
+          pageSize: 100,
           showSizeChanger: true,
           showTotal: (total) => `Tổng ${total} người dùng`,
         }}

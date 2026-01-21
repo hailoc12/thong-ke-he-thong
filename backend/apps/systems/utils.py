@@ -5,21 +5,22 @@ from typing import Dict, List, Any
 
 
 # Define required fields per tab for completion percentage calculation
-# These match the 25 required fields in frontend systemValidationRules.ts
+# These match the 72 required fields in frontend systemValidationRules.ts
 REQUIRED_FIELDS_MAP: Dict[str, List[str]] = {
-    'tab1': ['org', 'system_name', 'purpose', 'status', 'criticality_level', 'scope', 'system_group'],
-    'tab2': ['business_objectives', 'business_processes', 'user_types'],
-    'tab3': ['programming_language', 'framework', 'database_name', 'hosting_platform'],
-    'tab4': ['data_sources', 'data_types', 'data_classification_type'],
-    'tab5': [],  # No required fields
-    'tab6': ['authentication_method'],
-    'tab7': [],  # No required fields
-    'tab8': ['business_owner', 'technical_owner'],
-    'tab9': [],  # No required fields
+    'tab1': ['org', 'system_name', 'system_name_en', 'purpose', 'status', 'criticality_level', 'scope', 'system_group', 'go_live_date', 'current_version'],
+    'tab2': ['business_objectives', 'business_processes', 'user_types', 'annual_users'],
+    'tab3': ['programming_language', 'framework', 'database_name', 'hosting_platform', 'architecture_type', 'architecture_description', 'backend_tech', 'frontend_tech', 'mobile_app', 'database_type', 'database_model', 'hosting_type'],
+    'tab4': ['data_sources', 'data_types', 'data_classification_type', 'data_volume', 'storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy'],
+    'tab5': ['data_exchange_method', 'api_provided_count'],
+    'tab6': ['authentication_method', 'has_encryption', 'has_audit_log', 'security_level'],
+    'tab7': ['server_configuration', 'backup_plan', 'storage_capacity', 'disaster_recovery_plan'],
+    'tab8': ['business_owner', 'technical_owner', 'responsible_person', 'responsible_phone', 'responsible_email', 'support_level', 'users_total', 'users_mau', 'users_dau'],
+    'tab9': ['performance_rating', 'user_satisfaction_rating', 'technical_debt_level', 'recommendation', 'integration_readiness', 'blockers', 'uptime_percent', 'avg_response_time_ms', 'replacement_plan', 'major_issues', 'improvement_suggestions', 'future_plans', 'modernization_priority'],
 }
 
 # Conditional required fields - only count if condition is met
-CONDITIONAL_FIELDS_MAP: Dict[str, Dict[str, str]] = {
+CONDITIONAL_FIELDS_MAP: Dict[str, str] = {
+    'cloud_provider': 'hosting_type',  # Required if hosting_type = 'cloud' (special check needed)
     'cicd_tool': 'has_cicd',  # Required if has_cicd = True
     'automated_testing_tools': 'has_automated_testing',  # Required if has_automated_testing = True
     'layered_architecture_details': 'has_layered_architecture',  # Required if has_layered_architecture = True
@@ -81,7 +82,26 @@ def calculate_system_completion_percentage(system_instance: Any) -> float:
 
             # Get the field value from the system instance
             try:
-                field_value = getattr(system_instance, field_name, None)
+                # Tab 3: Some fields are in SystemArchitecture model
+                if tab_key == 'tab3' and field_name in ['architecture_type', 'architecture_description', 'backend_tech', 'frontend_tech', 'mobile_app', 'database_type', 'database_model', 'hosting_type']:
+                    if hasattr(system_instance, 'architecture'):
+                        field_value = getattr(system_instance.architecture, field_name, None)
+                    else:
+                        field_value = None
+                # Tab 4: Some fields are in SystemDataInfo model
+                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy']:
+                    if hasattr(system_instance, 'data_info'):
+                        field_value = getattr(system_instance.data_info, field_name, None)
+                    else:
+                        field_value = None
+                # Tab 9: All fields are in SystemAssessment model
+                elif tab_key == 'tab9':
+                    if hasattr(system_instance, 'assessment'):
+                        field_value = getattr(system_instance.assessment, field_name, None)
+                    else:
+                        field_value = None
+                else:
+                    field_value = getattr(system_instance, field_name, None)
 
                 if is_field_filled(field_value):
                     filled_fields += 1
@@ -92,7 +112,19 @@ def calculate_system_completion_percentage(system_instance: Any) -> float:
     # Count conditional fields (only if condition is met)
     for field_name, condition_field in CONDITIONAL_FIELDS_MAP.items():
         try:
-            # Check if condition is met
+            # Special handling for cloud_provider (architecture model field)
+            if field_name == 'cloud_provider':
+                # cloud_provider is required when hosting_type = 'cloud'
+                if hasattr(system_instance, 'architecture'):
+                    hosting_type = getattr(system_instance.architecture, 'hosting_type', None)
+                    if hosting_type == 'cloud':
+                        total_required_fields += 1
+                        field_value = getattr(system_instance.architecture, 'cloud_provider', None)
+                        if is_field_filled(field_value):
+                            filled_fields += 1
+                continue
+
+            # Check if condition is met (boolean check for other fields)
             condition_value = getattr(system_instance, condition_field, False)
 
             if condition_value is True:
@@ -115,6 +147,75 @@ def calculate_system_completion_percentage(system_instance: Any) -> float:
 
     # Round to 1 decimal place
     return round(percentage, 1)
+
+
+def get_incomplete_fields(system_instance: Any) -> List[str]:
+    """
+    Get list of incomplete required field names for a system.
+
+    Args:
+        system_instance: The System model instance
+
+    Returns:
+        list: List of field names that are required but not filled
+    """
+    if system_instance is None:
+        return []
+
+    incomplete = []
+
+    # Check always-required fields
+    for tab_key, field_names in REQUIRED_FIELDS_MAP.items():
+        for field_name in field_names:
+            try:
+                # Tab 3: Some fields are in SystemArchitecture model
+                if tab_key == 'tab3' and field_name in ['architecture_type', 'architecture_description', 'backend_tech', 'frontend_tech', 'mobile_app', 'database_type', 'database_model', 'hosting_type']:
+                    if hasattr(system_instance, 'architecture'):
+                        field_value = getattr(system_instance.architecture, field_name, None)
+                    else:
+                        field_value = None
+                # Tab 4: Some fields are in SystemDataInfo model
+                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy']:
+                    if hasattr(system_instance, 'data_info'):
+                        field_value = getattr(system_instance.data_info, field_name, None)
+                    else:
+                        field_value = None
+                # Tab 9: All fields are in SystemAssessment model
+                elif tab_key == 'tab9':
+                    if hasattr(system_instance, 'assessment'):
+                        field_value = getattr(system_instance.assessment, field_name, None)
+                    else:
+                        field_value = None
+                else:
+                    field_value = getattr(system_instance, field_name, None)
+
+                if not is_field_filled(field_value):
+                    incomplete.append(field_name)
+            except AttributeError:
+                continue
+
+    # Check conditional fields
+    for field_name, condition_field in CONDITIONAL_FIELDS_MAP.items():
+        try:
+            # Special handling for cloud_provider (architecture model field)
+            if field_name == 'cloud_provider':
+                if hasattr(system_instance, 'architecture'):
+                    hosting_type = getattr(system_instance.architecture, 'hosting_type', None)
+                    if hosting_type == 'cloud':
+                        field_value = getattr(system_instance.architecture, 'cloud_provider', None)
+                        if not is_field_filled(field_value):
+                            incomplete.append(field_name)
+                continue
+
+            condition_value = getattr(system_instance, condition_field, False)
+            if condition_value is True:
+                field_value = getattr(system_instance, field_name, None)
+                if not is_field_filled(field_value):
+                    incomplete.append(field_name)
+        except AttributeError:
+            continue
+
+    return incomplete
 
 
 def get_tab_completion_status(system_instance: Any) -> Dict[str, Dict[str, Any]]:
@@ -143,7 +244,27 @@ def get_tab_completion_status(system_instance: Any) -> Dict[str, Dict[str, Any]]
 
         for field_name in field_names:
             try:
-                field_value = getattr(system_instance, field_name, None)
+                # Tab 3: Some fields are in SystemArchitecture model
+                if tab_key == 'tab3' and field_name in ['architecture_type', 'architecture_description', 'backend_tech', 'frontend_tech', 'mobile_app', 'database_type', 'database_model', 'hosting_type']:
+                    if hasattr(system_instance, 'architecture'):
+                        field_value = getattr(system_instance.architecture, field_name, None)
+                    else:
+                        field_value = None
+                # Tab 4: Some fields are in SystemDataInfo model
+                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy']:
+                    if hasattr(system_instance, 'data_info'):
+                        field_value = getattr(system_instance.data_info, field_name, None)
+                    else:
+                        field_value = None
+                # Tab 9: All fields are in SystemAssessment model
+                elif tab_key == 'tab9':
+                    if hasattr(system_instance, 'assessment'):
+                        field_value = getattr(system_instance.assessment, field_name, None)
+                    else:
+                        field_value = None
+                else:
+                    field_value = getattr(system_instance, field_name, None)
+
                 if is_field_filled(field_value):
                     filled_count += 1
             except AttributeError:

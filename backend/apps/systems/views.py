@@ -162,6 +162,136 @@ class SystemViewSet(viewsets.ModelViewSet):
 
         return Response(stats)
 
+    @action(detail=False, methods=['get'])
+    def completion_stats(self, request):
+        """
+        Get detailed completion statistics for systems.
+        Includes per-system completion percentage and per-org aggregates.
+
+        Query params:
+        - org: Filter by organization ID
+        - status: Filter by system status
+        - completion_min: Min completion % (0-100)
+        - completion_max: Max completion % (0-100)
+        - ordering: Sort field (e.g., 'completion_percentage', '-system_name')
+        """
+        from collections import defaultdict
+        from .utils import get_incomplete_fields, REQUIRED_FIELDS_MAP, CONDITIONAL_FIELDS_MAP
+
+        queryset = self.get_queryset()
+
+        # Apply filters
+        org_id = request.query_params.get('org')
+        if org_id:
+            queryset = queryset.filter(org_id=org_id)
+
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        # Get all systems with completion data
+        systems_data = []
+        org_stats = defaultdict(lambda: {
+            'id': None,
+            'name': '',
+            'system_count': 0,
+            'total_completion': 0.0,
+            'systems_100_percent': 0,
+            'systems_below_50_percent': 0,
+        })
+
+        for system in queryset.select_related('org'):
+            completion = calculate_system_completion_percentage(system)
+            incomplete = get_incomplete_fields(system)
+
+            # Calculate total required fields for this system
+            total_required = sum(len(fields) for fields in REQUIRED_FIELDS_MAP.values())
+
+            # Add conditional fields if applicable
+            for field_name, condition_field in CONDITIONAL_FIELDS_MAP.items():
+                if getattr(system, condition_field, False):
+                    total_required += 1
+
+            filled = total_required - len(incomplete)
+
+            system_data = {
+                'id': system.id,
+                'system_name': system.system_name,
+                'system_code': system.system_code or f'SYS-{system.id}',
+                'org_id': system.org.id if system.org else None,
+                'org_name': system.org.name if system.org else None,
+                'status': system.status,
+                'criticality_level': system.criticality_level,
+                'completion_percentage': completion,
+                'filled_fields': filled,
+                'total_required_fields': total_required,
+                'incomplete_fields': incomplete,
+                'last_updated': system.updated_at if hasattr(system, 'updated_at') else None,
+            }
+
+            # Apply completion range filter
+            completion_min = request.query_params.get('completion_min')
+            completion_max = request.query_params.get('completion_max')
+            if completion_min and completion < float(completion_min):
+                continue
+            if completion_max and completion > float(completion_max):
+                continue
+
+            systems_data.append(system_data)
+
+            # Update org stats
+            if system.org:
+                org_key = system.org.id
+                org_stats[org_key]['id'] = system.org.id
+                org_stats[org_key]['name'] = system.org.name
+                org_stats[org_key]['system_count'] += 1
+                org_stats[org_key]['total_completion'] += completion
+                if completion == 100.0:
+                    org_stats[org_key]['systems_100_percent'] += 1
+                if completion < 50.0:
+                    org_stats[org_key]['systems_below_50_percent'] += 1
+
+        # Calculate org averages
+        org_list = []
+        for org_key, stats in org_stats.items():
+            stats['avg_completion'] = round(
+                stats['total_completion'] / stats['system_count'], 1
+            ) if stats['system_count'] > 0 else 0.0
+            del stats['total_completion']  # Remove temp field
+            org_list.append(stats)
+
+        # Sort systems
+        ordering = request.query_params.get('ordering', 'system_name')
+        reverse = ordering.startswith('-')
+        sort_key = ordering.lstrip('-')
+
+        if sort_key == 'completion_percentage':
+            systems_data.sort(key=lambda x: x['completion_percentage'], reverse=reverse)
+        elif sort_key == 'system_name':
+            systems_data.sort(key=lambda x: x['system_name'], reverse=reverse)
+        elif sort_key == 'org_name':
+            systems_data.sort(key=lambda x: x['org_name'] or '', reverse=reverse)
+
+        # Calculate summary
+        total_systems = len(systems_data)
+        avg_completion_all = round(
+            sum(s['completion_percentage'] for s in systems_data) / total_systems, 1
+        ) if total_systems > 0 else 0.0
+        systems_100 = sum(1 for s in systems_data if s['completion_percentage'] == 100.0)
+        systems_below_50 = sum(1 for s in systems_data if s['completion_percentage'] < 50.0)
+
+        return Response({
+            'count': total_systems,
+            'results': systems_data,
+            'summary': {
+                'organizations': org_list,
+                'total_systems': total_systems,
+                'avg_completion_all': avg_completion_all,
+                'systems_100_percent': systems_100,
+                'systems_below_50_percent': systems_below_50,
+            }
+        })
+
     def destroy(self, request, *args, **kwargs):
         """
         Soft delete system

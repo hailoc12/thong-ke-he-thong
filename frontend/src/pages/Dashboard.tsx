@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Card, Row, Col, Statistic, Typography, Skeleton, Button, Space, Timeline, Badge, Select, DatePicker, Dropdown } from 'antd';
+import { Card, Row, Col, Statistic, Typography, Skeleton, Button, Space, Timeline, Badge, Select, DatePicker, Dropdown, Table, Progress } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   AppstoreOutlined,
@@ -46,11 +47,13 @@ const Dashboard = () => {
   }
 
   // Admin dashboard (existing implementation)
+  const navigate = useNavigate();
   const [statistics, setStatistics] = useState<SystemStatistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [organizations, setOrganizations] = useState<Array<{ id: number; name: string }>>([]);
+  const [completionStats, setCompletionStats] = useState<any>(null);
 
   // Filter states
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
@@ -61,6 +64,7 @@ const Dashboard = () => {
   useEffect(() => {
     fetchStatistics();
     fetchOrganizations();
+    fetchCompletionStats();
   }, []);
 
   useEffect(() => {
@@ -75,6 +79,7 @@ const Dashboard = () => {
   useEffect(() => {
     // Refetch statistics when organization filter changes
     fetchStatistics();
+    fetchCompletionStats();
   }, [organizationFilter]);
 
   const fetchOrganizations = async () => {
@@ -83,6 +88,19 @@ const Dashboard = () => {
       setOrganizations(response.data.results || response.data);
     } catch (error) {
       console.error('Failed to fetch organizations:', error);
+    }
+  };
+
+  const fetchCompletionStats = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (organizationFilter !== 'all') {
+        params.append('org', organizationFilter);
+      }
+      const response = await api.get(`/systems/completion_stats/?${params.toString()}`);
+      setCompletionStats(response.data);
+    } catch (error) {
+      console.error('Failed to fetch completion stats:', error);
     }
   };
 
@@ -813,6 +831,101 @@ const Dashboard = () => {
                       />
                     </LineChart>
                   </ResponsiveContainer>
+                </Skeleton>
+              </Card>
+            </motion.div>
+          </Col>
+        </Row>
+      </motion.div>
+
+      {/* Organization Completion Statistics */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <Row gutter={isMobile ? [16, 16] : [24, 24]} style={{ marginTop: 24 }}>
+          <Col xs={24}>
+            <motion.div variants={cardVariants}>
+              <Card
+                title="Thống kê hoàn thành theo đơn vị"
+                extra={
+                  <Button
+                    type="link"
+                    onClick={() => navigate('/systems/completion')}
+                  >
+                    Xem chi tiết
+                  </Button>
+                }
+              >
+                <Skeleton loading={loading || !completionStats} active paragraph={{ rows: 4 }}>
+                  <Table
+                    dataSource={completionStats?.summary?.organizations || []}
+                    rowKey="id"
+                    pagination={{ pageSize: 10, showSizeChanger: true }}
+                    scroll={{ x: 800 }}
+                    columns={[
+                      {
+                        title: 'Đơn vị',
+                        dataIndex: 'name',
+                        key: 'name',
+                        width: 250,
+                        fixed: 'left',
+                      },
+                      {
+                        title: 'Số hệ thống',
+                        dataIndex: 'system_count',
+                        key: 'system_count',
+                        width: 120,
+                        align: 'center',
+                      },
+                      {
+                        title: '% hoàn thành TB',
+                        dataIndex: 'avg_completion',
+                        key: 'avg_completion',
+                        width: 200,
+                        render: (value: number) => (
+                          <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                            <Progress
+                              percent={value}
+                              strokeColor={
+                                value >= 80 ? '#52c41a' :
+                                value >= 60 ? '#faad14' :
+                                '#ff4d4f'
+                              }
+                              size="small"
+                            />
+                          </Space>
+                        ),
+                      },
+                      {
+                        title: '100%',
+                        dataIndex: 'systems_100_percent',
+                        key: 'systems_100_percent',
+                        width: 100,
+                        align: 'center',
+                        render: (value: number) => (
+                          <Badge
+                            count={value}
+                            style={{ backgroundColor: '#52c41a' }}
+                          />
+                        ),
+                      },
+                      {
+                        title: '<50%',
+                        dataIndex: 'systems_below_50_percent',
+                        key: 'systems_below_50_percent',
+                        width: 100,
+                        align: 'center',
+                        render: (value: number) => (
+                          <Badge
+                            count={value}
+                            style={{ backgroundColor: '#ff4d4f' }}
+                          />
+                        ),
+                      },
+                    ]}
+                  />
                 </Skeleton>
               </Card>
             </motion.div>

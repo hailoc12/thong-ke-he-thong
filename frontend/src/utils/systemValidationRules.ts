@@ -3,8 +3,8 @@
  * Centralized validation schema for SystemCreate and SystemEdit forms
  *
  * Features:
- * - 25 required field validations across 9 tabs
- * - Conditional validation based on field dependencies
+ * - 72 required field validations across 9 tabs
+ * - 6 conditional validations based on field dependencies
  * - Vietnamese error messages
  * - Helper functions for batch validation
  */
@@ -46,11 +46,14 @@ export const createRequiredArrayRule = (message?: string): Rule => ({
 export const Tab1ValidationRules = {
   org: [createRequiredRule('Vui lòng chọn tổ chức')],
   system_name: [createRequiredRule('Vui lòng nhập tên hệ thống')],
+  system_name_en: [createRequiredRule('Vui lòng nhập tên hệ thống tiếng Anh')],
   purpose: [createRequiredRule('Vui lòng nhập mục đích của hệ thống')],
   status: [createRequiredRule('Vui lòng chọn trạng thái')],
   criticality_level: [createRequiredRule('Vui lòng chọn mức độ quan trọng')],
   scope: [createRequiredRule('Vui lòng chọn phạm vi triển khai')],
   system_group: [createRequiredRule('Vui lòng chọn nhóm hệ thống')],
+  go_live_date: [createRequiredRule('Vui lòng chọn ngày đưa vào vận hành')],
+  current_version: [createRequiredRule('Vui lòng nhập phiên bản hiện tại')],
 };
 
 // ==================== TAB 2: BỐI CẢNH NGHIỆP VỤ ====================
@@ -59,6 +62,7 @@ export const Tab2ValidationRules = {
   business_objectives: [createRequiredArrayRule('Vui lòng chọn ít nhất một mục tiêu nghiệp vụ')],
   business_processes: [createRequiredArrayRule('Vui lòng chọn ít nhất một quy trình nghiệp vụ')],
   user_types: [createRequiredArrayRule('Vui lòng chọn ít nhất một loại người dùng')],
+  annual_users: [createRequiredRule('Vui lòng nhập số người dùng hàng năm')],
 };
 
 // ==================== TAB 3: KIẾN TRÚC CÔNG NGHỆ ====================
@@ -69,6 +73,29 @@ export const Tab3ValidationRules = {
   framework: [createRequiredRule('Vui lòng nhập framework/thư viện')],
   database_name: [createRequiredRule('Vui lòng nhập tên cơ sở dữ liệu')],
   hosting_platform: [createRequiredRule('Vui lòng nhập nền tảng hosting')],
+  architecture_type: [createRequiredRule('Vui lòng chọn loại kiến trúc')],
+  architecture_description: [createRequiredRule('Vui lòng mô tả kiến trúc hệ thống')],
+  backend_tech: [createRequiredRule('Vui lòng nhập công nghệ backend')],
+  frontend_tech: [createRequiredRule('Vui lòng nhập công nghệ frontend')],
+  mobile_app: [createRequiredRule('Vui lòng chọn loại ứng dụng mobile')],
+  database_type: [createRequiredRule('Vui lòng nhập loại database')],
+  database_model: [createRequiredRule('Vui lòng chọn mô hình database')],
+  hosting_type: [createRequiredRule('Vui lòng nhập loại hosting')],
+
+  // Conditional: required when hosting_type = 'cloud'
+  cloud_provider: [
+    {
+      validator: async (_: any, value: any) => {
+        const formValues = (window as any).__formValues || {};
+        if (formValues.hosting_type === 'cloud') {
+          if (!value || value.trim() === '') {
+            return Promise.reject(new Error('Vui lòng nhập nhà cung cấp cloud khi chọn hosting type là Cloud'));
+          }
+        }
+        return Promise.resolve();
+      },
+    },
+  ],
 
   // Conditional: required when has_cicd = true
   cicd_tool: [
@@ -123,6 +150,14 @@ export const Tab4ValidationRules = {
   data_sources: [createRequiredArrayRule('Vui lòng chọn ít nhất một nguồn dữ liệu')],
   data_types: [createRequiredArrayRule('Vui lòng chọn ít nhất một loại dữ liệu')],
   data_classification_type: [createRequiredArrayRule('Vui lòng chọn ít nhất một loại phân loại dữ liệu')],
+  data_volume: [createRequiredRule('Vui lòng nhập khối lượng dữ liệu')],
+  storage_size_gb: [createRequiredRule('Vui lòng nhập dung lượng CSDL (GB)')],
+  file_storage_size_gb: [createRequiredRule('Vui lòng nhập dung lượng file đính kèm (GB)')],
+  growth_rate_percent: [createRequiredRule('Vui lòng nhập tốc độ tăng trưởng dữ liệu (%)')],
+  file_storage_type: [createRequiredArrayRule('Vui lòng chọn ít nhất một loại lưu trữ file')],
+  record_count: [createRequiredRule('Vui lòng nhập số bản ghi')],
+  secondary_databases: [createRequiredArrayRule('Vui lòng nhập CSDL phụ/khác (nếu không có, nhập "Không có")')],
+  data_retention_policy: [createRequiredRule('Vui lòng nhập chính sách lưu trữ dữ liệu')],
 
   // Conditional: required when has_data_catalog = true
   data_catalog_notes: [
@@ -156,32 +191,61 @@ export const Tab4ValidationRules = {
 };
 
 // ==================== TAB 5: TÍCH HỢP HỆ THỐNG ====================
-// No always-required fields
 
-export const Tab5ValidationRules = {};
+export const Tab5ValidationRules = {
+  data_exchange_method: [createRequiredRule('Vui lòng nhập phương thức trao đổi dữ liệu')],
+  api_provided_count: [createRequiredRule('Vui lòng nhập số API cung cấp')],
+};
 
 // ==================== TAB 6: AN TOÀN THÔNG TIN ====================
 
 export const Tab6ValidationRules = {
   authentication_method: [createRequiredArrayRule('Vui lòng chọn ít nhất một phương thức xác thực')],
+  has_encryption: [createRequiredRule('Vui lòng chọn có mã hóa dữ liệu hay không')],
+  has_audit_log: [createRequiredRule('Vui lòng chọn có log audit trail hay không')],
+  security_level: [createRequiredRule('Vui lòng chọn mức độ an toàn thông tin')],
 };
 
 // ==================== TAB 7: HẠ TẦNG ====================
-// No required fields
 
-export const Tab7ValidationRules = {};
+export const Tab7ValidationRules = {
+  server_configuration: [createRequiredRule('Vui lòng nhập cấu hình server')],
+  backup_plan: [createRequiredRule('Vui lòng nhập kế hoạch backup')],
+  storage_capacity: [createRequiredRule('Vui lòng nhập dung lượng lưu trữ')],
+  disaster_recovery_plan: [createRequiredRule('Vui lòng nhập kế hoạch phục hồi thảm họa')],
+};
 
 // ==================== TAB 8: VẬN HÀNH ====================
 
 export const Tab8ValidationRules = {
   business_owner: [createRequiredRule('Vui lòng nhập người chịu trách nhiệm nghiệp vụ')],
   technical_owner: [createRequiredRule('Vui lòng nhập người chịu trách nhiệm kỹ thuật')],
+  responsible_person: [createRequiredRule('Vui lòng nhập người chịu trách nhiệm')],
+  responsible_phone: [createRequiredRule('Vui lòng nhập số điện thoại liên hệ')],
+  responsible_email: [createRequiredRule('Vui lòng nhập email liên hệ')],
+  support_level: [createRequiredRule('Vui lòng chọn mức độ hỗ trợ')],
+  users_total: [createRequiredRule('Vui lòng nhập tổng số người dùng')],
+  users_mau: [createRequiredRule('Vui lòng nhập số người dùng hoạt động hàng tháng (MAU)')],
+  users_dau: [createRequiredRule('Vui lòng nhập số người dùng hoạt động hàng ngày (DAU)')],
 };
 
 // ==================== TAB 9: ĐÁNH GIÁ ====================
-// No required fields
 
-export const Tab9ValidationRules = {};
+export const Tab9ValidationRules = {
+  performance_rating: [createRequiredRule('Vui lòng chọn đánh giá hiệu năng')],
+  user_satisfaction_rating: [createRequiredRule('Vui lòng chọn đánh giá hài lòng người dùng')],
+  technical_debt_level: [createRequiredRule('Vui lòng chọn mức độ nợ kỹ thuật')],
+  recommendation: [createRequiredRule('Vui lòng chọn đề xuất hành động')],
+  integration_readiness: [createRequiredArrayRule('Vui lòng chọn ít nhất một điểm phù hợp cho tích hợp')],
+  blockers: [createRequiredArrayRule('Vui lòng chọn ít nhất một điểm vướng mắc')],
+  uptime_percent: [createRequiredRule('Vui lòng nhập phần trăm uptime (%)')],
+  avg_response_time_ms: [createRequiredRule('Vui lòng nhập thời gian phản hồi trung bình (ms)')],
+  replacement_plan: [createRequiredRule('Vui lòng nhập kế hoạch thay thế (nếu không có, nhập "Không có")')],
+  major_issues: [createRequiredRule('Vui lòng nhập các vấn đề chính (nếu không có, nhập "Không có")')],
+  improvement_suggestions: [createRequiredRule('Vui lòng nhập đề xuất cải tiến')],
+  future_plans: [createRequiredRule('Vui lòng nhập kế hoạch tương lai')],
+  modernization_priority: [createRequiredRule('Vui lòng chọn mức độ ưu tiên hiện đại hóa')],
+};
 
 // ==================== ALL VALIDATION RULES ====================
 
@@ -200,15 +264,15 @@ export const AllValidationRules = {
 // ==================== TAB FIELD GROUPS ====================
 
 export const TabFieldGroups: Record<string, string[]> = {
-  '1': ['org', 'system_name', 'purpose', 'status', 'criticality_level', 'scope', 'system_group'],
-  '2': ['business_objectives', 'business_processes', 'user_types'],
-  '3': ['programming_language', 'framework', 'database_name', 'hosting_platform', 'cicd_tool', 'automated_testing_tools', 'layered_architecture_details'],
-  '4': ['data_sources', 'data_types', 'data_classification_type', 'data_catalog_notes', 'mdm_notes'],
-  '5': [], // No required fields
-  '6': ['authentication_method'],
-  '7': [], // No required fields
-  '8': ['business_owner', 'technical_owner'],
-  '9': [], // No required fields
+  '1': ['org', 'system_name', 'system_name_en', 'purpose', 'status', 'criticality_level', 'scope', 'system_group', 'go_live_date', 'current_version'],
+  '2': ['business_objectives', 'business_processes', 'user_types', 'annual_users'],
+  '3': ['programming_language', 'framework', 'database_name', 'hosting_platform', 'architecture_type', 'architecture_description', 'backend_tech', 'frontend_tech', 'mobile_app', 'database_type', 'database_model', 'hosting_type', 'cloud_provider', 'cicd_tool', 'automated_testing_tools', 'layered_architecture_details'],
+  '4': ['data_sources', 'data_types', 'data_classification_type', 'data_volume', 'storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy', 'data_catalog_notes', 'mdm_notes'],
+  '5': ['data_exchange_method', 'api_provided_count'],
+  '6': ['authentication_method', 'has_encryption', 'has_audit_log', 'security_level'],
+  '7': ['server_configuration', 'backup_plan', 'storage_capacity', 'disaster_recovery_plan'],
+  '8': ['business_owner', 'technical_owner', 'responsible_person', 'responsible_phone', 'responsible_email', 'support_level', 'users_total', 'users_mau', 'users_dau'],
+  '9': ['performance_rating', 'user_satisfaction_rating', 'technical_debt_level', 'recommendation', 'integration_readiness', 'blockers', 'uptime_percent', 'avg_response_time_ms', 'replacement_plan', 'major_issues', 'improvement_suggestions', 'future_plans', 'modernization_priority'],
 };
 
 // ==================== TAB DISPLAY NAMES ====================

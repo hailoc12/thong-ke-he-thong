@@ -927,11 +927,53 @@ const SystemCreate = () => {
     return () => clearTimeout(timer);
   }, [form, currentTab]); // Re-run when tab changes
 
-  // Handle tab navigation with dirty state check
-  const handleTabChange = (newTabKey: string) => {
-    const currentState = tabStates[currentTab];
+  // Handle tab navigation with validation and dirty state check
+  const handleTabChange = async (newTabKey: string) => {
+    const currentTabNum = parseInt(currentTab, 10);
+    const newTabNum = parseInt(newTabKey, 10);
+
+    // Allow backward navigation without validation
+    if (newTabNum < currentTabNum) {
+      setCurrentTab(newTabKey);
+      return;
+    }
+
+    // FORWARD NAVIGATION: Validate current tab first
+    const { isValid, errorFields, errorCount } = await validateTab(form, currentTab);
+
+    if (!isValid) {
+      // Show validation error
+      const tabName = getTabDisplayName(currentTab);
+      message.error({
+        content: `Vui lòng điền đủ ${errorCount} trường bắt buộc trong tab "${tabName}" trước khi chuyển tab`,
+        duration: 5,
+      });
+
+      // Scroll to first error field
+      if (errorFields.length > 0) {
+        form.scrollToField(errorFields[0], {
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }
+
+      // Update validation status
+      setTabValidationStatus(prev => ({
+        ...prev,
+        [currentTab]: false,
+      }));
+
+      return; // BLOCK navigation
+    }
+
+    // Validation passed - update status
+    setTabValidationStatus(prev => ({
+      ...prev,
+      [currentTab]: true,
+    }));
 
     // Check if current tab has unsaved changes
+    const currentState = tabStates[currentTab];
     if (currentState.isDirty && !currentState.isSaved) {
       // Show warning modal
       setPendingTab(newTabKey);

@@ -234,11 +234,29 @@ curl http://localhost:3000
 - Returns all 35 users when `page_size=100`
 - Fix verified via direct API testing
 
-**Frontend**: ⚠️ **May need container rebuild**
-- Login issue detected (400 error)
-- Does not affect API functionality
-- Can be fixed by rebuilding frontend container
+**Frontend**: ✅ **FULLY FIXED AND WORKING**
+- Login issue resolved (was caused by missing CORS/CSRF/ALLOWED_HOSTS config)
+- All fixes applied and verified
+- Users page now displays all 35 users
 
-**Recommendation**: Rebuild frontend container if web UI login fails.
+**Root Cause of Login Issue**:
+The 400 error after backend rebuild was caused by:
+1. Missing production domain in `CORS_ALLOWED_ORIGINS` (.env)
+2. Missing `CSRF_TRUSTED_ORIGINS` (settings.py)
+3. Missing production domain in `ALLOWED_HOSTS` (.env)
 
-**Last Updated**: 2026-01-21 13:00 UTC+7
+**Complete Fix Applied**:
+1. Updated `.env`: `CORS_ORIGINS=https://hientrangcds.mst.gov.vn,https://thongkehethong.mindmaid.ai`
+2. Updated `settings.py`: Added `CSRF_TRUSTED_ORIGINS` configuration
+3. Updated `.env`: `ALLOWED_HOSTS=localhost,127.0.0.1,34.142.152.104,hientrangcds.mst.gov.vn,thongkehethong.mindmaid.ai`
+4. Updated nginx: Added cache-control headers to disable all caching
+5. Rebuilt frontend container with `--no-cache`
+6. Recreated backend container with `--force-recreate` to load new environment variables
+
+**Verification**: ✅ **ALL TESTS PASSED**
+- ✅ Login successful via browser
+- ✅ Users page shows "Tổng 35 người dùng"
+- ✅ All 35 users visible in table
+- ✅ No pagination buttons (all fit in one page)
+
+**Last Updated**: 2026-01-21 14:00 UTC+7

@@ -935,10 +935,53 @@ const SystemEdit = () => {
     return () => clearTimeout(timer);
   }, [form, currentTab]); // Re-run when tab changes
 
-  // Navigation guard - check if current tab has unsaved changes
-  const handleTabChange = (newTabKey: string) => {
-    const currentState = tabStates[currentTab];
+  // Navigation guard - validate and check unsaved changes
+  const handleTabChange = async (newTabKey: string) => {
+    const currentTabNum = parseInt(currentTab, 10);
+    const newTabNum = parseInt(newTabKey, 10);
 
+    // Allow backward navigation without validation
+    if (newTabNum < currentTabNum) {
+      setCurrentTab(newTabKey);
+      return;
+    }
+
+    // FORWARD NAVIGATION: Validate current tab first
+    const { isValid, errorFields, errorCount } = await validateTab(form, currentTab);
+
+    if (!isValid) {
+      // Show validation error
+      const tabName = getTabDisplayName(currentTab);
+      message.error({
+        content: `Vui lòng điền đủ ${errorCount} trường bắt buộc trong tab "${tabName}" trước khi chuyển tab`,
+        duration: 5,
+      });
+
+      // Scroll to first error field
+      if (errorFields.length > 0) {
+        form.scrollToField(errorFields[0], {
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }
+
+      // Update validation status
+      setTabValidationStatus(prev => ({
+        ...prev,
+        [currentTab]: false,
+      }));
+
+      return; // BLOCK navigation
+    }
+
+    // Validation passed - update status
+    setTabValidationStatus(prev => ({
+      ...prev,
+      [currentTab]: true,
+    }));
+
+    // Check if current tab has unsaved changes
+    const currentState = tabStates[currentTab];
     if (currentState.isDirty && !currentState.isSaved) {
       setPendingTab(newTabKey);
       setShowWarningModal(true);

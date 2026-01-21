@@ -11,6 +11,7 @@ import Systems from './pages/Systems';
 import SystemCreate from './pages/SystemCreate';
 import SystemDetail from './pages/SystemDetail';
 import SystemEdit from './pages/SystemEdit';
+import SystemCompletionList from './pages/SystemCompletionList';
 import Organizations from './pages/Organizations';
 import OrganizationDetail from './pages/OrganizationDetail';
 import OrganizationEdit from './pages/OrganizationEdit';
@@ -121,6 +122,7 @@ function App() {
             <Route path="dashboard/unit" element={<UnitDashboard />} />
             <Route path="systems" element={<Systems />} />
             <Route path="systems/create" element={<SystemCreate />} />
+            <Route path="systems/completion" element={<SystemCompletionList />} />
             <Route path="systems/:id" element={<SystemDetail />} />
             <Route path="systems/:id/edit" element={<SystemEdit />} />
             <Route path="organizations" element={<Organizations />} />

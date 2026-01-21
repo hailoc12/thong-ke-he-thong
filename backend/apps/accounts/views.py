@@ -115,6 +115,32 @@ class UserViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(organization_id=org_id)
         return queryset.order_by('-date_joined')
 
+    def list(self, request, *args, **kwargs):
+        """Override list to handle custom page_size"""
+        # Get page_size from query params
+        page_size = request.query_params.get('page_size')
+
+        if page_size:
+            # Disable pagination by setting pagination_class to None temporarily
+            self.pagination_class = None
+            queryset = self.filter_queryset(self.get_queryset())
+
+            # Limit results to requested page_size (max 100)
+            try:
+                limit = min(int(page_size), 100)
+                queryset = queryset[:limit]
+            except (ValueError, TypeError):
+                pass
+
+            serializer = self.get_serializer(queryset, many=True)
+            return Response({
+                'count': self.get_queryset().count(),
+                'results': serializer.data
+            })
+
+        # Default pagination behavior
+        return super().list(request, *args, **kwargs)
+
     @action(detail=True, methods=['post'])
     def deactivate(self, request, pk=None):
         """Deactivate a user (set is_active to False)"""

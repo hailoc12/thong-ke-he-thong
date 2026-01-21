@@ -117,8 +117,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         """Override list to handle custom page_size"""
+        import logging
+        logger = logging.getLogger(__name__)
+
         # Get page_size from query params
         page_size = request.query_params.get('page_size')
+        logger.error(f"=== UserViewSet.list() called with page_size={page_size} ===")
 
         if page_size:
             # Disable pagination by setting pagination_class to None temporarily
@@ -128,17 +132,20 @@ class UserViewSet(viewsets.ModelViewSet):
             # Limit results to requested page_size (max 100)
             try:
                 limit = min(int(page_size), 100)
+                logger.error(f"=== Limiting to {limit} results ===")
                 queryset = queryset[:limit]
             except (ValueError, TypeError):
                 pass
 
             serializer = self.get_serializer(queryset, many=True)
+            logger.error(f"=== Returning {len(serializer.data)} results ===")
             return Response({
                 'count': self.get_queryset().count(),
                 'results': serializer.data
             })
 
         # Default pagination behavior
+        logger.error("=== Using default pagination ===")
         return super().list(request, *args, **kwargs)
 
     @action(detail=True, methods=['post'])

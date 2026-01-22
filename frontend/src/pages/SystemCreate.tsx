@@ -1179,22 +1179,27 @@ const SystemCreate = () => {
 
       setLoading(true);
 
-      if (_systemId) {
-        // Final update - mark as not draft
-        await api.patch(`/systems/${_systemId}/`, { ...formattedValues, is_draft: false });
-        message.success('Lưu hệ thống thành công!');
-      } else {
-        // Create final (no draft ID yet)
-        await api.post('/systems/', { ...formattedValues, is_draft: false });
-        message.success('Tạo hệ thống thành công!');
-      }
+      try {
+        if (_systemId) {
+          // Final update - mark as not draft
+          await api.patch(`/systems/${_systemId}/`, { ...formattedValues, is_draft: false });
+          message.success('Lưu hệ thống thành công!');
+        } else {
+          // Create final (no draft ID yet)
+          await api.post('/systems/', { ...formattedValues, is_draft: false });
+          message.success('Tạo hệ thống thành công!');
+        }
 
-      navigate('/systems');
+        // Set loading to false before navigation to prevent UI blocking
+        setLoading(false);
+        navigate('/systems');
+      } catch (apiError: any) {
+        console.error('Failed to save system:', apiError);
+        setLoading(false);
+        throw apiError; // Re-throw to outer catch
+      }
     } catch (error: any) {
-      console.error('Failed to save system:', error);
       message.error(error.response?.data?.message || 'Vui lòng kiểm tra lại thông tin');
-    } finally {
-      setLoading(false);
     }
   };
 

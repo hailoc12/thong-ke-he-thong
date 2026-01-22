@@ -1177,15 +1177,20 @@ const SystemEdit = () => {
 
       setLoading(true);
 
-      // Final update - mark as not draft
-      await api.patch(`/systems/${id}/`, { ...formattedValues, is_draft: false });
-      message.success('Cập nhật hệ thống thành công!');
+      try {
+        // Final update - mark as not draft
+        await api.patch(`/systems/${id}/`, { ...formattedValues, is_draft: false });
+        message.success('Cập nhật hệ thống thành công!');
 
-      navigate('/systems');
+        // Set loading to false before navigation to prevent UI blocking
+        setLoading(false);
+        navigate('/systems');
+      } catch (apiError: any) {
+        setLoading(false);
+        throw apiError; // Re-throw to outer catch
+      }
     } catch (error: any) {
       message.error(error.response?.data?.message || 'Vui lòng kiểm tra lại thông tin');
-    } finally {
-      setLoading(false);
     }
   };
 

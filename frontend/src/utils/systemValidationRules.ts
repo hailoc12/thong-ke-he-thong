@@ -327,6 +327,11 @@ export const validateTab = async (
     return { isValid: true, errorFields: [], errorCount: 0 };
   } catch (errorInfo: any) {
     const errorFields = errorInfo.errorFields?.map((ef: any) => ef.name[0]) || [];
+    // BUGFIX: If no error fields found, consider it valid
+    // This prevents "0 fields missing but can't save" contradiction
+    if (errorFields.length === 0) {
+      return { isValid: true, errorFields: [], errorCount: 0 };
+    }
     return {
       isValid: false,
       errorFields,

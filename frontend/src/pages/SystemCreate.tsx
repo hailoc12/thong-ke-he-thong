@@ -75,6 +75,7 @@ const authenticationMethodOptions = [
   { label: 'OAuth', value: 'oauth' },
   { label: 'SAML', value: 'saml' },
   { label: 'Biometric', value: 'biometric' },
+  { label: 'Smart Card', value: 'smartcard' },
   { label: 'Khác', value: 'other' },
 ];
 

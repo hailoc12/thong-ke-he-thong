@@ -224,6 +224,7 @@ class System(models.Model):
             ('oauth', 'OAuth'),
             ('saml', 'SAML'),
             ('biometric', 'Biometric'),
+            ('smartcard', 'Smart Card'),
             ('other', 'Khác'),
         ],
         blank=True,

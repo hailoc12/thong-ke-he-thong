@@ -185,12 +185,12 @@ const MainLayout = () => {
           />
           {!collapsed && !isMobile && (
             <Text strong style={{ color: 'white', fontSize: 15, whiteSpace: 'nowrap' }}>
-              Thống kê Hệ thống
+              Khảo sát CĐS
             </Text>
           )}
           {isMobile && (
             <Text strong style={{ color: 'white', fontSize: 15, whiteSpace: 'nowrap' }}>
-              Thống kê Hệ thống
+              Khảo sát CĐS
             </Text>
           )}
         </div>

@@ -73,6 +73,9 @@ class SystemViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         user = self.request.user
 
+        # Exclude soft-deleted systems
+        queryset = queryset.filter(is_deleted=False)
+
         # Admin can see all systems
         if user.role == 'admin':
             return queryset

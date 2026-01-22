@@ -161,10 +161,10 @@ class System(models.Model):
         help_text='List of data sources (databases, APIs, files, etc.)'
     )
     data_classification_type = models.CharField(
-        max_length=255,
+        max_length=500,  # Increased to 500 to allow comma-separated values
         blank=True,
         verbose_name=_('Data Classification'),
-        help_text='e.g., Public, Internal, Confidential, Secret'
+        help_text='Data classification levels (can include: Public, Internal, Confidential, Secret, or custom values)'
     )
     data_volume = models.CharField(
         max_length=255,

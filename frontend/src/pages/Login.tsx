@@ -57,7 +57,7 @@ const Login = () => {
             }}
           />
           <Title level={window.innerWidth < 768 ? 4 : 3} style={{ marginBottom: 8, textAlign: 'center' }}>
-            Nền tảng thống kê CNTT
+            Hệ thống Khảo sát CĐS trực tuyến
           </Title>
           <Typography.Text type="secondary">
             Trung tâm CNTT - Bộ KH&CN

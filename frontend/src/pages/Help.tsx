@@ -135,7 +135,7 @@ const Help = () => {
           Hướng dẫn sử dụng
         </Title>
         <Paragraph style={{ fontSize: 16, color: '#666' }}>
-          Tài liệu hướng dẫn chi tiết về cách sử dụng Nền tảng thống kê hệ thống CNTT
+          Tài liệu hướng dẫn chi tiết về cách sử dụng Hệ thống Khảo sát CĐS trực tuyến
         </Paragraph>
       </div>
 

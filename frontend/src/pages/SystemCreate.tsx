@@ -3,7 +3,7 @@
  * Simplified Tabs-based form with 24 new fields
  * Date: 2026-01-19
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Tabs,
   Form,
@@ -40,6 +40,7 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
 import api from '../config/api';
 import type { Organization } from '../types';
 import { SelectWithOther } from '../components/form/SelectWithOther';
@@ -829,6 +830,25 @@ const IntegrationConnectionList = ({ value = [], onChange }: any) => {
   );
 };
 
+/**
+ * Helper function to format date fields from dayjs objects to YYYY-MM-DD strings
+ * This is required because backend expects DateField format (YYYY-MM-DD)
+ */
+const formatDateFieldsForAPI = (values: any): any => {
+  const dateFields = ['target_completion_date', 'go_live_date'];
+  const formattedValues = { ...values };
+
+  dateFields.forEach(field => {
+    if (formattedValues[field] && dayjs.isDayjs(formattedValues[field])) {
+      // Convert dayjs object to YYYY-MM-DD string
+      // For month picker, we use the first day of the selected month
+      formattedValues[field] = formattedValues[field].format('YYYY-MM-DD');
+    }
+  });
+
+  return formattedValues;
+};
+
 // Tab save state tracking interface
 interface TabSaveState {
   [tabKey: string]: {
@@ -907,26 +927,43 @@ const SystemCreate = () => {
         isDirty: true,
       },
     }));
+
+    // Trigger validation when form values change
+    triggerValidation();
   };
 
-  // Validate current tab whenever form values or tab changes
-  useEffect(() => {
-    const checkValidation = async () => {
+  // Ref to store debounce timer for validation
+  const validationTimerRef = useRef<number | null>(null);
+
+  // Trigger validation with debouncing
+  const triggerValidation = useCallback(() => {
+    // Clear existing timer
+    if (validationTimerRef.current) {
+      clearTimeout(validationTimerRef.current);
+    }
+
+    // Set new debounced validation
+    validationTimerRef.current = setTimeout(async () => {
       const { isValid } = await validateTab(form, currentTab);
       setIsCurrentTabValid(isValid);
       setTabValidationStatus(prev => ({
         ...prev,
         [currentTab]: isValid,
       }));
-    };
-
-    // Debounce validation to avoid excessive checks
-    const timer = setTimeout(() => {
-      checkValidation();
     }, 300);
+  }, [form, currentTab]);
 
-    return () => clearTimeout(timer);
-  }, [form, currentTab]); // Re-run when tab changes
+  // Validate current tab whenever tab changes
+  useEffect(() => {
+    triggerValidation();
+
+    // Cleanup timer on unmount
+    return () => {
+      if (validationTimerRef.current) {
+        clearTimeout(validationTimerRef.current);
+      }
+    };
+  }, [triggerValidation]);
 
   // Handle tab navigation with validation and dirty state check
   const handleTabChange = async (newTabKey: string) => {
@@ -1042,15 +1079,18 @@ const SystemCreate = () => {
         return acc;
       }, {} as any);
 
+      // Format date fields before sending to API
+      const formattedValues = formatDateFieldsForAPI(cleanedValues);
+
       setLoading(true);
 
       // Call API to save draft
       if (_systemId) {
         // Edit mode - PATCH existing
-        await api.patch(`/systems/${_systemId}/`, cleanedValues);
+        await api.patch(`/systems/${_systemId}/`, formattedValues);
       } else {
         // Create mode - POST new (returns ID for subsequent saves)
-        const response = await api.post('/systems/', { ...cleanedValues, is_draft: true });
+        const response = await api.post('/systems/', { ...formattedValues, is_draft: true });
         _setSystemId(response.data.id); // Store ID for next saves
       }
 
@@ -1136,15 +1176,19 @@ const SystemCreate = () => {
 
       // STEP 2: Proceed with final save if all tabs are valid
       const values = form.getFieldsValue();
+
+      // Format date fields before sending to API
+      const formattedValues = formatDateFieldsForAPI(values);
+
       setLoading(true);
 
       if (_systemId) {
         // Final update - mark as not draft
-        await api.patch(`/systems/${_systemId}/`, { ...values, is_draft: false });
+        await api.patch(`/systems/${_systemId}/`, { ...formattedValues, is_draft: false });
         message.success('Lưu hệ thống thành công!');
       } else {
         // Create final (no draft ID yet)
-        await api.post('/systems/', { ...values, is_draft: false });
+        await api.post('/systems/', { ...formattedValues, is_draft: false });
         message.success('Tạo hệ thống thành công!');
       }
 
@@ -1258,7 +1302,7 @@ const SystemCreate = () => {
       key: '1',
       label: (
         <span>
-          <InfoCircleOutlined /> Thông tin cơ bản
+          <InfoCircleOutlined /> Cơ bản
           {tabValidationStatus['1'] && (
             <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
           )}
@@ -1438,7 +1482,7 @@ const SystemCreate = () => {
       key: '2',
       label: (
         <span>
-          <AppstoreOutlined /> Bối cảnh nghiệp vụ
+          <AppstoreOutlined /> Nghiệp vụ
           {tabValidationStatus['2'] && (
             <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
           )}
@@ -1598,7 +1642,7 @@ const SystemCreate = () => {
       key: '3',
       label: (
         <span>
-          <DatabaseOutlined /> Kiến trúc công nghệ
+          <DatabaseOutlined /> Công nghệ
           {tabValidationStatus['3'] && (
             <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
           )}
@@ -1874,7 +1918,7 @@ const SystemCreate = () => {
       key: '4',
       label: (
         <span>
-          <DatabaseOutlined /> Kiến trúc dữ liệu
+          <DatabaseOutlined /> Dữ liệu
           {tabValidationStatus['4'] && (
             <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
           )}
@@ -2136,7 +2180,7 @@ const SystemCreate = () => {
       key: '5',
       label: (
         <span>
-          <ApiOutlined /> Tích hợp hệ thống
+          <ApiOutlined /> Tích hợp
           {tabValidationStatus['5'] && (
             <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
           )}
@@ -2356,7 +2400,7 @@ const SystemCreate = () => {
       key: '6',
       label: (
         <span>
-          <SafetyOutlined /> An toàn thông tin
+          <SafetyOutlined /> Bảo mật
           {tabValidationStatus['6'] && (
             <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
           )}
@@ -2454,7 +2498,7 @@ const SystemCreate = () => {
       key: '7',
       label: (
         <span>
-          <CloudServerOutlined /> Hạ tầng kỹ thuật
+          <CloudServerOutlined /> Hạ tầng
           {tabValidationStatus['7'] && (
             <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
           )}
@@ -2653,7 +2697,7 @@ const SystemCreate = () => {
       key: '9',
       label: (
         <span>
-          <CheckCircleOutlined /> Đánh giá hệ thống
+          <CheckCircleOutlined /> Đánh giá
           {tabValidationStatus['9'] && (
             <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 8 }} />
           )}
@@ -2728,11 +2772,14 @@ const SystemCreate = () => {
               activeKey={currentTab}
               onChange={handleTabChange}
               items={tabItems}
+              size="small"
               tabBarStyle={{
                 display: 'flex',
-                flexWrap: 'wrap',
+                flexWrap: 'nowrap',
                 marginBottom: 16,
+                fontSize: '13px',
               }}
+              tabBarGutter={8}
             />
 
             <div style={{ marginTop: 24, textAlign: 'right' }}>

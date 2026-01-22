@@ -70,7 +70,7 @@ const LandingPage = () => {
             }}
           />
           <Title level={1} style={{ color: 'white', fontSize: 48, marginBottom: 16 }}>
-            Nền tảng thống kê CNTT
+            Hệ thống Khảo sát CĐS trực tuyến
           </Title>
           <Paragraph style={{ fontSize: 20, color: 'rgba(255,255,255,0.9)', maxWidth: 800, margin: '0 auto 32px' }}>
             Giải pháp quản lý và thống kê hệ thống công nghệ thông tin toàn diện cho các đơn vị thuộc Trung tâm CNTT - Bộ KH&CN
@@ -249,7 +249,7 @@ const LandingPage = () => {
       {/* Footer */}
       <div style={{ background: '#001529', padding: '32px 24px', textAlign: 'center', color: 'white' }}>
         <Paragraph style={{ color: 'rgba(255,255,255,0.65)', margin: 0 }}>
-          © 2026 Trung tâm CNTT - Bộ KH&CN - Nền tảng thống kê CNTT
+          © 2026 Trung tâm CNTT - Bộ KH&CN - Hệ thống Khảo sát CĐS trực tuyến
         </Paragraph>
       </div>
     </div>

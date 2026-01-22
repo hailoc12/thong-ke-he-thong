@@ -69,8 +69,8 @@ export const Tab2ValidationRules = {
 
 export const Tab3ValidationRules = {
   // Always required
-  programming_language: [createRequiredRule('Vui lòng chọn ngôn ngữ lập trình')],
-  framework: [createRequiredRule('Vui lòng nhập framework/thư viện')],
+  programming_language: [createRequiredArrayRule('Vui lòng chọn ít nhất một ngôn ngữ lập trình')],
+  framework: [createRequiredArrayRule('Vui lòng chọn ít nhất một framework/thư viện')],
   database_name: [createRequiredRule('Vui lòng nhập tên cơ sở dữ liệu')],
   hosting_platform: [createRequiredRule('Vui lòng nhập nền tảng hosting')],
   architecture_type: [createRequiredRule('Vui lòng chọn loại kiến trúc')],

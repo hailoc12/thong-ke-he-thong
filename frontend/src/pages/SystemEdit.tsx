@@ -893,10 +893,7 @@ const SystemEdit = () => {
   const [showWarningModal, setShowWarningModal] = useState(false);
 
   // Validation state tracking
-  const [tabValidationStatus, setTabValidationStatus] = useState<Record<string, boolean>>({
-    '1': false, '2': false, '3': false, '4': false, '5': true,
-    '6': false, '7': true, '8': false, '9': true,
-  });
+  const [tabValidationStatus, setTabValidationStatus] = useState<Record<string, boolean>>({});
   const [isCurrentTabValid, setIsCurrentTabValid] = useState(false);
 
   useEffect(() => {
@@ -1666,11 +1663,10 @@ const SystemEdit = () => {
                 label="Ngôn ngữ lập trình"
                 name="programming_language"
                 rules={AllValidationRules.programming_language}
-                tooltip="Chọn ngôn ngữ lập trình chính của hệ thống"
+                tooltip="Có thể chọn nhiều ngôn ngữ lập trình"
               >
-                <SelectWithOther
+                <CheckboxGroupWithOther
                   options={programmingLanguageOptions}
-                  placeholder="Chọn ngôn ngữ lập trình"
                   customInputPlaceholder="Nhập ngôn ngữ lập trình khác..."
                 />
               </Form.Item>
@@ -1681,11 +1677,10 @@ const SystemEdit = () => {
                 label="Framework/Thư viện"
                 name="framework"
                 rules={AllValidationRules.framework}
-                tooltip="Chọn framework chính của hệ thống"
+                tooltip="Có thể chọn nhiều framework/thư viện"
               >
-                <SelectWithOther
+                <CheckboxGroupWithOther
                   options={frameworkOptions}
-                  placeholder="Chọn framework"
                   customInputPlaceholder="Nhập framework khác..."
                 />
               </Form.Item>

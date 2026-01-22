@@ -16,8 +16,39 @@ from .models import (
 from apps.organizations.models import Organization
 
 
+class CommaSeparatedListField(serializers.Field):
+    """
+    Custom field to handle conversion between:
+    - Frontend: array of strings ['value1', 'value2']
+    - Backend CharField: comma-separated string 'value1,value2'
+
+    Used for CheckboxGroupWithOther component fields that are stored as CharField.
+    """
+
+    def to_representation(self, value):
+        """Convert DB string to array for frontend"""
+        if not value:
+            return []
+        return [v.strip() for v in value.split(',') if v.strip()]
+
+    def to_internal_value(self, data):
+        """Convert frontend array to DB string"""
+        if not data:
+            return ''
+        if isinstance(data, list):
+            # Filter out empty values and join with comma
+            return ','.join(str(v).strip() for v in data if v)
+        # If already a string, return as-is
+        return str(data)
+
+
 class SystemArchitectureSerializer(serializers.ModelSerializer):
     """Serializer for SystemArchitecture (PHẦN 2/B.3)"""
+
+    # Fix: Convert array to comma-separated string for CharField fields
+    architecture_type = CommaSeparatedListField(required=False, allow_blank=True)
+    backend_tech = CommaSeparatedListField(required=False, allow_blank=True)
+    frontend_tech = CommaSeparatedListField(required=False, allow_blank=True)
 
     class Meta:
         model = SystemArchitecture
@@ -26,6 +57,8 @@ class SystemArchitectureSerializer(serializers.ModelSerializer):
 
 class SystemDataInfoSerializer(serializers.ModelSerializer):
     """Serializer for SystemDataInfo (PHẦN 3)"""
+
+    # No custom field needed here - data_classification_type is on System model, not SystemDataInfo
 
     class Meta:
         model = SystemDataInfo
@@ -42,6 +75,9 @@ class SystemOperationsSerializer(serializers.ModelSerializer):
 
 class SystemIntegrationSerializer(serializers.ModelSerializer):
     """Serializer for SystemIntegration (PHẦN 5)"""
+
+    # Fix: Convert array to comma-separated string for CharField fields
+    api_standard = CommaSeparatedListField(required=False, allow_blank=True)
 
     class Meta:
         model = SystemIntegration
@@ -131,6 +167,9 @@ class SystemIntegrationConnectionSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
+    # Note: integration_method is a CharField with choices, not array
+    # No need for CommaSeparatedListField here
+
     class Meta:
         model = SystemIntegrationConnection
         fields = [
@@ -198,6 +237,14 @@ class SystemDetailSerializer(serializers.ModelSerializer):
     criticality_display = serializers.CharField(source='get_criticality_level_display', read_only=True)
     scope_display = serializers.CharField(source='get_scope_display', read_only=True)
 
+    # Fix: Convert comma-separated string to array for frontend
+    programming_language = CommaSeparatedListField(required=False, allow_blank=True)
+    framework = CommaSeparatedListField(required=False, allow_blank=True)
+    data_classification_type = CommaSeparatedListField(required=False, allow_blank=True)
+    authentication_method = CommaSeparatedListField(required=False, allow_blank=True)
+    data_exchange_method = CommaSeparatedListField(required=False, allow_blank=True)
+    backup_plan = CommaSeparatedListField(required=False, allow_blank=True)
+
     # Level 1 related models (always included)
     architecture = SystemArchitectureSerializer(read_only=True)
     data_info = SystemDataInfoSerializer(read_only=True)
@@ -235,6 +282,14 @@ class SystemDetailSerializer(serializers.ModelSerializer):
 
 class SystemCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating System with nested writes"""
+
+    # Fix: Convert array to comma-separated string for CharField fields
+    programming_language = CommaSeparatedListField(required=False, allow_blank=True)
+    framework = CommaSeparatedListField(required=False, allow_blank=True)
+    data_classification_type = CommaSeparatedListField(required=False, allow_blank=True)
+    authentication_method = CommaSeparatedListField(required=False, allow_blank=True)
+    data_exchange_method = CommaSeparatedListField(required=False, allow_blank=True)
+    backup_plan = CommaSeparatedListField(required=False, allow_blank=True)
 
     # Nested writes for related models
     architecture_data = SystemArchitectureSerializer(source='architecture', required=False)

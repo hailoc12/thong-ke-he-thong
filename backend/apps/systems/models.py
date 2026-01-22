@@ -216,19 +216,10 @@ class System(models.Model):
     # SECTION 6: Security
     # ======================================================================
     authentication_method = models.CharField(
-        max_length=100,
-        choices=[
-            ('username_password', 'Username/Password'),
-            ('sso', 'SSO'),
-            ('ldap', 'LDAP'),
-            ('oauth', 'OAuth'),
-            ('saml', 'SAML'),
-            ('biometric', 'Biometric'),
-            ('smartcard', 'Smart Card'),
-            ('other', 'Khác'),
-        ],
+        max_length=500,  # Increased to 500 to allow comma-separated values
         blank=True,
-        verbose_name=_('Authentication Method')
+        verbose_name=_('Authentication Method'),
+        help_text='Authentication methods (can include: username_password, sso, ldap, oauth, saml, biometric, smartcard, or custom values)'
     )
     has_encryption = models.BooleanField(
         default=False,

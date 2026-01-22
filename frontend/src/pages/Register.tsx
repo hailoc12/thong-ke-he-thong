@@ -82,7 +82,7 @@ const Register = () => {
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <img
             src="/logo-khcn.jpeg"
-            alt="Bộ Khoa học và Công nghệ"
+            alt="Trung tâm CNTT - Bộ KH&CN"
             style={{
               width: window.innerWidth < 768 ? 80 : 120,
               height: 'auto',
@@ -95,7 +95,7 @@ const Register = () => {
             ĐĂNG KÝ TÀI KHOẢN
           </Title>
           <Text type="secondary">
-            Bộ Khoa học và Công nghệ
+            Trung tâm CNTT - Bộ KH&CN
           </Text>
         </div>
 

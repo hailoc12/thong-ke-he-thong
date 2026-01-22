@@ -61,7 +61,7 @@ const LandingPage = () => {
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <img
             src="/logo-khcn.jpeg"
-            alt="Bộ Khoa học và Công nghệ"
+            alt="Trung tâm CNTT - Bộ KH&CN"
             style={{
               width: 120,
               height: 'auto',
@@ -73,7 +73,7 @@ const LandingPage = () => {
             Nền tảng thống kê CNTT
           </Title>
           <Paragraph style={{ fontSize: 20, color: 'rgba(255,255,255,0.9)', maxWidth: 800, margin: '0 auto 32px' }}>
-            Giải pháp quản lý và thống kê hệ thống công nghệ thông tin toàn diện cho các đơn vị thuộc Bộ Khoa học và Công nghệ
+            Giải pháp quản lý và thống kê hệ thống công nghệ thông tin toàn diện cho các đơn vị thuộc Trung tâm CNTT - Bộ KH&CN
           </Paragraph>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Button
@@ -249,7 +249,7 @@ const LandingPage = () => {
       {/* Footer */}
       <div style={{ background: '#001529', padding: '32px 24px', textAlign: 'center', color: 'white' }}>
         <Paragraph style={{ color: 'rgba(255,255,255,0.65)', margin: 0 }}>
-          © 2026 Bộ Khoa học và Công nghệ - Nền tảng thống kê CNTT
+          © 2026 Trung tâm CNTT - Bộ KH&CN - Nền tảng thống kê CNTT
         </Paragraph>
       </div>
     </div>

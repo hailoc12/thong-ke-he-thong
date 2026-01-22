@@ -6,7 +6,7 @@ import { mockBenchmarkMetrics } from '../../mocks';
 const { Title } = Typography;
 
 /**
- * Benchmark Radar Chart - So sánh Bộ KH&CN với trung bình ngành
+ * Benchmark Radar Chart - So sánh Trung tâm CNTT - Bộ KH&CN với trung bình ngành
  */
 const BenchmarkRadarChart: React.FC = () => {
   // Nhóm các chỉ số theo danh mục và tính điểm trung bình
@@ -21,7 +21,7 @@ const BenchmarkRadarChart: React.FC = () => {
     const topPerformerAvg = categoryMetrics.reduce((sum, m) => sum + m.topPerformer, 0) / categoryMetrics.length;
 
     return [
-      { category, value: boKHCNAvg, type: 'Bộ KH&CN' },
+      { category, value: boKHCNAvg, type: 'Trung tâm CNTT - Bộ KH&CN' },
       { category, value: industryAvg, type: 'Trung bình ngành' },
       { category, value: topPerformerAvg, type: 'Tốt nhất ngành' }
     ];

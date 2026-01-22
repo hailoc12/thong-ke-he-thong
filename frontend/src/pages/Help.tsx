@@ -122,7 +122,7 @@ const Help = () => {
     },
     {
       question: 'Liên hệ hỗ trợ ở đâu?',
-      answer: 'Vui lòng liên hệ qua Bộ Khoa học và Công nghệ để được hỗ trợ.',
+      answer: 'Vui lòng liên hệ qua Trung tâm CNTT - Bộ KH&CN để được hỗ trợ.',
     },
   ];
 

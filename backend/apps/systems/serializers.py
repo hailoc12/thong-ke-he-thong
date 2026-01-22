@@ -46,9 +46,9 @@ class SystemArchitectureSerializer(serializers.ModelSerializer):
     """Serializer for SystemArchitecture (PHẦN 2/B.3)"""
 
     # Fix: Convert array to comma-separated string for CharField fields
-    architecture_type = CommaSeparatedListField(required=False, allow_blank=True)
-    backend_tech = CommaSeparatedListField(required=False, allow_blank=True)
-    frontend_tech = CommaSeparatedListField(required=False, allow_blank=True)
+    architecture_type = CommaSeparatedListField(required=False)
+    backend_tech = CommaSeparatedListField(required=False)
+    frontend_tech = CommaSeparatedListField(required=False)
 
     class Meta:
         model = SystemArchitecture
@@ -77,7 +77,7 @@ class SystemIntegrationSerializer(serializers.ModelSerializer):
     """Serializer for SystemIntegration (PHẦN 5)"""
 
     # Fix: Convert array to comma-separated string for CharField fields
-    api_standard = CommaSeparatedListField(required=False, allow_blank=True)
+    api_standard = CommaSeparatedListField(required=False)
 
     class Meta:
         model = SystemIntegration
@@ -238,12 +238,12 @@ class SystemDetailSerializer(serializers.ModelSerializer):
     scope_display = serializers.CharField(source='get_scope_display', read_only=True)
 
     # Fix: Convert comma-separated string to array for frontend
-    programming_language = CommaSeparatedListField(required=False, allow_blank=True)
-    framework = CommaSeparatedListField(required=False, allow_blank=True)
-    data_classification_type = CommaSeparatedListField(required=False, allow_blank=True)
-    authentication_method = CommaSeparatedListField(required=False, allow_blank=True)
-    data_exchange_method = CommaSeparatedListField(required=False, allow_blank=True)
-    backup_plan = CommaSeparatedListField(required=False, allow_blank=True)
+    programming_language = CommaSeparatedListField(required=False)
+    framework = CommaSeparatedListField(required=False)
+    data_classification_type = CommaSeparatedListField(required=False)
+    authentication_method = CommaSeparatedListField(required=False)
+    data_exchange_method = CommaSeparatedListField(required=False)
+    backup_plan = CommaSeparatedListField(required=False)
 
     # Level 1 related models (always included)
     architecture = SystemArchitectureSerializer(read_only=True)
@@ -284,12 +284,12 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating System with nested writes"""
 
     # Fix: Convert array to comma-separated string for CharField fields
-    programming_language = CommaSeparatedListField(required=False, allow_blank=True)
-    framework = CommaSeparatedListField(required=False, allow_blank=True)
-    data_classification_type = CommaSeparatedListField(required=False, allow_blank=True)
-    authentication_method = CommaSeparatedListField(required=False, allow_blank=True)
-    data_exchange_method = CommaSeparatedListField(required=False, allow_blank=True)
-    backup_plan = CommaSeparatedListField(required=False, allow_blank=True)
+    programming_language = CommaSeparatedListField(required=False)
+    framework = CommaSeparatedListField(required=False)
+    data_classification_type = CommaSeparatedListField(required=False)
+    authentication_method = CommaSeparatedListField(required=False)
+    data_exchange_method = CommaSeparatedListField(required=False)
+    backup_plan = CommaSeparatedListField(required=False)
 
     # Nested writes for related models
     architecture_data = SystemArchitectureSerializer(source='architecture', required=False)

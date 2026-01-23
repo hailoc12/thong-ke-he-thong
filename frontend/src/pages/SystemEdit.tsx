@@ -2400,6 +2400,7 @@ const SystemEdit = () => {
                 name="api_standard"
                 initialValue={[]}
                 tooltip="Có thể chọn nhiều chuẩn (OpenAPI + AsyncAPI)"
+                rules={AllValidationRules.api_standard}
               >
                 <CheckboxGroupWithOther
                   options={apiStandardOptions}
@@ -2507,7 +2508,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={24}>
-              <Form.Item label="API/Webservices" name="api_list">
+              <Form.Item label="API/Webservices" name="api_list" rules={AllValidationRules.api_list}>
                 <DynamicListInput placeholder="Nhập API endpoint hoặc tên service" />
               </Form.Item>
             </Col>

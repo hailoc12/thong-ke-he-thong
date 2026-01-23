@@ -158,6 +158,7 @@ export const Tab5ValidationRules = {
   api_provided_count: [createRequiredRule('Vui lòng nhập số API cung cấp')],
   api_consumed_count: [createRequiredRule('Vui lòng nhập số API tiêu thụ')],
   api_standard: [createRequiredArrayRule('Vui lòng chọn ít nhất một chuẩn API')],
+  api_list: [createRequiredArrayRule('Vui lòng nhập ít nhất một API/Webservice')],
 
   // API Gateway & Management - now required
   has_api_gateway: [createRequiredRule('Vui lòng chọn có API Gateway hay không')],
@@ -308,7 +309,7 @@ export const TabFieldGroups: Record<string, string[]> = {
   ],
   '5': [
     // API statistics
-    'api_provided_count', 'api_consumed_count', 'api_standard',
+    'api_provided_count', 'api_consumed_count', 'api_standard', 'api_list',
     // API Gateway & Management
     'has_api_gateway', 'api_gateway_name', 'has_api_versioning', 'has_rate_limiting',
     // API Documentation & Monitoring

@@ -1347,7 +1347,7 @@ const SystemCreate = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Tên tiếng Anh" name="system_name_en">
+              <Form.Item label="Tên tiếng Anh" name="system_name_en" rules={AllValidationRules.system_name_en}>
                 <Input placeholder="Nhập tên tiếng Anh" />
               </Form.Item>
             </Col>
@@ -1423,6 +1423,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Nhu cầu"
                 name="requirement_type"
+                rules={AllValidationRules.requirement_type}
                 tooltip="Loại nhu cầu của hệ thống"
               >
                 <Select placeholder="Chọn loại nhu cầu" allowClear>
@@ -1439,6 +1440,7 @@ const SystemCreate = () => {
               <Form.Item
                 label="Thời gian mong muốn hoàn thành"
                 name="target_completion_date"
+                rules={AllValidationRules.target_completion_date}
                 tooltip="Thời điểm dự kiến hoàn thành hệ thống"
               >
                 <DatePicker
@@ -1470,6 +1472,7 @@ const SystemCreate = () => {
           <Form.Item
             label="Ghi chú bổ sung"
             name="additional_notes_tab1"
+            rules={AllValidationRules.additional_notes_tab1}
             style={{ marginTop: 16 }}
           >
             <TextArea

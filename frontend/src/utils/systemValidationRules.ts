@@ -51,6 +51,8 @@ export const Tab1ValidationRules = {
   status: [createRequiredRule('Vui lòng chọn trạng thái')],
   criticality_level: [createRequiredRule('Vui lòng chọn mức độ quan trọng')],
   scope: [createRequiredRule('Vui lòng chọn phạm vi triển khai')],
+  requirement_type: [createRequiredRule('Vui lòng chọn loại nhu cầu')],
+  target_completion_date: [createRequiredRule('Vui lòng chọn thời gian mong muốn hoàn thành')],
   system_group: [createRequiredRule('Vui lòng chọn nhóm hệ thống')],
   go_live_date: [createRequiredRule('Vui lòng chọn ngày đưa vào vận hành')],
   current_version: [createRequiredRule('Vui lòng nhập phiên bản hiện tại')],
@@ -258,7 +260,8 @@ export const AllValidationRules = {
 export const TabFieldGroups: Record<string, string[]> = {
   '1': [
     'org', 'system_name', 'system_name_en', 'purpose', 'status',
-    'criticality_level', 'scope', 'system_group', 'go_live_date', 'current_version',
+    'criticality_level', 'scope', 'requirement_type', 'target_completion_date',
+    'system_group', 'go_live_date', 'current_version',
     'additional_notes_tab1'
   ],
   '2': [

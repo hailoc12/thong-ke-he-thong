@@ -22,9 +22,10 @@ import CountUp from 'react-countup';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
 import dayjs from 'dayjs';
 import api from '../config/api';
-import type { SystemStatistics } from '../types';
+import type { SystemStatistics, System, ApiResponse } from '../types';
 import { colors, shadows, borderRadius, spacing } from '../theme/tokens';
 import { useAuthStore } from '../stores/authStore';
+import DashboardSystemsList from '../components/DashboardSystemsList';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -63,6 +64,19 @@ const UnitDashboard = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [criticalityFilter, setCriticalityFilter] = useState<string>('all');
 
+  // Systems list states
+  const [systems, setSystems] = useState<System[]>([]);
+  const [systemsLoading, setSystemsLoading] = useState(false);
+  const [systemsPagination, setSystemsPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+  const [activeStatFilter, setActiveStatFilter] = useState<{ type: 'status' | 'criticality' | null; value: string | null }>({
+    type: null,
+    value: null,
+  });
+
   // Redirect admin users to main dashboard
   useEffect(() => {
     if (isAdmin) {
@@ -74,8 +88,16 @@ const UnitDashboard = () => {
   useEffect(() => {
     if (!isAdmin) {
       fetchStatistics();
+      fetchSystems();
     }
   }, [isAdmin]);
+
+  useEffect(() => {
+    // Refetch systems when active stat filter changes
+    if (!isAdmin) {
+      fetchSystems();
+    }
+  }, [activeStatFilter]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -100,10 +122,54 @@ const UnitDashboard = () => {
     }
   };
 
+  const fetchSystems = async (page = 1) => {
+    setSystemsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('page_size', systemsPagination.pageSize.toString());
+
+      // Apply active stat filter (from clicked card)
+      if (activeStatFilter.type === 'status' && activeStatFilter.value) {
+        params.append('status', activeStatFilter.value);
+      } else if (activeStatFilter.type === 'criticality' && activeStatFilter.value) {
+        params.append('criticality', activeStatFilter.value);
+      }
+
+      // API automatically filters by organization for org_user
+      const response = await api.get<ApiResponse<System>>(`/systems/?${params.toString()}`);
+      setSystems(response.data.results || []);
+      setSystemsPagination({
+        current: page,
+        pageSize: systemsPagination.pageSize,
+        total: response.data.count || 0,
+      });
+    } catch (error) {
+      console.error('Failed to fetch systems:', error);
+      message.error('Không thể tải danh sách hệ thống');
+    } finally {
+      setSystemsLoading(false);
+    }
+  };
+
   const handleRefresh = useCallback(() => {
     setLoading(true);
     fetchStatistics();
+    fetchSystems();
   }, []);
+
+  const handleSystemsTableChange = (pagination: any) => {
+    fetchSystems(pagination.current);
+  };
+
+  const handleStatCardClick = (type: 'status' | 'criticality', value: string) => {
+    // Toggle filter: if same card is clicked again, clear the filter
+    if (activeStatFilter.type === type && activeStatFilter.value === value) {
+      setActiveStatFilter({ type: null, value: null });
+    } else {
+      setActiveStatFilter({ type, value });
+    }
+  };
 
   const exportToJSON = () => {
     const exportData = {
@@ -547,11 +613,13 @@ const UnitDashboard = () => {
                   boxShadow: shadows.card,
                   transition: 'all 0.3s ease',
                   backgroundColor: colors.background.paper,
+                  cursor: 'pointer',
                 }}
                 className="kpi-card"
                 hoverable
                 role="article"
                 aria-label="Tổng số hệ thống"
+                onClick={() => setActiveStatFilter({ type: null, value: null })}
               >
                 <Skeleton loading={loading} active paragraph={{ rows: 3 }} aria-label="Đang tải dữ liệu">
                   <Statistic
@@ -576,14 +644,16 @@ const UnitDashboard = () => {
               style={{
                 borderLeft: `4px solid ${colors.status.active}`,
                 borderRadius: borderRadius.lg,
-                boxShadow: shadows.card,
+                boxShadow: activeStatFilter.type === 'status' && activeStatFilter.value === 'operating' ? '0 0 0 2px ' + colors.status.active : shadows.card,
                 transition: 'all 0.3s ease',
                 backgroundColor: colors.background.paper,
+                cursor: 'pointer',
               }}
               className="kpi-card"
               hoverable
               role="article"
               aria-label="Hệ thống đang hoạt động"
+              onClick={() => handleStatCardClick('status', 'operating')}
             >
               <Skeleton loading={loading} active paragraph={{ rows: 3 }}>
                 <Statistic
@@ -608,14 +678,16 @@ const UnitDashboard = () => {
               style={{
                 borderLeft: `4px solid ${colors.status.warning}`,
                 borderRadius: borderRadius.lg,
-                boxShadow: shadows.card,
+                boxShadow: activeStatFilter.type === 'criticality' && activeStatFilter.value === 'high' ? '0 0 0 2px ' + colors.status.warning : shadows.card,
                 transition: 'all 0.3s ease',
                 backgroundColor: colors.background.paper,
+                cursor: 'pointer',
               }}
               className="kpi-card"
               hoverable
               role="article"
               aria-label="Hệ thống quan trọng"
+              onClick={() => handleStatCardClick('criticality', 'high')}
             >
               <Skeleton loading={loading} active paragraph={{ rows: 3 }}>
                 <Statistic
@@ -907,6 +979,21 @@ const UnitDashboard = () => {
           </motion.div>
         </Col>
       </Row>
+      </motion.div>
+
+      {/* Systems List */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <DashboardSystemsList
+          systems={systems}
+          loading={systemsLoading}
+          isMobile={isMobile}
+          pagination={systemsPagination}
+          onChange={handleSystemsTableChange}
+        />
       </motion.div>
     </div>
   );

@@ -1429,11 +1429,10 @@ const SystemCreate = () => {
               >
                 <Select>
                   <Select.Option value="operating">Đang vận hành</Select.Option>
-                  <Select.Option value="planning">Đang lập kế hoạch</Select.Option>
-                  <Select.Option value="development">Đang phát triển</Select.Option>
+                  <Select.Option value="pilot">Thí điểm</Select.Option>
                   <Select.Option value="testing">Đang thử nghiệm</Select.Option>
-                  <Select.Option value="inactive">Ngừng hoạt động</Select.Option>
-                  <Select.Option value="maintenance">Bảo trì</Select.Option>
+                  <Select.Option value="stopped">Dừng</Select.Option>
+                  <Select.Option value="replacing">Sắp thay thế</Select.Option>
                 </Select>
               </Form.Item>
             </Col>

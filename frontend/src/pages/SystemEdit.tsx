@@ -206,6 +206,15 @@ const searchEngineOptions = [
   { label: 'Khác', value: 'other' },
 ];
 
+const requirementTypeOptions = [
+  { label: 'Xây mới', value: 'new_build' },
+  { label: 'Nâng cấp', value: 'upgrade' },
+  { label: 'Tích hợp - Liên thông', value: 'integration' },
+  { label: 'Thay thế hệ thống cũ', value: 'replacement' },
+  { label: 'Mở rộng module - chức năng', value: 'expansion' },
+  { label: 'Khác', value: 'other' },
+];
+
 const reportingBiToolOptions = [
   { label: 'Microsoft Power BI', value: 'powerbi' },
   { label: 'Tableau', value: 'tableau' },
@@ -1441,13 +1450,10 @@ const SystemEdit = () => {
                 rules={AllValidationRules.requirement_type}
                 tooltip="Loại nhu cầu của hệ thống"
               >
-                <Select placeholder="Chọn loại nhu cầu" allowClear>
-                  <Select.Option value="new_build">Xây mới</Select.Option>
-                  <Select.Option value="upgrade">Nâng cấp</Select.Option>
-                  <Select.Option value="integration">Tích hợp - Liên thông</Select.Option>
-                  <Select.Option value="replacement">Thay thế hệ thống cũ</Select.Option>
-                  <Select.Option value="expansion">Mở rộng module - chức năng</Select.Option>
-                </Select>
+                <SelectWithOther
+                  options={requirementTypeOptions}
+                  placeholder="Chọn loại nhu cầu"
+                />
               </Form.Item>
             </Col>
 
@@ -1731,6 +1737,7 @@ const SystemEdit = () => {
                 name="backend_tech"
                 initialValue={[]}
                 tooltip="Có thể chọn nhiều công nghệ backend (Node.js + Python + Go)"
+                rules={AllValidationRules.backend_tech}
               >
                 <CheckboxGroupWithOther
                   options={backendTechOptions}
@@ -1745,6 +1752,7 @@ const SystemEdit = () => {
                 name="frontend_tech"
                 initialValue={[]}
                 tooltip="Có thể chọn nhiều công nghệ frontend (React + Vue + jQuery)"
+                rules={AllValidationRules.frontend_tech}
               >
                 <CheckboxGroupWithOther
                   options={frontendTechOptions}
@@ -1766,6 +1774,7 @@ const SystemEdit = () => {
                 name="architecture_type"
                 initialValue={[]}
                 tooltip="Có thể chọn nhiều (Microservices + Serverless hybrid)"
+                rules={AllValidationRules.architecture_type}
               >
                 <CheckboxGroupWithOther
                   options={architectureTypeOptions}
@@ -1985,7 +1994,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Khối lượng dữ liệu" name="data_volume">
+              <Form.Item label="Khối lượng dữ liệu" name="data_volume" rules={AllValidationRules.data_volume}>
                 <SelectWithOther
                   options={dataVolumeOptions}
                   placeholder="Chọn khối lượng dữ liệu"
@@ -2005,6 +2014,7 @@ const SystemEdit = () => {
                 label="Dung lượng CSDL hiện tại (GB)"
                 name="storage_size_gb"
                 tooltip="Dung lượng cơ sở dữ liệu hiện tại"
+                rules={AllValidationRules.storage_size_gb}
               >
                 <InputNumber
                   min={0}
@@ -2021,6 +2031,7 @@ const SystemEdit = () => {
                 label="Dung lượng file đính kèm (GB)"
                 name="file_storage_size_gb"
                 tooltip="Dung lượng file, tài liệu lưu trữ"
+                rules={AllValidationRules.file_storage_size_gb}
               >
                 <InputNumber
                   min={0}
@@ -2037,6 +2048,7 @@ const SystemEdit = () => {
                 label="Tốc độ tăng trưởng dữ liệu (%)"
                 name="growth_rate_percent"
                 tooltip="Tốc độ tăng trưởng (%/năm hoặc GB/tháng)"
+                rules={AllValidationRules.growth_rate_percent}
               >
                 <InputNumber
                   min={0}
@@ -2112,6 +2124,7 @@ const SystemEdit = () => {
                 name="has_data_catalog"
                 valuePropName="checked"
                 tooltip="Hệ thống có Data Catalog không?"
+                rules={AllValidationRules.has_data_catalog}
               >
                 <Switch />
               </Form.Item>
@@ -2123,6 +2136,7 @@ const SystemEdit = () => {
                 name="has_mdm"
                 valuePropName="checked"
                 tooltip="Hệ thống có MDM không?"
+                rules={AllValidationRules.has_mdm}
               >
                 <Switch />
               </Form.Item>
@@ -2214,6 +2228,7 @@ const SystemEdit = () => {
                 label="Số API cung cấp"
                 name="api_provided_count"
                 tooltip="Tổng số API mà hệ thống này cung cấp cho hệ thống khác"
+                rules={AllValidationRules.api_provided_count}
               >
                 <InputNumber
                   min={0}
@@ -2228,6 +2243,7 @@ const SystemEdit = () => {
                 label="Số API tiêu thụ"
                 name="api_consumed_count"
                 tooltip="Tổng số API mà hệ thống này gọi từ hệ thống khác"
+                rules={AllValidationRules.api_consumed_count}
               >
                 <InputNumber
                   min={0}
@@ -2260,13 +2276,13 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Có API Gateway?" name="has_api_gateway" valuePropName="checked">
+              <Form.Item label="Có API Gateway?" name="has_api_gateway" valuePropName="checked" rules={AllValidationRules.has_api_gateway}>
                 <Switch />
               </Form.Item>
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Tên API Gateway" name="api_gateway_name">
+              <Form.Item label="Tên API Gateway" name="api_gateway_name" rules={AllValidationRules.api_gateway_name}>
                 <SelectWithOther
                   options={apiGatewayOptions}
                   placeholder="Chọn API Gateway"
@@ -2275,13 +2291,13 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Có API Versioning?" name="has_api_versioning" valuePropName="checked">
+              <Form.Item label="Có API Versioning?" name="has_api_versioning" valuePropName="checked" rules={AllValidationRules.has_api_versioning}>
                 <Switch />
               </Form.Item>
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Có Rate Limiting?" name="has_rate_limiting" valuePropName="checked">
+              <Form.Item label="Có Rate Limiting?" name="has_rate_limiting" valuePropName="checked" rules={AllValidationRules.has_rate_limiting}>
                 <Switch />
               </Form.Item>
             </Col>
@@ -2297,6 +2313,7 @@ const SystemEdit = () => {
                 label="Tài liệu API"
                 name="api_documentation"
                 tooltip="Link tới tài liệu API hoặc mô tả chi tiết"
+                rules={AllValidationRules.api_documentation}
               >
                 <TextArea
                   rows={3}
@@ -2310,6 +2327,7 @@ const SystemEdit = () => {
                 label="Chuẩn phiên bản API"
                 name="api_versioning_standard"
                 tooltip="Cách đánh version cho API"
+                rules={AllValidationRules.api_versioning_standard}
               >
                 <SelectWithOther
                   options={apiVersioningStandardOptions}
@@ -2324,13 +2342,14 @@ const SystemEdit = () => {
                 name="has_integration_monitoring"
                 valuePropName="checked"
                 tooltip="Monitoring cho integration endpoints và data flows"
+                rules={AllValidationRules.has_integration_monitoring}
               >
                 <Switch />
               </Form.Item>
             </Col>
 
             <Col span={24}>
-              <Form.Item label="Hệ thống nội bộ tích hợp" name="integrated_internal_systems">
+              <Form.Item label="Hệ thống nội bộ tích hợp" name="integrated_internal_systems" rules={AllValidationRules.integrated_internal_systems}>
                 <CheckboxGroupWithOther
                   options={integratedInternalSystemsOptions}
                   customInputPlaceholder="Nhập tên hệ thống nội bộ khác..."
@@ -2339,7 +2358,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={24}>
-              <Form.Item label="Hệ thống bên ngoài tích hợp" name="integrated_external_systems">
+              <Form.Item label="Hệ thống bên ngoài tích hợp" name="integrated_external_systems" rules={AllValidationRules.integrated_external_systems}>
                 <CheckboxGroupWithOther
                   options={integratedExternalSystemsOptions}
                   customInputPlaceholder="Nhập tên hệ thống bên ngoài khác..."
@@ -2359,6 +2378,7 @@ const SystemEdit = () => {
                 name="data_exchange_method"
                 initialValue={[]}
                 tooltip="Có thể chọn nhiều (API REST + File Transfer + Message Queue)"
+                rules={AllValidationRules.data_exchange_method}
               >
                 <CheckboxGroupWithOther
                   options={dataExchangeMethodOptions}
@@ -2429,13 +2449,13 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Mã hóa dữ liệu" name="has_encryption" valuePropName="checked">
+              <Form.Item label="Mã hóa dữ liệu" name="has_encryption" valuePropName="checked" rules={AllValidationRules.has_encryption}>
                 <Switch />
               </Form.Item>
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Có log audit?" name="has_audit_log" valuePropName="checked">
+              <Form.Item label="Có log audit?" name="has_audit_log" valuePropName="checked" rules={AllValidationRules.has_audit_log}>
                 <Switch />
               </Form.Item>
             </Col>
@@ -2448,7 +2468,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Cấp độ an toàn" name="security_level">
+              <Form.Item label="Cấp độ an toàn" name="security_level" rules={AllValidationRules.security_level}>
                 <Select
                   placeholder="Chọn cấp độ an toàn"
                   allowClear
@@ -2468,6 +2488,7 @@ const SystemEdit = () => {
                 name="has_security_documents"
                 valuePropName="checked"
                 initialValue={false}
+                rules={AllValidationRules.has_security_documents}
               >
                 <Switch />
               </Form.Item>
@@ -2503,7 +2524,7 @@ const SystemEdit = () => {
         <Card>
           <Row gutter={[16, 16]}>
             <Col span={12}>
-              <Form.Item label="Cấu hình máy chủ" name="server_configuration">
+              <Form.Item label="Cấu hình máy chủ" name="server_configuration" rules={AllValidationRules.server_configuration}>
                 <SelectWithOther
                   options={serverConfigurationOptions}
                   placeholder="Chọn cấu hình máy chủ"
@@ -2512,7 +2533,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Dung lượng lưu trữ" name="storage_capacity">
+              <Form.Item label="Dung lượng lưu trữ" name="storage_capacity" rules={AllValidationRules.storage_capacity}>
                 <SelectWithOther
                   options={storageCapacityOptions}
                   placeholder="Chọn dung lượng lưu trữ"
@@ -2526,6 +2547,7 @@ const SystemEdit = () => {
                 name="backup_plan"
                 initialValue={[]}
                 tooltip="Có thể chọn nhiều phương án (Daily backup + Snapshot + Off-site backup)"
+                rules={AllValidationRules.backup_plan}
               >
                 <CheckboxGroupWithOther
                   options={backupPlanOptions}
@@ -2535,7 +2557,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Kế hoạch khôi phục thảm họa" name="disaster_recovery_plan">
+              <Form.Item label="Kế hoạch khôi phục thảm họa" name="disaster_recovery_plan" rules={AllValidationRules.disaster_recovery_plan}>
                 <SelectWithOther
                   options={disasterRecoveryOptions}
                   placeholder="Chọn kế hoạch DR"
@@ -2551,7 +2573,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Vị trí triển khai" name="deployment_location">
+              <Form.Item label="Vị trí triển khai" name="deployment_location" rules={AllValidationRules.deployment_location}>
                 <Select
                   options={deploymentLocationOptions}
                   placeholder="Chọn vị trí triển khai"
@@ -2561,7 +2583,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={24}>
-              <Form.Item label="Cấu hình tính toán" name="compute_specifications">
+              <Form.Item label="Cấu hình tính toán" name="compute_specifications" rules={AllValidationRules.compute_specifications}>
                 <TextArea
                   rows={3}
                   placeholder="VD: 8 vCPU, 16GB RAM, 500GB SSD, Load Balancer với 2 nodes"
@@ -2580,6 +2602,7 @@ const SystemEdit = () => {
                 label="Loại hạ tầng tính toán"
                 name="compute_type"
                 tooltip="Loại infrastructure được sử dụng"
+                rules={AllValidationRules.compute_type}
               >
                 <Select
                   options={computeTypeOptions}
@@ -2594,6 +2617,7 @@ const SystemEdit = () => {
                 label="Tần suất triển khai"
                 name="deployment_frequency"
                 tooltip="Tần suất deploy code lên production"
+                rules={AllValidationRules.deployment_frequency}
               >
                 <Select
                   options={deploymentFrequencyOptions}
@@ -2652,20 +2676,20 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Số điện thoại liên hệ" name="responsible_phone">
+              <Form.Item label="Số điện thoại liên hệ" name="responsible_phone" rules={AllValidationRules.responsible_phone}>
                 <Input placeholder="Số điện thoại" />
               </Form.Item>
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Email liên hệ" name="responsible_email">
+              <Form.Item label="Email liên hệ" name="responsible_email" rules={AllValidationRules.responsible_email}>
                 <Input type="email" placeholder="Email" />
               </Form.Item>
             </Col>
 
             {/* Quick Input - Support Level */}
             <Col span={12}>
-              <Form.Item label="Mức độ hỗ trợ" name="support_level">
+              <Form.Item label="Mức độ hỗ trợ" name="support_level" rules={AllValidationRules.support_level}>
                 <SelectWithOther
                   options={supportLevelOptions}
                   placeholder="Chọn mức độ hỗ trợ"
@@ -2712,6 +2736,7 @@ const SystemEdit = () => {
                 label="Điểm phù hợp cho tích hợp"
                 name="integration_readiness"
                 tooltip="Các đặc điểm thuận lợi cho việc tích hợp liên thông"
+                rules={AllValidationRules.integration_readiness}
               >
                 <CheckboxGroupWithOther options={integrationReadinessOptions} />
               </Form.Item>
@@ -2722,6 +2747,7 @@ const SystemEdit = () => {
                 label="Điểm vướng mắc"
                 name="blockers"
                 tooltip="Các rào cản kỹ thuật cần xử lý"
+                rules={AllValidationRules.blockers}
               >
                 <CheckboxGroupWithOther options={blockersOptions} />
               </Form.Item>
@@ -2732,6 +2758,7 @@ const SystemEdit = () => {
                 label="Đề xuất của đơn vị"
                 name="recommendation"
                 tooltip="Đề xuất hành động cho hệ thống này"
+                rules={AllValidationRules.recommendation}
               >
                 <Select
                   options={recommendationOptions}

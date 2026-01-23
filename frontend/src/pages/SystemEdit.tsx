@@ -1999,6 +1999,7 @@ const SystemEdit = () => {
             label="Ghi chú bổ sung"
             name="additional_notes_tab3"
             style={{ marginTop: 16 }}
+            rules={AllValidationRules.additional_notes_tab3}
           >
             <TextArea
               rows={3}

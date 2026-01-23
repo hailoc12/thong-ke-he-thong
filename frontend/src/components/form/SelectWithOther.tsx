@@ -70,9 +70,12 @@ export const SelectWithOther = ({
       setTimeout(() => {
         customInputRef.current?.focus();
       }, 0);
-      // Don't call onChange yet - wait for custom input
-      if (!customValue) {
-        onChange?.(null);
+      // Keep the 'other' value to maintain the selection state
+      // If there's already custom value, use it; otherwise keep 'other'
+      if (customValue) {
+        onChange?.(customValue);
+      } else {
+        onChange?.(otherValue);
       }
     } else {
       setShowCustomInput(false);

@@ -858,6 +858,45 @@ const formatDateFieldsForAPI = (values: any): any => {
   return formattedValues;
 };
 
+/**
+ * Process requirement_type field - split into requirement_type and requirement_type_other
+ * SelectWithOther returns either a predefined value or custom text
+ * Backend expects two fields: requirement_type (choice) and requirement_type_other (text)
+ */
+const processRequirementType = (values: any): any => {
+  const processedValues = { ...values };
+
+  // List of valid predefined requirement types
+  const predefinedTypes = ['new_build', 'upgrade', 'integration', 'replacement', 'expansion', 'other'];
+
+  const requirementValue = values.requirement_type;
+
+  if (requirementValue) {
+    if (predefinedTypes.includes(requirementValue)) {
+      // Predefined value selected
+      if (requirementValue === 'other') {
+        // User selected 'other' but hasn't entered custom text yet
+        processedValues.requirement_type = 'other';
+        processedValues.requirement_type_other = '';
+      } else {
+        // Normal predefined value
+        processedValues.requirement_type = requirementValue;
+        processedValues.requirement_type_other = '';
+      }
+    } else {
+      // Custom text entered - save as 'other' + custom description
+      processedValues.requirement_type = 'other';
+      processedValues.requirement_type_other = requirementValue;
+    }
+  } else {
+    // No value - clear both fields
+    processedValues.requirement_type = '';
+    processedValues.requirement_type_other = '';
+  }
+
+  return processedValues;
+};
+
 // Tab save state tracking interface
 interface TabSaveState {
   [tabKey: string]: {
@@ -1086,7 +1125,9 @@ const SystemCreate = () => {
       }, {} as any);
 
       // Format date fields before sending to API
-      const formattedValues = formatDateFieldsForAPI(cleanedValues);
+      let formattedValues = formatDateFieldsForAPI(cleanedValues);
+      // Process requirement_type field (split into requirement_type and requirement_type_other)
+      formattedValues = processRequirementType(formattedValues);
 
       setLoading(true);
 
@@ -1184,7 +1225,9 @@ const SystemCreate = () => {
       const values = form.getFieldsValue();
 
       // Format date fields before sending to API
-      const formattedValues = formatDateFieldsForAPI(values);
+      let formattedValues = formatDateFieldsForAPI(values);
+      // Process requirement_type field (split into requirement_type and requirement_type_other)
+      formattedValues = processRequirementType(formattedValues);
 
       setLoading(true);
 

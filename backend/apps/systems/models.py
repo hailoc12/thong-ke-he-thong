@@ -35,6 +35,7 @@ class System(models.Model):
         ('integration', 'Tích hợp - Liên thông'),
         ('replacement', 'Thay thế hệ thống cũ'),
         ('expansion', 'Mở rộng module - chức năng'),
+        ('other', 'Khác'),
     ]
 
     CRITICALITY_CHOICES = [
@@ -76,7 +77,12 @@ class System(models.Model):
         choices=REQUIREMENT_TYPE_CHOICES,
         blank=True,
         verbose_name=_('Requirement Type'),
-        help_text='Nhu cầu: Xây mới, Nâng cấp, Tích hợp, Thay thế, Mở rộng'
+        help_text='Nhu cầu: Xây mới, Nâng cấp, Tích hợp, Thay thế, Mở rộng, Khác'
+    )
+    requirement_type_other = models.TextField(
+        blank=True,
+        verbose_name=_('Requirement Type (Other)'),
+        help_text='Mô tả chi tiết nhu cầu khác (bắt buộc khi chọn "Khác")'
     )
     target_completion_date = models.DateField(
         null=True,

@@ -867,6 +867,64 @@ const formatDateFieldsForAPI = (values: any): any => {
   return formattedValues;
 };
 
+/**
+ * Process requirement_type field for API submission
+ * SelectWithOther returns either a predefined value or custom text
+ * Backend expects two fields: requirement_type (choice) and requirement_type_other (text)
+ */
+const processRequirementType = (values: any): any => {
+  const processedValues = { ...values };
+
+  // List of valid predefined requirement types
+  const predefinedTypes = ['new_build', 'upgrade', 'integration', 'replacement', 'expansion', 'other'];
+
+  const requirementValue = values.requirement_type;
+
+  if (requirementValue) {
+    if (predefinedTypes.includes(requirementValue)) {
+      // Predefined value selected
+      if (requirementValue === 'other') {
+        // User selected 'other' but hasn't entered custom text yet
+        processedValues.requirement_type = 'other';
+        processedValues.requirement_type_other = '';
+      } else {
+        // Normal predefined value
+        processedValues.requirement_type = requirementValue;
+        processedValues.requirement_type_other = '';
+      }
+    } else {
+      // Custom text entered - save as 'other' + custom description
+      processedValues.requirement_type = 'other';
+      processedValues.requirement_type_other = requirementValue;
+    }
+  } else {
+    // No value - clear both fields
+    processedValues.requirement_type = '';
+    processedValues.requirement_type_other = '';
+  }
+
+  return processedValues;
+};
+
+/**
+ * Combine requirement_type and requirement_type_other for display in form
+ * This is the reverse of processRequirementType - used when loading data
+ */
+const combineRequirementTypeForDisplay = (data: any): any => {
+  const displayData = { ...data };
+
+  if (data.requirement_type === 'other' && data.requirement_type_other) {
+    // User had entered custom text - show the custom text
+    displayData.requirement_type = data.requirement_type_other;
+  } else if (data.requirement_type === 'other' && !data.requirement_type_other) {
+    // User selected 'other' but no custom text yet
+    displayData.requirement_type = 'other';
+  }
+  // else: predefined value, keep as-is
+
+  return displayData;
+};
+
 // Tab save state tracking interface
 interface TabSaveState {
   [tabKey: string]: {
@@ -1092,7 +1150,9 @@ const SystemEdit = () => {
       }, {} as any);
 
       // Format date fields before sending to API
-      const formattedValues = formatDateFieldsForAPI(cleanedValues);
+      let formattedValues = formatDateFieldsForAPI(cleanedValues);
+      // Process requirement_type field (split into requirement_type and requirement_type_other)
+      formattedValues = processRequirementType(formattedValues);
 
       setLoading(true);
 
@@ -1182,7 +1242,9 @@ const SystemEdit = () => {
       const values = form.getFieldsValue();
 
       // Format date fields before sending to API
-      const formattedValues = formatDateFieldsForAPI(values);
+      let formattedValues = formatDateFieldsForAPI(values);
+      // Process requirement_type field (split into requirement_type and requirement_type_other)
+      formattedValues = processRequirementType(formattedValues);
 
       setLoading(true);
 
@@ -1246,19 +1308,22 @@ const SystemEdit = () => {
       const response = await api.get(`/systems/${id}/`);
       const systemData = response.data;
 
+      // Combine requirement_type and requirement_type_other for display
+      const displayData = combineRequirementTypeForDisplay(systemData);
+
       // Pre-fill form with existing data
       form.setFieldsValue({
-        ...systemData,
+        ...displayData,
         // Ensure arrays are properly initialized
-        business_objectives: systemData.business_objectives || [],
-        business_processes: systemData.business_processes || [],
-        user_types: systemData.user_types || [],
-        data_sources: systemData.data_sources || [],
-        integrated_internal_systems: systemData.integrated_internal_systems || [],
-        integrated_external_systems: systemData.integrated_external_systems || [],
-        api_list: systemData.api_list || [],
+        business_objectives: displayData.business_objectives || [],
+        business_processes: displayData.business_processes || [],
+        user_types: displayData.user_types || [],
+        data_sources: displayData.data_sources || [],
+        integrated_internal_systems: displayData.integrated_internal_systems || [],
+        integrated_external_systems: displayData.integrated_external_systems || [],
+        api_list: displayData.api_list || [],
         // Initialize integration_connections from nested response
-        integration_connections_data: systemData.integration_connections || [],
+        integration_connections_data: displayData.integration_connections || [],
       });
     } catch (error: any) {
       console.error('Failed to fetch system data:', error);

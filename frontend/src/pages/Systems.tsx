@@ -147,6 +147,9 @@ const Systems = () => {
       dataIndex: 'status',
       key: 'status',
       width: isMobile ? 90 : 120,
+      ellipsis: {
+        showTitle: true,
+      },
       render: (status: string) => {
         const label = getStatusLabel(status);
         return (
@@ -173,6 +176,9 @@ const Systems = () => {
       dataIndex: 'business_owner',
       key: 'business_owner',
       width: 150,
+      ellipsis: {
+        showTitle: true,
+      },
       responsive: ['lg'] as any, // Hide on mobile and tablet
     },
     {
@@ -278,7 +284,7 @@ const Systems = () => {
           showQuickJumper: !isMobile,
         }}
         onChange={handleTableChange}
-        scroll={{ x: isMobile ? 400 : 1200 }}
+        scroll={{ x: isMobile ? 400 : 1300 }}
       />
     </div>
   );

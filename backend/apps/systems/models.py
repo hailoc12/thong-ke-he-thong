@@ -25,6 +25,7 @@ class System(models.Model):
     STATUS_CHOICES = [
         ('operating', 'Đang vận hành'),
         ('pilot', 'Thí điểm'),
+        ('testing', 'Đang thử nghiệm'),
         ('stopped', 'Dừng'),
         ('replacing', 'Sắp thay thế'),
     ]
@@ -652,54 +653,54 @@ class SystemArchitecture(models.Model):
     #     blank=True,
     #     verbose_name=_('Containerization')
     # )
-    #
-    # # API & Integration
-    # api_style = models.CharField(
-    #     max_length=50,
-    #     choices=API_STYLE_CHOICES,
-    #     blank=True,
-    #     verbose_name=_('API Style')
-    # )
-    #
-    # # Messaging & Queue
-    # messaging_queue = models.CharField(
-    #     max_length=50,
-    #     choices=MESSAGING_QUEUE_CHOICES,
-    #     blank=True,
-    #     verbose_name=_('Messaging/Queue System')
-    # )
-    #
-    # # Cache
-    # cache_system = models.CharField(
-    #     max_length=50,
-    #     choices=CACHE_SYSTEM_CHOICES,
-    #     blank=True,
-    #     verbose_name=_('Cache System')
-    # )
-    #
-    # # Search Engine
-    # search_engine = models.CharField(
-    #     max_length=50,
-    #     choices=SEARCH_ENGINE_CHOICES,
-    #     blank=True,
-    #     verbose_name=_('Search Engine')
-    # )
-    #
-    # # Reporting & BI
-    # reporting_bi_tool = models.CharField(
-    #     max_length=50,
-    #     choices=REPORTING_BI_CHOICES,
-    #     blank=True,
-    #     verbose_name=_('Reporting/BI Tool')
-    # )
-    #
-    # # Source Code Management
-    # source_repository = models.CharField(
-    #     max_length=50,
-    #     choices=SOURCE_REPOSITORY_CHOICES,
-    #     blank=True,
-    #     verbose_name=_('Source Code Repository')
-    # )
+
+    # API & Integration
+    api_style = models.CharField(
+        max_length=50,
+        choices=API_STYLE_CHOICES,
+        blank=True,
+        verbose_name=_('API Style')
+    )
+
+    # Messaging & Queue
+    messaging_queue = models.CharField(
+        max_length=50,
+        choices=MESSAGING_QUEUE_CHOICES,
+        blank=True,
+        verbose_name=_('Messaging/Queue System')
+    )
+
+    # Cache
+    cache_system = models.CharField(
+        max_length=50,
+        choices=CACHE_SYSTEM_CHOICES,
+        blank=True,
+        verbose_name=_('Cache System')
+    )
+
+    # Search Engine
+    search_engine = models.CharField(
+        max_length=50,
+        choices=SEARCH_ENGINE_CHOICES,
+        blank=True,
+        verbose_name=_('Search Engine')
+    )
+
+    # Reporting & BI
+    reporting_bi_tool = models.CharField(
+        max_length=50,
+        choices=REPORTING_BI_CHOICES,
+        blank=True,
+        verbose_name=_('Reporting/BI Tool')
+    )
+
+    # Source Code Management
+    source_repository = models.CharField(
+        max_length=50,
+        choices=SOURCE_REPOSITORY_CHOICES,
+        blank=True,
+        verbose_name=_('Source Code Repository')
+    )
     #
     # # CI/CD
     # has_cicd = models.BooleanField(
@@ -801,31 +802,30 @@ class SystemDataInfo(models.Model):
     )
 
     # P1 Gap Analysis: Additional Database Fields
-    # NOTE: All fields below were added without migrations, causing 500 errors. Commented out.
-    # TODO: Re-add via proper migrations if needed in future
-    # # Primary Database (already exists in SystemArchitecture.database_type)
-    # # We add secondary databases here
-    # secondary_databases = models.JSONField(
-    #     default=list,
-    #     blank=True,
-    #     help_text='List of secondary/other databases used, e.g., ["Redis", "MongoDB"]'
-    # )
-    #
-    # # File Storage
-    # file_storage_type = models.CharField(
-    #     max_length=50,
-    #     choices=FILE_STORAGE_TYPE_CHOICES,
-    #     blank=True,
-    #     verbose_name=_('File Storage Type')
-    # )
-    #
-    # # Database Records Count
-    # record_count = models.BigIntegerField(
-    #     null=True,
-    #     blank=True,
-    #     verbose_name=_('Number of Records'),
-    #     help_text='Tổng số bản ghi trong CSDL chính'
-    # )
+    # NOTE: Fields uncommented with proper migration
+    # Primary Database (already exists in SystemArchitecture.database_type)
+    # We add secondary databases here
+    secondary_databases = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of secondary/other databases used, e.g., ["Redis", "MongoDB"]'
+    )
+
+    # File Storage
+    file_storage_type = models.CharField(
+        max_length=50,
+        choices=FILE_STORAGE_TYPE_CHOICES,
+        blank=True,
+        verbose_name=_('File Storage Type')
+    )
+
+    # Database Records Count
+    record_count = models.BigIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_('Number of Records'),
+        help_text='Tổng số bản ghi trong CSDL chính'
+    )
     #
     # # Data Retention Policy
     # data_retention_policy = models.TextField(

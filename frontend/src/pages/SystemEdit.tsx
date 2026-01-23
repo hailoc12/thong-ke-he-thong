@@ -699,7 +699,7 @@ const IntegrationConnectionList = ({ value = [], onChange }: any) => {
                   </Form.Item>
                 </Col>
                 <Col span={24}>
-                  <Form.Item label="Xử lý lỗi/Retry" name="error_handling">
+                  <Form.Item label="Xử lý lỗi/Retry" name="error_handling" rules={AllValidationRules.error_handling}>
                     <TextArea
                       rows={2}
                       placeholder="VD: Retry 3 lần, delay 5 phút, gửi email cảnh báo"
@@ -707,12 +707,12 @@ const IntegrationConnectionList = ({ value = [], onChange }: any) => {
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item label="Có tài liệu API?" name="has_api_docs" valuePropName="checked">
+                  <Form.Item label="Có tài liệu API?" name="has_api_docs" valuePropName="checked" rules={AllValidationRules.has_api_docs}>
                     <Switch />
                   </Form.Item>
                 </Col>
                 <Col span={24}>
-                  <Form.Item label="Ghi chú" name="notes">
+                  <Form.Item label="Ghi chú" name="notes" rules={AllValidationRules.notes}>
                     <TextArea rows={2} placeholder="Ghi chú thêm" />
                   </Form.Item>
                 </Col>
@@ -817,7 +817,7 @@ const IntegrationConnectionList = ({ value = [], onChange }: any) => {
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item label="Xử lý lỗi/Retry" name="error_handling">
+                <Form.Item label="Xử lý lỗi/Retry" name="error_handling" rules={AllValidationRules.error_handling}>
                   <TextArea
                     rows={2}
                     placeholder="VD: Retry 3 lần, delay 5 phút, gửi email cảnh báo"
@@ -825,12 +825,12 @@ const IntegrationConnectionList = ({ value = [], onChange }: any) => {
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item label="Có tài liệu API?" name="has_api_docs" valuePropName="checked">
+                <Form.Item label="Có tài liệu API?" name="has_api_docs" valuePropName="checked" rules={AllValidationRules.has_api_docs}>
                   <Switch />
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item label="Ghi chú" name="notes">
+                <Form.Item label="Ghi chú" name="notes" rules={AllValidationRules.notes}>
                   <TextArea rows={2} placeholder="Ghi chú thêm" />
                 </Form.Item>
               </Col>
@@ -1613,6 +1613,7 @@ const SystemEdit = () => {
                 label="Có đủ hồ sơ phân tích thiết kế?"
                 name="has_design_documents"
                 valuePropName="checked"
+                rules={AllValidationRules.has_design_documents}
               >
                 <Switch />
               </Form.Item>
@@ -1632,7 +1633,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Số lượng người dùng hàng năm" name="annual_users">
+              <Form.Item label="Số lượng người dùng hàng năm" name="annual_users" rules={AllValidationRules.annual_users}>
                 <InputNumber
                   min={0}
                   style={{ width: '100%' }}
@@ -1654,6 +1655,7 @@ const SystemEdit = () => {
                 label="Tổng số tài khoản"
                 name="total_accounts"
                 tooltip="Tổng số tài khoản đã tạo trong hệ thống"
+                rules={AllValidationRules.total_accounts}
               >
                 <InputNumber
                   min={0}
@@ -1669,6 +1671,7 @@ const SystemEdit = () => {
                 label="MAU (Monthly Active Users)"
                 name="users_mau"
                 tooltip="Số người dùng hoạt động hàng tháng"
+                rules={AllValidationRules.users_mau}
               >
                 <InputNumber
                   min={0}
@@ -1684,6 +1687,7 @@ const SystemEdit = () => {
                 label="DAU (Daily Active Users)"
                 name="users_dau"
                 tooltip="Số người dùng hoạt động hàng ngày"
+                rules={AllValidationRules.users_dau}
               >
                 <InputNumber
                   min={0}
@@ -1699,6 +1703,7 @@ const SystemEdit = () => {
                 label="Số đơn vị/địa phương sử dụng"
                 name="num_organizations"
                 tooltip="Số đơn vị/địa phương sử dụng hệ thống"
+                rules={AllValidationRules.num_organizations}
               >
                 <InputNumber
                   min={0}
@@ -1715,6 +1720,7 @@ const SystemEdit = () => {
             label="Ghi chú bổ sung"
             name="additional_notes_tab2"
             style={{ marginTop: 16 }}
+            rules={AllValidationRules.additional_notes_tab2}
           >
             <TextArea
               rows={3}
@@ -1891,6 +1897,7 @@ const SystemEdit = () => {
                 name="api_style"
                 initialValue={[]}
                 tooltip="Có thể chọn nhiều (REST + GraphQL + gRPC)"
+                rules={AllValidationRules.api_style}
               >
                 <CheckboxGroupWithOther
                   options={apiStyleOptions}
@@ -1905,6 +1912,7 @@ const SystemEdit = () => {
                 name="messaging_queue"
                 initialValue={[]}
                 tooltip="Có thể chọn nhiều (RabbitMQ + Kafka + Redis)"
+                rules={AllValidationRules.messaging_queue}
               >
                 <CheckboxGroupWithOther
                   options={messagingQueueOptions}
@@ -1914,7 +1922,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Cache System" name="cache_system">
+              <Form.Item label="Cache System" name="cache_system" rules={AllValidationRules.cache_system}>
                 <SelectWithOther
                   options={cacheSystemOptions}
                   placeholder="Chọn hệ thống cache"
@@ -1923,7 +1931,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Search Engine" name="search_engine">
+              <Form.Item label="Search Engine" name="search_engine" rules={AllValidationRules.search_engine}>
                 <SelectWithOther
                   options={searchEngineOptions}
                   placeholder="Chọn công cụ tìm kiếm"
@@ -1932,7 +1940,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Reporting/BI Tool" name="reporting_bi_tool">
+              <Form.Item label="Reporting/BI Tool" name="reporting_bi_tool" rules={AllValidationRules.reporting_bi_tool}>
                 <SelectWithOther
                   options={reportingBiToolOptions}
                   placeholder="Chọn công cụ báo cáo/BI"
@@ -1941,7 +1949,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Source Repository" name="source_repository">
+              <Form.Item label="Source Repository" name="source_repository" rules={AllValidationRules.source_repository}>
                 <SelectWithOther
                   options={sourceRepositoryOptions}
                   placeholder="Chọn hệ thống quản lý mã nguồn"
@@ -2140,6 +2148,7 @@ const SystemEdit = () => {
                 name="file_storage_type"
                 initialValue={[]}
                 tooltip="Có thể chọn nhiều (Object Storage + Block Storage + File System)"
+                rules={AllValidationRules.file_storage_type}
               >
                 <CheckboxGroupWithOther
                   options={fileStorageTypeOptions}
@@ -2149,7 +2158,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Số bản ghi" name="record_count">
+              <Form.Item label="Số bản ghi" name="record_count" rules={AllValidationRules.record_count}>
                 <InputNumber
                   min={0}
                   style={{ width: '100%' }}
@@ -2160,7 +2169,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={24}>
-              <Form.Item label="CSDL phụ/khác" name="secondary_databases" initialValue={[]}>
+              <Form.Item label="CSDL phụ/khác" name="secondary_databases" initialValue={[]} rules={AllValidationRules.secondary_databases}>
                 <Select
                   mode="tags"
                   style={{ width: '100%' }}

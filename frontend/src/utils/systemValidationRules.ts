@@ -67,7 +67,12 @@ export const Tab2ValidationRules = {
   business_objectives: [createRequiredArrayRule('Vui lòng chọn ít nhất một mục tiêu nghiệp vụ')],
   business_processes: [createRequiredArrayRule('Vui lòng chọn ít nhất một quy trình nghiệp vụ')],
   user_types: [createRequiredArrayRule('Vui lòng chọn ít nhất một loại người dùng')],
-  // annual_users: Removed - not required (null=True, blank=True in database)
+  has_design_documents: [createRequiredRule('Vui lòng chọn có đủ hồ sơ phân tích thiết kế hay không')],
+  annual_users: [createRequiredRule('Vui lòng nhập số lượng người dùng hàng năm')],
+  total_accounts: [createRequiredRule('Vui lòng nhập tổng số tài khoản')],
+  users_mau: [createRequiredRule('Vui lòng nhập số người dùng hoạt động hàng tháng (MAU)')],
+  users_dau: [createRequiredRule('Vui lòng nhập số người dùng hoạt động hàng ngày (DAU)')],
+  num_organizations: [createRequiredRule('Vui lòng nhập số đơn vị/địa phương sử dụng')],
 
   // Additional notes
   additional_notes_tab2: [createRequiredRule('Vui lòng nhập ghi chú bổ sung cho tab này')],
@@ -93,8 +98,14 @@ export const Tab3ValidationRules = {
   // Infrastructure & architecture fields - converted from conditional to always required
   cloud_provider: [createRequiredRule('Vui lòng nhập nhà cung cấp cloud')],
   containerization: [createRequiredArrayRule('Vui lòng chọn ít nhất một công nghệ containerization')],
-  // REMOVED: api_style, messaging_queue, cache_system, search_engine, reporting_bi_tool, source_repository
-  // Reason: These fields are commented out in database models (no migrations exist)
+
+  // Technology integration fields (uncommented 2026-01-23)
+  api_style: [createRequiredRule('Vui lòng chọn API style')],
+  messaging_queue: [createRequiredRule('Vui lòng chọn messaging/queue system')],
+  cache_system: [createRequiredRule('Vui lòng chọn cache system')],
+  search_engine: [createRequiredRule('Vui lòng chọn search engine')],
+  reporting_bi_tool: [createRequiredRule('Vui lòng chọn reporting/BI tool')],
+  source_repository: [createRequiredRule('Vui lòng chọn source code repository')],
 
   // Boolean switches - now required
   has_cicd: [createRequiredRule('Vui lòng chọn có CI/CD pipeline hay không')],
@@ -122,8 +133,11 @@ export const Tab4ValidationRules = {
   storage_size_gb: [createRequiredRule('Vui lòng nhập dung lượng CSDL (GB)')],
   file_storage_size_gb: [createRequiredRule('Vui lòng nhập dung lượng file đính kèm (GB)')],
   growth_rate_percent: [createRequiredRule('Vui lòng nhập tốc độ tăng trưởng dữ liệu (%)')],
-  // REMOVED: file_storage_type, record_count, secondary_databases, data_retention_policy
-  // Reason: These fields are commented out in database models (no migrations exist)
+
+  // Database additional fields (uncommented 2026-01-23)
+  file_storage_type: [createRequiredRule('Vui lòng chọn loại lưu trữ file')],
+  record_count: [createRequiredRule('Vui lòng nhập số bản ghi')],
+  secondary_databases: [createRequiredRule('Vui lòng nhập CSDL phụ/khác')],
 
   // Boolean switches - now required
   has_data_catalog: [createRequiredRule('Vui lòng chọn có Data Catalog hay không')],
@@ -160,6 +174,11 @@ export const Tab5ValidationRules = {
   integrated_internal_systems: [createRequiredArrayRule('Vui lòng chọn ít nhất một hệ thống nội bộ tích hợp')],
   integrated_external_systems: [createRequiredArrayRule('Vui lòng chọn ít nhất một hệ thống bên ngoài tích hợp')],
   data_exchange_method: [createRequiredArrayRule('Vui lòng chọn ít nhất một phương thức trao đổi dữ liệu')],
+
+  // API Connection Modal fields (for SystemIntegrationConnection)
+  error_handling: [createRequiredRule('Vui lòng nhập cơ chế xử lý lỗi/retry')],
+  has_api_docs: [createRequiredRule('Vui lòng chọn có tài liệu API hay không')],
+  notes: [createRequiredRule('Vui lòng nhập ghi chú')],
 
   // Additional notes
   additional_notes_tab5: [createRequiredRule('Vui lòng nhập ghi chú bổ sung cho tab này')],
@@ -259,6 +278,7 @@ export const TabFieldGroups: Record<string, string[]> = {
   ],
   '2': [
     'business_objectives', 'business_processes', 'user_types',
+    'has_design_documents', 'annual_users', 'total_accounts', 'users_mau', 'users_dau', 'num_organizations',
     'additional_notes_tab2'
   ],
   '3': [
@@ -266,8 +286,10 @@ export const TabFieldGroups: Record<string, string[]> = {
     'programming_language', 'framework', 'database_name', 'hosting_platform',
     'architecture_type', 'architecture_description', 'backend_tech', 'frontend_tech',
     'mobile_app', 'database_type', 'database_model', 'hosting_type',
-    // Infrastructure & architecture (removed non-existent fields)
+    // Infrastructure & architecture
     'cloud_provider', 'containerization',
+    // Technology integration (uncommented 2026-01-23)
+    'api_style', 'messaging_queue', 'cache_system', 'search_engine', 'reporting_bi_tool', 'source_repository',
     // Boolean switches
     'has_cicd', 'has_automated_testing', 'is_multi_tenant', 'has_layered_architecture',
     // Tool fields (now always required)
@@ -275,9 +297,11 @@ export const TabFieldGroups: Record<string, string[]> = {
     'additional_notes_tab3'
   ],
   '4': [
-    // Core data fields (removed non-existent fields)
+    // Core data fields
     'data_sources', 'data_types', 'data_classification_type', 'data_volume',
     'storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent',
+    // Database additional fields (uncommented 2026-01-23)
+    'file_storage_type', 'record_count', 'secondary_databases',
     // Data governance
     'has_data_catalog', 'has_mdm', 'data_catalog_notes', 'mdm_notes',
     'additional_notes_tab4'

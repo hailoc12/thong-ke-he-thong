@@ -1142,6 +1142,7 @@ class SystemAssessment(models.Model):
         ('upgrade', 'Nâng cấp'),
         ('replace', 'Thay thế'),
         ('merge', 'Hợp nhất'),
+        ('other', 'Khác'),
     ]
 
     integration_readiness = models.JSONField(
@@ -1162,6 +1163,11 @@ class SystemAssessment(models.Model):
         blank=True,
         verbose_name=_('Recommendation'),
         help_text='Đề xuất của đơn vị'
+    )
+    recommendation_other = models.TextField(
+        blank=True,
+        verbose_name=_('Recommendation (Other)'),
+        help_text='Mô tả chi tiết đề xuất khác (bắt buộc khi chọn "Khác")'
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

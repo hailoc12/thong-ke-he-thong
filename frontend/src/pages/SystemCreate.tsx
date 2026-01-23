@@ -371,6 +371,7 @@ const recommendationOptions = [
   { label: 'Nâng cấp', value: 'upgrade' },
   { label: 'Thay thế', value: 'replace' },
   { label: 'Hợp nhất', value: 'merge' },
+  { label: 'Khác', value: 'other' },
 ];
 
 /**
@@ -897,6 +898,45 @@ const processRequirementType = (values: any): any => {
   return processedValues;
 };
 
+/**
+ * Process recommendation field - split into recommendation and recommendation_other
+ * SelectWithOther returns either a predefined value or custom text
+ * Backend expects two fields: recommendation (choice) and recommendation_other (text)
+ */
+const processRecommendation = (values: any): any => {
+  const processedValues = { ...values };
+
+  // List of valid predefined recommendation types
+  const predefinedTypes = ['keep', 'upgrade', 'replace', 'merge', 'other'];
+
+  const recommendationValue = values.recommendation;
+
+  if (recommendationValue) {
+    if (predefinedTypes.includes(recommendationValue)) {
+      // Predefined value selected
+      if (recommendationValue === 'other') {
+        // User selected 'other' but hasn't entered custom text yet
+        processedValues.recommendation = 'other';
+        processedValues.recommendation_other = '';
+      } else {
+        // Normal predefined value
+        processedValues.recommendation = recommendationValue;
+        processedValues.recommendation_other = '';
+      }
+    } else {
+      // Custom text entered - save as 'other' + custom description
+      processedValues.recommendation = 'other';
+      processedValues.recommendation_other = recommendationValue;
+    }
+  } else {
+    // No value - clear both fields
+    processedValues.recommendation = '';
+    processedValues.recommendation_other = '';
+  }
+
+  return processedValues;
+};
+
 // Tab save state tracking interface
 interface TabSaveState {
   [tabKey: string]: {
@@ -1128,6 +1168,8 @@ const SystemCreate = () => {
       let formattedValues = formatDateFieldsForAPI(cleanedValues);
       // Process requirement_type field (split into requirement_type and requirement_type_other)
       formattedValues = processRequirementType(formattedValues);
+      // Process recommendation field (split into recommendation and recommendation_other)
+      formattedValues = processRecommendation(formattedValues);
 
       setLoading(true);
 
@@ -1228,6 +1270,8 @@ const SystemCreate = () => {
       let formattedValues = formatDateFieldsForAPI(values);
       // Process requirement_type field (split into requirement_type and requirement_type_other)
       formattedValues = processRequirementType(formattedValues);
+      // Process recommendation field (split into recommendation and recommendation_other)
+      formattedValues = processRecommendation(formattedValues);
 
       setLoading(true);
 
@@ -1829,6 +1873,7 @@ const SystemCreate = () => {
                 name="containerization"
                 initialValue={[]}
                 tooltip="Có thể chọn nhiều (Docker + Kubernetes + OpenShift)"
+                rules={AllValidationRules.containerization}
               >
                 <CheckboxGroupWithOther
                   options={containerizationOptions}
@@ -1838,13 +1883,13 @@ const SystemCreate = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Multi-tenant" name="is_multi_tenant" valuePropName="checked">
+              <Form.Item label="Multi-tenant" name="is_multi_tenant" valuePropName="checked" rules={AllValidationRules.is_multi_tenant}>
                 <Switch />
               </Form.Item>
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Phân lớp (Layered)" name="has_layered_architecture" valuePropName="checked">
+              <Form.Item label="Phân lớp (Layered)" name="has_layered_architecture" valuePropName="checked" rules={AllValidationRules.has_layered_architecture}>
                 <Switch />
               </Form.Item>
             </Col>
@@ -1927,7 +1972,7 @@ const SystemCreate = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="CI/CD Pipeline" name="has_cicd" valuePropName="checked">
+              <Form.Item label="CI/CD Pipeline" name="has_cicd" valuePropName="checked" rules={AllValidationRules.has_cicd}>
                 <Switch />
               </Form.Item>
             </Col>
@@ -1947,7 +1992,7 @@ const SystemCreate = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Automated Testing" name="has_automated_testing" valuePropName="checked">
+              <Form.Item label="Automated Testing" name="has_automated_testing" valuePropName="checked" rules={AllValidationRules.has_automated_testing}>
                 <Switch />
               </Form.Item>
             </Col>
@@ -2826,10 +2871,9 @@ const SystemCreate = () => {
                 tooltip="Đề xuất hành động cho hệ thống này"
                 rules={AllValidationRules.recommendation}
               >
-                <Select
+                <SelectWithOther
                   options={recommendationOptions}
                   placeholder="Chọn đề xuất"
-                  allowClear
                 />
               </Form.Item>
             </Col>

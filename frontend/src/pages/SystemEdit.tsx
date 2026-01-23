@@ -371,6 +371,7 @@ const recommendationOptions = [
   { label: 'Nâng cấp', value: 'upgrade' },
   { label: 'Thay thế', value: 'replace' },
   { label: 'Hợp nhất', value: 'merge' },
+  { label: 'Khác', value: 'other' },
 ];
 
 /**
@@ -925,6 +926,64 @@ const combineRequirementTypeForDisplay = (data: any): any => {
   return displayData;
 };
 
+/**
+ * Process recommendation field for API submission
+ * SelectWithOther returns either a predefined value or custom text
+ * Backend expects two fields: recommendation (choice) and recommendation_other (text)
+ */
+const processRecommendation = (values: any): any => {
+  const processedValues = { ...values };
+
+  // List of valid predefined recommendation types
+  const predefinedTypes = ['keep', 'upgrade', 'replace', 'merge', 'other'];
+
+  const recommendationValue = values.recommendation;
+
+  if (recommendationValue) {
+    if (predefinedTypes.includes(recommendationValue)) {
+      // Predefined value selected
+      if (recommendationValue === 'other') {
+        // User selected 'other' but hasn't entered custom text yet
+        processedValues.recommendation = 'other';
+        processedValues.recommendation_other = '';
+      } else {
+        // Normal predefined value
+        processedValues.recommendation = recommendationValue;
+        processedValues.recommendation_other = '';
+      }
+    } else {
+      // Custom text entered - save as 'other' + custom description
+      processedValues.recommendation = 'other';
+      processedValues.recommendation_other = recommendationValue;
+    }
+  } else {
+    // No value - clear both fields
+    processedValues.recommendation = '';
+    processedValues.recommendation_other = '';
+  }
+
+  return processedValues;
+};
+
+/**
+ * Combine recommendation and recommendation_other for display in form
+ * This is the reverse of processRecommendation - used when loading data
+ */
+const combineRecommendationForDisplay = (data: any): any => {
+  const displayData = { ...data };
+
+  if (data.recommendation === 'other' && data.recommendation_other) {
+    // User had entered custom text - show the custom text
+    displayData.recommendation = data.recommendation_other;
+  } else if (data.recommendation === 'other' && !data.recommendation_other) {
+    // User selected 'other' but no custom text yet
+    displayData.recommendation = 'other';
+  }
+  // else: predefined value, keep as-is
+
+  return displayData;
+};
+
 // Tab save state tracking interface
 interface TabSaveState {
   [tabKey: string]: {
@@ -1153,6 +1212,8 @@ const SystemEdit = () => {
       let formattedValues = formatDateFieldsForAPI(cleanedValues);
       // Process requirement_type field (split into requirement_type and requirement_type_other)
       formattedValues = processRequirementType(formattedValues);
+      // Process recommendation field (split into recommendation and recommendation_other)
+      formattedValues = processRecommendation(formattedValues);
 
       setLoading(true);
 
@@ -1245,6 +1306,8 @@ const SystemEdit = () => {
       let formattedValues = formatDateFieldsForAPI(values);
       // Process requirement_type field (split into requirement_type and requirement_type_other)
       formattedValues = processRequirementType(formattedValues);
+      // Process recommendation field (split into recommendation and recommendation_other)
+      formattedValues = processRecommendation(formattedValues);
 
       setLoading(true);
 
@@ -1309,7 +1372,9 @@ const SystemEdit = () => {
       const systemData = response.data;
 
       // Combine requirement_type and requirement_type_other for display
-      const displayData = combineRequirementTypeForDisplay(systemData);
+      let displayData = combineRequirementTypeForDisplay(systemData);
+      // Combine recommendation and recommendation_other for display
+      displayData = combineRecommendationForDisplay(displayData);
 
       // Pre-fill form with existing data
       form.setFieldsValue({
@@ -1859,6 +1924,7 @@ const SystemEdit = () => {
                 name="containerization"
                 initialValue={[]}
                 tooltip="Có thể chọn nhiều (Docker + Kubernetes + OpenShift)"
+                rules={AllValidationRules.containerization}
               >
                 <CheckboxGroupWithOther
                   options={containerizationOptions}
@@ -1868,13 +1934,13 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Multi-tenant" name="is_multi_tenant" valuePropName="checked">
+              <Form.Item label="Multi-tenant" name="is_multi_tenant" valuePropName="checked" rules={AllValidationRules.is_multi_tenant}>
                 <Switch />
               </Form.Item>
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Phân lớp (Layered)" name="has_layered_architecture" valuePropName="checked">
+              <Form.Item label="Phân lớp (Layered)" name="has_layered_architecture" valuePropName="checked" rules={AllValidationRules.has_layered_architecture}>
                 <Switch />
               </Form.Item>
             </Col>
@@ -1957,7 +2023,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="CI/CD Pipeline" name="has_cicd" valuePropName="checked">
+              <Form.Item label="CI/CD Pipeline" name="has_cicd" valuePropName="checked" rules={AllValidationRules.has_cicd}>
                 <Switch />
               </Form.Item>
             </Col>
@@ -1977,7 +2043,7 @@ const SystemEdit = () => {
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Automated Testing" name="has_automated_testing" valuePropName="checked">
+              <Form.Item label="Automated Testing" name="has_automated_testing" valuePropName="checked" rules={AllValidationRules.has_automated_testing}>
                 <Switch />
               </Form.Item>
             </Col>
@@ -2834,10 +2900,9 @@ const SystemEdit = () => {
                 tooltip="Đề xuất hành động cho hệ thống này"
                 rules={AllValidationRules.recommendation}
               >
-                <Select
+                <SelectWithOther
                   options={recommendationOptions}
                   placeholder="Chọn đề xuất"
-                  allowClear
                 />
               </Form.Item>
             </Col>

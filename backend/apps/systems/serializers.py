@@ -49,6 +49,7 @@ class SystemArchitectureSerializer(serializers.ModelSerializer):
     architecture_type = CommaSeparatedListField(required=False)
     backend_tech = CommaSeparatedListField(required=False)
     frontend_tech = CommaSeparatedListField(required=False)
+    containerization = CommaSeparatedListField(required=False)  # ADDED 2026-01-23
 
     class Meta:
         model = SystemArchitecture

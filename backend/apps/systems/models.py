@@ -633,26 +633,32 @@ class SystemArchitecture(models.Model):
     cloud_provider = models.CharField(max_length=100, blank=True)
 
     # P1 Gap Analysis: Additional Architecture Fields
-    # NOTE: These fields were added without migrations, causing 500 errors. Commented out.
-    # TODO: Re-add via proper migrations if needed in future
-    # has_layered_architecture = models.BooleanField(
-    #     default=False,
-    #     verbose_name=_('Has Layered Architecture (4-tier)')
-    # )
-    # layered_architecture_details = models.TextField(
-    #     blank=True,
-    #     help_text='Presentation, Business Logic, Data Access, Integration'
-    # )
+    # FIXED 2026-01-23: Added migrations (0020_add_missing_architecture_fields)
+    has_layered_architecture = models.BooleanField(
+        default=False,
+        verbose_name=_('Has Layered Architecture (4-tier)')
+    )
+    layered_architecture_details = models.TextField(
+        blank=True,
+        help_text='Presentation, Business Logic, Data Access, Integration'
+    )
 
-    # NOTE: All fields below were added without migrations, causing 500 errors. Commented out.
-    # TODO: Re-add via proper migrations if needed in future
-    # # Containerization & Orchestration
-    # containerization = models.CharField(
-    #     max_length=50,
-    #     choices=CONTAINERIZATION_CHOICES,
-    #     blank=True,
-    #     verbose_name=_('Containerization')
-    # )
+    # Containerization & Orchestration
+    # FIXED 2026-01-23: Changed to plain CharField to store comma-separated values
+    # Frontend uses CheckboxGroupWithOther which sends array, serializer converts to CSV
+    containerization = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name=_('Containerization'),
+        help_text='Comma-separated list: docker,kubernetes,openshift'
+    )
+
+    # Multi-tenant support (NEW FIELD 2026-01-23)
+    is_multi_tenant = models.BooleanField(
+        default=False,
+        verbose_name=_('Is Multi-tenant'),
+        help_text='Does the system support multiple tenants/organizations?'
+    )
 
     # API & Integration
     api_style = models.CharField(
@@ -701,29 +707,29 @@ class SystemArchitecture(models.Model):
         blank=True,
         verbose_name=_('Source Code Repository')
     )
-    #
-    # # CI/CD
-    # has_cicd = models.BooleanField(
-    #     default=False,
-    #     verbose_name=_('Has CI/CD Pipeline')
-    # )
-    # cicd_tool = models.CharField(
-    #     max_length=50,
-    #     choices=CICD_TOOL_CHOICES,
-    #     blank=True,
-    #     verbose_name=_('CI/CD Tool')
-    # )
-    #
-    # # Automated Testing
-    # has_automated_testing = models.BooleanField(
-    #     default=False,
-    #     verbose_name=_('Has Automated Testing')
-    # )
-    # automated_testing_tools = models.CharField(
-    #     max_length=255,
-    #     blank=True,
-    #     help_text='e.g., Jest, Pytest, Selenium, JUnit'
-    # )
+
+    # CI/CD (UNCOMMENTED 2026-01-23: Migration 0020)
+    has_cicd = models.BooleanField(
+        default=False,
+        verbose_name=_('Has CI/CD Pipeline')
+    )
+    cicd_tool = models.CharField(
+        max_length=50,
+        choices=CICD_TOOL_CHOICES,
+        blank=True,
+        verbose_name=_('CI/CD Tool')
+    )
+
+    # Automated Testing (UNCOMMENTED 2026-01-23: Migration 0020)
+    has_automated_testing = models.BooleanField(
+        default=False,
+        verbose_name=_('Has Automated Testing')
+    )
+    automated_testing_tools = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text='e.g., Jest, Pytest, Selenium, JUnit'
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

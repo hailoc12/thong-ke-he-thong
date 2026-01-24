@@ -1021,6 +1021,7 @@ const SystemEdit = () => {
   // Validation state tracking
   const [tabValidationStatus, setTabValidationStatus] = useState<Record<string, boolean>>({});
   const [isCurrentTabValid, setIsCurrentTabValid] = useState(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   useEffect(() => {
     fetchOrganizations();
@@ -1084,9 +1085,11 @@ const SystemEdit = () => {
     }, 300);
   }, [form, currentTab]);
 
-  // Validate current tab whenever tab changes
+  // Validate current tab whenever tab changes (only after data is loaded)
   useEffect(() => {
-    triggerValidation();
+    if (isDataLoaded) {
+      triggerValidation();
+    }
 
     // Cleanup timer on unmount
     return () => {
@@ -1094,7 +1097,7 @@ const SystemEdit = () => {
         clearTimeout(validationTimerRef.current);
       }
     };
-  }, [triggerValidation]);
+  }, [triggerValidation, isDataLoaded]);
 
   // Navigation guard - validate and check unsaved changes
   const handleTabChange = async (newTabKey: string) => {
@@ -1376,6 +1379,14 @@ const SystemEdit = () => {
       // Combine recommendation and recommendation_other for display
       displayData = combineRecommendationForDisplay(displayData);
 
+      // Convert date strings to dayjs objects for DatePicker components
+      const dateFields = ['target_completion_date', 'go_live_date'];
+      dateFields.forEach(field => {
+        if (displayData[field] && typeof displayData[field] === 'string') {
+          displayData[field] = dayjs(displayData[field]);
+        }
+      });
+
       // Pre-fill form with existing data
       form.setFieldsValue({
         ...displayData,
@@ -1390,6 +1401,9 @@ const SystemEdit = () => {
         // Initialize integration_connections from nested response
         integration_connections_data: displayData.integration_connections || [],
       });
+
+      // Mark data as loaded to enable validation
+      setIsDataLoaded(true);
     } catch (error: any) {
       console.error('Failed to fetch system data:', error);
       message.error('Không thể tải thông tin hệ thống!');

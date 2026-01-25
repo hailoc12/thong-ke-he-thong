@@ -191,6 +191,28 @@ const Systems = () => {
       render: (value: number) => value?.toLocaleString() || 0,
     },
     {
+      title: 'Tỷ lệ hoàn thành',
+      dataIndex: 'completion_percentage',
+      key: 'completion_percentage',
+      width: 140,
+      align: 'center',
+      responsive: ['lg'] as any, // Hide on mobile and tablet
+      render: (value: number) => {
+        const percentage = value || 0;
+        let color = '#f5222d'; // Red for low completion
+        if (percentage >= 80) {
+          color = '#52c41a'; // Green for high completion
+        } else if (percentage >= 50) {
+          color = '#faad14'; // Orange for medium completion
+        }
+        return (
+          <Tag color={color} style={{ minWidth: '60px', textAlign: 'center' }}>
+            {percentage.toFixed(1)}%
+          </Tag>
+        );
+      },
+    },
+    {
       title: 'Thao tác',
       key: 'action',
       width: isMobile ? 120 : 200,

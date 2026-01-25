@@ -78,6 +78,7 @@ export interface System {
   users_mau?: number;
   users_dau?: number;
   num_organizations?: number;
+  completion_percentage?: number;  // Tỷ lệ hoàn thành (%)
   created_at: string;
   updated_at: string;
 }

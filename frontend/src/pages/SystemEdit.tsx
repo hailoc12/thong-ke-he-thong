@@ -1408,10 +1408,25 @@ const SystemEdit = () => {
         if (typeof errorData === 'object' && !errorData.message) {
           const errorMessages: string[] = [];
 
-          Object.entries(errorData).forEach(([field, messages]) => {
-            const msg = Array.isArray(messages) ? messages.join(', ') : String(messages);
-            errorMessages.push(`${field}: ${msg}`);
-          });
+          // Helper function to extract errors from nested objects
+          const extractErrors = (obj: any, prefix: string = '') => {
+            Object.entries(obj).forEach(([field, messages]) => {
+              const fieldPath = prefix ? `${prefix}.${field}` : field;
+
+              if (Array.isArray(messages)) {
+                // Direct error messages array
+                errorMessages.push(`${fieldPath}: ${messages.join(', ')}`);
+              } else if (typeof messages === 'object' && messages !== null) {
+                // Nested error object - recurse
+                extractErrors(messages, fieldPath);
+              } else {
+                // String or other type
+                errorMessages.push(`${fieldPath}: ${String(messages)}`);
+              }
+            });
+          };
+
+          extractErrors(errorData);
 
           // Show all errors
           errorMessages.forEach(msg => message.error(msg, 5)); // 5 seconds duration

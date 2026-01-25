@@ -61,7 +61,8 @@ class SystemArchitectureSerializer(serializers.ModelSerializer):
 class SystemDataInfoSerializer(serializers.ModelSerializer):
     """Serializer for SystemDataInfo (PHẦN 3)"""
 
-    # No custom field needed here - data_classification_type is on System model, not SystemDataInfo
+    # Fix: Convert array to comma-separated string for CharField fields
+    file_storage_type = CommaSeparatedListField(required=False)  # ADDED 2026-01-25 - Fix validation error
 
     class Meta:
         model = SystemDataInfo

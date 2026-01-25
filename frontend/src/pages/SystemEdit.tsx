@@ -1098,7 +1098,8 @@ const transformFormValuesToAPIPayload = (flatValues: any): any => {
     'has_integration_diagram', 'integration_description',
     'uses_standard_api', 'api_standard',
     'has_api_gateway', 'api_gateway_name', 'has_api_versioning', 'has_rate_limiting',
-    'api_documentation', 'api_versioning_standard', 'has_integration_monitoring'
+    'api_documentation', 'api_versioning_standard', 'has_integration_monitoring',
+    'api_provided_count', 'api_consumed_count'  // ADDED 2026-01-25 - Fix API count fields not saving
   ];
 
   const assessmentFields = [

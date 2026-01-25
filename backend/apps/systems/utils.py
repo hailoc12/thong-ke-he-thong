@@ -1,6 +1,7 @@
 """
 Utility functions for the systems app.
 """
+from decimal import Decimal
 from typing import Dict, List, Any
 
 
@@ -52,10 +53,12 @@ def is_field_filled(value: Any) -> bool:
         # Boolean fields are always considered filled (True or False both count)
         return True
 
-    if isinstance(value, (int, float)):
+    if isinstance(value, (int, float, Decimal)):
         return True
 
-    return False
+    # ForeignKey and other model instances are considered filled if not None
+    # This handles org (ForeignKey to Organization) and other related fields
+    return True
 
 
 def calculate_system_completion_percentage(system_instance: Any) -> float:
@@ -89,7 +92,7 @@ def calculate_system_completion_percentage(system_instance: Any) -> float:
                     else:
                         field_value = None
                 # Tab 4: Some fields are in SystemDataInfo model
-                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy']:
+                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy', 'data_types']:
                     if hasattr(system_instance, 'data_info'):
                         field_value = getattr(system_instance.data_info, field_name, None)
                     else:
@@ -175,7 +178,7 @@ def get_incomplete_fields(system_instance: Any) -> List[str]:
                     else:
                         field_value = None
                 # Tab 4: Some fields are in SystemDataInfo model
-                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy']:
+                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy', 'data_types']:
                     if hasattr(system_instance, 'data_info'):
                         field_value = getattr(system_instance.data_info, field_name, None)
                     else:
@@ -251,7 +254,7 @@ def get_tab_completion_status(system_instance: Any) -> Dict[str, Dict[str, Any]]
                     else:
                         field_value = None
                 # Tab 4: Some fields are in SystemDataInfo model
-                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy']:
+                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy', 'data_types']:
                     if hasattr(system_instance, 'data_info'):
                         field_value = getattr(system_instance.data_info, field_name, None)
                     else:

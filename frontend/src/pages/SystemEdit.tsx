@@ -984,6 +984,167 @@ const combineRecommendationForDisplay = (data: any): any => {
   return displayData;
 };
 
+/**
+ * CRITICAL FIX: Transform nested API response to flat form values
+ * API returns nested structure but form expects flat fields
+ */
+const transformAPIResponseToFormValues = (apiResponse: any): any => {
+  const flatValues: any = {};
+
+  // Extract all root-level fields (System model fields)
+  Object.keys(apiResponse).forEach(key => {
+    // Skip nested objects - we'll handle them separately
+    if (!['architecture', 'data_info', 'operations', 'integration', 'assessment',
+          'integration_connections', 'cost_data', 'vendor_data',
+          'infrastructure_data', 'security_data', 'attachments'].includes(key)) {
+      flatValues[key] = apiResponse[key];
+    }
+  });
+
+  // Flatten nested architecture object
+  if (apiResponse.architecture) {
+    Object.keys(apiResponse.architecture).forEach(key => {
+      // Skip metadata fields
+      if (!['id', 'created_at', 'updated_at'].includes(key)) {
+        flatValues[key] = apiResponse.architecture[key];
+      }
+    });
+  }
+
+  // Flatten nested data_info object
+  if (apiResponse.data_info) {
+    Object.keys(apiResponse.data_info).forEach(key => {
+      if (!['id', 'created_at', 'updated_at'].includes(key)) {
+        flatValues[key] = apiResponse.data_info[key];
+      }
+    });
+  }
+
+  // Flatten nested operations object
+  if (apiResponse.operations) {
+    Object.keys(apiResponse.operations).forEach(key => {
+      if (!['id', 'created_at', 'updated_at'].includes(key)) {
+        flatValues[key] = apiResponse.operations[key];
+      }
+    });
+  }
+
+  // Flatten nested integration object
+  if (apiResponse.integration) {
+    Object.keys(apiResponse.integration).forEach(key => {
+      if (!['id', 'created_at', 'updated_at'].includes(key)) {
+        flatValues[key] = apiResponse.integration[key];
+      }
+    });
+  }
+
+  // Flatten nested assessment object
+  if (apiResponse.assessment) {
+    Object.keys(apiResponse.assessment).forEach(key => {
+      if (!['id', 'created_at', 'updated_at'].includes(key)) {
+        flatValues[key] = apiResponse.assessment[key];
+      }
+    });
+  }
+
+  return flatValues;
+};
+
+/**
+ * CRITICAL FIX: Transform flat form values to nested API payload
+ * Backend expects nested structure:
+ * - architecture_data for SystemArchitecture fields
+ * - data_info_data for SystemDataInfo fields
+ * - operations_data for SystemOperations fields
+ * - integration_data for SystemIntegration fields
+ * - assessment_data for SystemAssessment fields
+ * - integration_connections_data for integration connections array
+ */
+const transformFormValuesToAPIPayload = (flatValues: any): any => {
+  // Define field mappings
+  const architectureFields = [
+    'architecture_type', 'has_architecture_diagram', 'architecture_description',
+    'backend_tech', 'frontend_tech', 'mobile_app',
+    'database_type', 'database_model', 'has_data_model_doc',
+    'hosting_type', 'cloud_provider',
+    'has_layered_architecture', 'layered_architecture_details',
+    'containerization', 'is_multi_tenant',
+    'api_style', 'messaging_queue',
+    'cache_system', 'search_engine', 'reporting_bi_tool',
+    'source_repository', 'has_cicd', 'cicd_tool',
+    'has_automated_testing', 'automated_testing_tools'
+  ];
+
+  const dataInfoFields = [
+    'storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent',
+    'data_types', 'has_api', 'api_endpoints_count', 'shared_with_systems',
+    'has_data_standard', 'has_personal_data', 'has_sensitive_data',
+    'data_classification',
+    'secondary_databases', 'file_storage_type', 'record_count',
+    'data_retention_policy'
+  ];
+
+  const operationsFields = [
+    'dev_type', 'developer', 'dev_team_size',
+    'warranty_status', 'warranty_end_date', 'has_maintenance_contract', 'maintenance_end_date',
+    'operator', 'ops_team_size', 'vendor_dependency', 'can_self_maintain',
+    'support_level', 'avg_incident_response_hours',
+    'deployment_location', 'compute_type', 'compute_specifications', 'deployment_frequency'
+  ];
+
+  const integrationFields = [
+    'has_integration', 'integration_count', 'integration_types',
+    'connected_internal_systems', 'connected_external_systems',
+    'has_integration_diagram', 'integration_description',
+    'uses_standard_api', 'api_standard',
+    'has_api_gateway', 'api_gateway_name', 'has_api_versioning', 'has_rate_limiting',
+    'api_documentation', 'api_versioning_standard', 'has_integration_monitoring'
+  ];
+
+  const assessmentFields = [
+    'recommendation', 'recommendation_other',
+    'blockers', 'integration_readiness'
+  ];
+
+  // Initialize nested objects
+  const systemData: any = {};
+  const architecture_data: any = {};
+  const data_info_data: any = {};
+  const operations_data: any = {};
+  const integration_data: any = {};
+  const assessment_data: any = {};
+
+  // Distribute fields to appropriate objects
+  Object.keys(flatValues).forEach(key => {
+    const value = flatValues[key];
+
+    if (architectureFields.includes(key)) {
+      architecture_data[key] = value;
+    } else if (dataInfoFields.includes(key)) {
+      data_info_data[key] = value;
+    } else if (operationsFields.includes(key)) {
+      operations_data[key] = value;
+    } else if (integrationFields.includes(key)) {
+      integration_data[key] = value;
+    } else if (assessmentFields.includes(key)) {
+      assessment_data[key] = value;
+    } else {
+      // All other fields go to System model (root level)
+      systemData[key] = value;
+    }
+  });
+
+  // Combine all nested data
+  return {
+    ...systemData,
+    architecture_data,
+    data_info_data,
+    operations_data,
+    integration_data,
+    assessment_data,
+  };
+};
+
 // Tab save state tracking interface
 interface TabSaveState {
   [tabKey: string]: {
@@ -1217,11 +1378,13 @@ const SystemEdit = () => {
       formattedValues = processRequirementType(formattedValues);
       // Process recommendation field (split into recommendation and recommendation_other)
       formattedValues = processRecommendation(formattedValues);
+      // CRITICAL FIX: Transform flat structure to nested structure expected by backend
+      const apiPayload = transformFormValuesToAPIPayload(formattedValues);
 
       setLoading(true);
 
       // For edit mode, always PATCH existing system
-      await api.patch(`/systems/${id}/`, formattedValues);
+      await api.patch(`/systems/${id}/`, apiPayload);
 
       setTabStates(prev => ({
         ...prev,
@@ -1311,12 +1474,14 @@ const SystemEdit = () => {
       formattedValues = processRequirementType(formattedValues);
       // Process recommendation field (split into recommendation and recommendation_other)
       formattedValues = processRecommendation(formattedValues);
+      // CRITICAL FIX: Transform flat structure to nested structure expected by backend
+      const apiPayload = transformFormValuesToAPIPayload(formattedValues);
 
       setLoading(true);
 
       try {
         // Final update - mark as not draft
-        await api.patch(`/systems/${id}/`, { ...formattedValues, is_draft: false });
+        await api.patch(`/systems/${id}/`, { ...apiPayload, is_draft: false });
         message.success('Cập nhật hệ thống thành công!');
 
         // Set loading to false before navigation to prevent UI blocking
@@ -1374,13 +1539,16 @@ const SystemEdit = () => {
       const response = await api.get(`/systems/${id}/`);
       const systemData = response.data;
 
+      // CRITICAL FIX: Transform nested API response to flat form values
+      let displayData = transformAPIResponseToFormValues(systemData);
+
       // Combine requirement_type and requirement_type_other for display
-      let displayData = combineRequirementTypeForDisplay(systemData);
+      displayData = combineRequirementTypeForDisplay(displayData);
       // Combine recommendation and recommendation_other for display
       displayData = combineRecommendationForDisplay(displayData);
 
       // Convert date strings to dayjs objects for DatePicker components
-      const dateFields = ['target_completion_date', 'go_live_date'];
+      const dateFields = ['target_completion_date', 'go_live_date', 'warranty_end_date', 'maintenance_end_date'];
       dateFields.forEach(field => {
         if (displayData[field] && typeof displayData[field] === 'string') {
           displayData[field] = dayjs(displayData[field]);
@@ -1399,7 +1567,7 @@ const SystemEdit = () => {
         integrated_external_systems: displayData.integrated_external_systems || [],
         api_list: displayData.api_list || [],
         // Initialize integration_connections from nested response
-        integration_connections_data: displayData.integration_connections || [],
+        integration_connections_data: systemData.integration_connections || [],
       });
 
       // Mark data as loaded to enable validation

@@ -937,6 +937,101 @@ const processRecommendation = (values: any): any => {
   return processedValues;
 };
 
+/**
+ * CRITICAL FIX: Transform flat form values to nested API payload
+ * Backend expects nested structure:
+ * - architecture_data for SystemArchitecture fields
+ * - data_info_data for SystemDataInfo fields
+ * - operations_data for SystemOperations fields
+ * - integration_data for SystemIntegration fields
+ * - assessment_data for SystemAssessment fields
+ * - integration_connections_data for integration connections array
+ */
+const transformFormValuesToAPIPayload = (flatValues: any): any => {
+  // Define field mappings
+  const architectureFields = [
+    'architecture_type', 'has_architecture_diagram', 'architecture_description',
+    'backend_tech', 'frontend_tech', 'mobile_app',
+    'database_type', 'database_model', 'has_data_model_doc',
+    'hosting_type', 'cloud_provider',
+    'has_layered_architecture', 'layered_architecture_details',
+    'containerization', 'is_multi_tenant',
+    'api_style', 'messaging_queue',
+    'cache_system', 'search_engine', 'reporting_bi_tool',
+    'source_repository', 'has_cicd', 'cicd_tool',
+    'has_automated_testing', 'automated_testing_tools'
+  ];
+
+  const dataInfoFields = [
+    'storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent',
+    'data_types', 'has_api', 'api_endpoints_count', 'shared_with_systems',
+    'has_data_standard', 'has_personal_data', 'has_sensitive_data',
+    'data_classification',
+    'secondary_databases', 'file_storage_type', 'record_count',
+    'data_retention_policy'
+  ];
+
+  const operationsFields = [
+    'dev_type', 'developer', 'dev_team_size',
+    'warranty_status', 'warranty_end_date', 'has_maintenance_contract', 'maintenance_end_date',
+    'operator', 'ops_team_size', 'vendor_dependency', 'can_self_maintain',
+    'support_level', 'avg_incident_response_hours',
+    'deployment_location', 'compute_type', 'compute_specifications', 'deployment_frequency'
+  ];
+
+  const integrationFields = [
+    'has_integration', 'integration_count', 'integration_types',
+    'connected_internal_systems', 'connected_external_systems',
+    'has_integration_diagram', 'integration_description',
+    'uses_standard_api', 'api_standard',
+    'has_api_gateway', 'api_gateway_name', 'has_api_versioning', 'has_rate_limiting',
+    'api_documentation', 'api_versioning_standard', 'has_integration_monitoring'
+  ];
+
+  const assessmentFields = [
+    'recommendation', 'recommendation_other',
+    'blockers', 'integration_readiness'
+  ];
+
+  // Initialize nested objects
+  const systemData: any = {};
+  const architecture_data: any = {};
+  const data_info_data: any = {};
+  const operations_data: any = {};
+  const integration_data: any = {};
+  const assessment_data: any = {};
+
+  // Distribute fields to appropriate objects
+  Object.keys(flatValues).forEach(key => {
+    const value = flatValues[key];
+
+    if (architectureFields.includes(key)) {
+      architecture_data[key] = value;
+    } else if (dataInfoFields.includes(key)) {
+      data_info_data[key] = value;
+    } else if (operationsFields.includes(key)) {
+      operations_data[key] = value;
+    } else if (integrationFields.includes(key)) {
+      integration_data[key] = value;
+    } else if (assessmentFields.includes(key)) {
+      assessment_data[key] = value;
+    } else {
+      // All other fields go to System model (root level)
+      systemData[key] = value;
+    }
+  });
+
+  // Combine all nested data
+  return {
+    ...systemData,
+    architecture_data,
+    data_info_data,
+    operations_data,
+    integration_data,
+    assessment_data,
+  };
+};
+
 // Tab save state tracking interface
 interface TabSaveState {
   [tabKey: string]: {
@@ -1170,16 +1265,18 @@ const SystemCreate = () => {
       formattedValues = processRequirementType(formattedValues);
       // Process recommendation field (split into recommendation and recommendation_other)
       formattedValues = processRecommendation(formattedValues);
+      // CRITICAL FIX: Transform flat structure to nested structure expected by backend
+      const apiPayload = transformFormValuesToAPIPayload(formattedValues);
 
       setLoading(true);
 
       // Call API to save draft
       if (_systemId) {
         // Edit mode - PATCH existing
-        await api.patch(`/systems/${_systemId}/`, formattedValues);
+        await api.patch(`/systems/${_systemId}/`, apiPayload);
       } else {
         // Create mode - POST new (returns ID for subsequent saves)
-        const response = await api.post('/systems/', { ...formattedValues, is_draft: true });
+        const response = await api.post('/systems/', { ...apiPayload, is_draft: true });
         _setSystemId(response.data.id); // Store ID for next saves
       }
 
@@ -1272,17 +1369,19 @@ const SystemCreate = () => {
       formattedValues = processRequirementType(formattedValues);
       // Process recommendation field (split into recommendation and recommendation_other)
       formattedValues = processRecommendation(formattedValues);
+      // CRITICAL FIX: Transform flat structure to nested structure expected by backend
+      const apiPayload = transformFormValuesToAPIPayload(formattedValues);
 
       setLoading(true);
 
       try {
         if (_systemId) {
           // Final update - mark as not draft
-          await api.patch(`/systems/${_systemId}/`, { ...formattedValues, is_draft: false });
+          await api.patch(`/systems/${_systemId}/`, { ...apiPayload, is_draft: false });
           message.success('Lưu hệ thống thành công!');
         } else {
           // Create final (no draft ID yet)
-          await api.post('/systems/', { ...formattedValues, is_draft: false });
+          await api.post('/systems/', { ...apiPayload, is_draft: false });
           message.success('Tạo hệ thống thành công!');
         }
 

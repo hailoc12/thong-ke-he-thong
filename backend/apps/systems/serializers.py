@@ -50,6 +50,8 @@ class SystemArchitectureSerializer(serializers.ModelSerializer):
     backend_tech = CommaSeparatedListField(required=False)
     frontend_tech = CommaSeparatedListField(required=False)
     containerization = CommaSeparatedListField(required=False)  # ADDED 2026-01-23
+    api_style = CommaSeparatedListField(required=False)  # ADDED 2026-01-25 - Fix validation error
+    messaging_queue = CommaSeparatedListField(required=False)  # ADDED 2026-01-25 - Fix validation error
 
     class Meta:
         model = SystemArchitecture
@@ -410,6 +412,13 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         """Update System and nested related models"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # DEBUG: Log what data was received
+        logger.info(f"🔍 UPDATE called for System {instance.id}")
+        logger.info(f"🔍 validated_data keys: {list(validated_data.keys())}")
+
         # Extract nested data (now using relationship names due to source parameter)
         architecture_data = validated_data.pop('architecture', None)
         data_info_data = validated_data.pop('data_info', None)
@@ -422,6 +431,10 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
         infrastructure_data = validated_data.pop('infrastructure', None)
         security_data = validated_data.pop('security', None)
 
+        # DEBUG: Log extracted architecture data
+        if architecture_data is not None:
+            logger.info(f"🔍 architecture_data extracted: {architecture_data}")
+
         # Update System fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -429,10 +442,16 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
 
         # Update Level 1 related models
         if architecture_data is not None:
-            arch, _ = SystemArchitecture.objects.get_or_create(system=instance)
+            arch, created = SystemArchitecture.objects.get_or_create(system=instance)
+            logger.info(f"🔍 SystemArchitecture {'created' if created else 'retrieved'} for system {instance.id}")
+
             for attr, value in architecture_data.items():
+                logger.info(f"🔍 Setting {attr} = {value}")
                 setattr(arch, attr, value)
+
             arch.save()
+            logger.info(f"✅ SystemArchitecture saved for system {instance.id}")
+            logger.info(f"✅ Saved values - backend_tech: {arch.backend_tech}, frontend_tech: {arch.frontend_tech}, api_style: {arch.api_style}")
 
         if data_info_data is not None:
             data_info, _ = SystemDataInfo.objects.get_or_create(system=instance)

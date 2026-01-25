@@ -97,9 +97,15 @@ class Command(BaseCommand):
                         else:
                             field_value = None
                     # Tab 4: Some fields are in SystemDataInfo model
-                    elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy']:
+                    elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_types']:
                         if hasattr(system, 'data_info'):
                             field_value = getattr(system.data_info, field_name, None)
+                        else:
+                            field_value = None
+                    # Tab 8: support_level is in SystemOperations model
+                    elif tab_key == 'tab8' and field_name == 'support_level':
+                        if hasattr(system, 'operations'):
+                            field_value = getattr(system.operations, 'support_level', None)
                         else:
                             field_value = None
                     # Tab 9: All fields are in SystemAssessment model

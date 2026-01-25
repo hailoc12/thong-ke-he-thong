@@ -11,7 +11,7 @@ REQUIRED_FIELDS_MAP: Dict[str, List[str]] = {
     'tab1': ['org', 'system_name', 'system_name_en', 'purpose', 'status', 'criticality_level', 'scope', 'system_group', 'go_live_date', 'current_version'],
     'tab2': ['business_objectives', 'business_processes', 'user_types', 'annual_users'],
     'tab3': ['programming_language', 'framework', 'database_name', 'hosting_platform', 'architecture_type', 'architecture_description', 'backend_tech', 'frontend_tech', 'mobile_app', 'database_type', 'database_model', 'hosting_type'],
-    'tab4': ['data_sources', 'data_types', 'data_classification_type', 'data_volume', 'storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy'],
+    'tab4': ['data_sources', 'data_types', 'data_classification_type', 'data_volume', 'storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases'],
     'tab5': ['data_exchange_method', 'api_provided_count'],
     'tab6': ['authentication_method', 'has_encryption', 'has_audit_log', 'security_level'],
     'tab7': ['server_configuration', 'backup_plan', 'storage_capacity', 'disaster_recovery_plan'],
@@ -92,9 +92,15 @@ def calculate_system_completion_percentage(system_instance: Any) -> float:
                     else:
                         field_value = None
                 # Tab 4: Some fields are in SystemDataInfo model
-                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy', 'data_types']:
+                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_types']:
                     if hasattr(system_instance, 'data_info'):
                         field_value = getattr(system_instance.data_info, field_name, None)
+                    else:
+                        field_value = None
+                # Tab 8: support_level is in SystemOperations model
+                elif tab_key == 'tab8' and field_name == 'support_level':
+                    if hasattr(system_instance, 'operations'):
+                        field_value = getattr(system_instance.operations, 'support_level', None)
                     else:
                         field_value = None
                 # Tab 9: All fields are in SystemAssessment model
@@ -178,9 +184,15 @@ def get_incomplete_fields(system_instance: Any) -> List[str]:
                     else:
                         field_value = None
                 # Tab 4: Some fields are in SystemDataInfo model
-                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy', 'data_types']:
+                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_types']:
                     if hasattr(system_instance, 'data_info'):
                         field_value = getattr(system_instance.data_info, field_name, None)
+                    else:
+                        field_value = None
+                # Tab 8: support_level is in SystemOperations model
+                elif tab_key == 'tab8' and field_name == 'support_level':
+                    if hasattr(system_instance, 'operations'):
+                        field_value = getattr(system_instance.operations, 'support_level', None)
                     else:
                         field_value = None
                 # Tab 9: All fields are in SystemAssessment model
@@ -254,9 +266,15 @@ def get_tab_completion_status(system_instance: Any) -> Dict[str, Dict[str, Any]]
                     else:
                         field_value = None
                 # Tab 4: Some fields are in SystemDataInfo model
-                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_retention_policy', 'data_types']:
+                elif tab_key == 'tab4' and field_name in ['storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases', 'data_types']:
                     if hasattr(system_instance, 'data_info'):
                         field_value = getattr(system_instance.data_info, field_name, None)
+                    else:
+                        field_value = None
+                # Tab 8: support_level is in SystemOperations model
+                elif tab_key == 'tab8' and field_name == 'support_level':
+                    if hasattr(system_instance, 'operations'):
+                        field_value = getattr(system_instance.operations, 'support_level', None)
                     else:
                         field_value = None
                 # Tab 9: All fields are in SystemAssessment model

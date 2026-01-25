@@ -8,15 +8,15 @@ from typing import Dict, List, Any
 # Define required fields per tab for completion percentage calculation
 # These match the 72 required fields in frontend systemValidationRules.ts
 REQUIRED_FIELDS_MAP: Dict[str, List[str]] = {
-    'tab1': ['org', 'system_name', 'system_name_en', 'purpose', 'status', 'criticality_level', 'scope', 'system_group', 'current_version'],
+    'tab1': ['org', 'system_name', 'system_name_en', 'purpose', 'status', 'criticality_level', 'scope', 'system_group'],
     'tab2': ['business_objectives', 'business_processes', 'user_types', 'annual_users'],
-    'tab3': ['programming_language', 'framework', 'database_name', 'hosting_platform', 'architecture_type', 'architecture_description', 'backend_tech', 'frontend_tech', 'mobile_app', 'database_type', 'database_model', 'hosting_type'],
+    'tab3': ['programming_language', 'framework', 'database_name', 'hosting_platform', 'architecture_type', 'backend_tech', 'frontend_tech', 'mobile_app'],
     'tab4': ['data_sources', 'data_types', 'data_classification_type', 'data_volume', 'storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases'],
     'tab5': ['data_exchange_method', 'api_provided_count'],
     'tab6': ['authentication_method', 'has_encryption', 'has_audit_log', 'security_level'],
     'tab7': ['server_configuration', 'backup_plan', 'storage_capacity', 'disaster_recovery_plan'],
-    'tab8': ['business_owner', 'technical_owner', 'responsible_person', 'responsible_phone', 'responsible_email', 'support_level', 'users_mau', 'users_dau'],
-    'tab9': ['technical_debt_level', 'recommendation', 'integration_readiness', 'blockers', 'replacement_plan', 'major_issues', 'improvement_suggestions', 'future_plans', 'modernization_priority'],
+    'tab8': ['business_owner', 'technical_owner', 'responsible_phone', 'responsible_email', 'support_level', 'users_mau', 'users_dau'],
+    'tab9': ['integration_readiness', 'blockers'],
 }
 
 # Conditional required fields - only count if condition is met

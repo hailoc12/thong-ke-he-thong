@@ -357,6 +357,7 @@ const integrationReadinessOptions = [
   { label: 'Có API tốt', value: 'good_api' },
   { label: 'Dữ liệu rõ nguồn gốc', value: 'clear_data_source' },
   { label: 'Có thể tách dịch vụ', value: 'can_split_service' },
+  { label: 'Khác', value: 'other' },
 ];
 
 const blockersOptions = [
@@ -365,6 +366,7 @@ const blockersOptions = [
   { label: 'Không có API', value: 'no_api' },
   { label: 'Dữ liệu không sạch', value: 'dirty_data' },
   { label: 'Phụ thuộc nhà thầu', value: 'vendor_dependency' },
+  { label: 'Khác', value: 'other' },
 ];
 
 const recommendationOptions = [

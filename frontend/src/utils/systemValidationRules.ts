@@ -57,8 +57,8 @@ export const Tab1ValidationRules = {
   go_live_date: [createRequiredRule('Vui lòng chọn ngày đưa vào vận hành')],
   current_version: [createRequiredRule('Vui lòng nhập phiên bản hiện tại')],
 
-  // Additional notes
-  additional_notes_tab1: [createRequiredRule('Vui lòng nhập ghi chú bổ sung cho tab này')],
+  // Additional notes - Optional (no validation)
+  additional_notes_tab1: [],
 };
 
 // ==================== TAB 2: BỐI CẢNH NGHIỆP VỤ ====================
@@ -67,15 +67,15 @@ export const Tab2ValidationRules = {
   business_objectives: [createRequiredArrayRule('Vui lòng chọn ít nhất một mục tiêu nghiệp vụ')],
   business_processes: [createRequiredArrayRule('Vui lòng chọn ít nhất một quy trình nghiệp vụ')],
   user_types: [createRequiredArrayRule('Vui lòng chọn ít nhất một loại người dùng')],
-  has_design_documents: [createRequiredRule('Vui lòng chọn có đủ hồ sơ phân tích thiết kế hay không')],
+  has_design_documents: [],  // Boolean - no validation needed (default False)
   annual_users: [createRequiredRule('Vui lòng nhập số lượng người dùng hàng năm')],
   total_accounts: [createRequiredRule('Vui lòng nhập tổng số tài khoản')],
   users_mau: [createRequiredRule('Vui lòng nhập số người dùng hoạt động hàng tháng (MAU)')],
   users_dau: [createRequiredRule('Vui lòng nhập số người dùng hoạt động hàng ngày (DAU)')],
   num_organizations: [createRequiredRule('Vui lòng nhập số đơn vị/địa phương sử dụng')],
 
-  // Additional notes
-  additional_notes_tab2: [createRequiredRule('Vui lòng nhập ghi chú bổ sung cho tab này')],
+  // Additional notes - Optional (no validation)
+  additional_notes_tab2: [],
 };
 
 // ==================== TAB 3: KIẾN TRÚC CÔNG NGHỆ ====================
@@ -107,19 +107,19 @@ export const Tab3ValidationRules = {
   reporting_bi_tool: [createRequiredRule('Vui lòng chọn reporting/BI tool')],
   source_repository: [createRequiredRule('Vui lòng chọn source code repository')],
 
-  // Boolean switches - now required
-  has_cicd: [createRequiredRule('Vui lòng chọn có CI/CD pipeline hay không')],
-  has_automated_testing: [createRequiredRule('Vui lòng chọn có automated testing hay không')],
-  is_multi_tenant: [createRequiredRule('Vui lòng chọn có hỗ trợ multi-tenant hay không')],
-  has_layered_architecture: [createRequiredRule('Vui lòng chọn có kiến trúc phân lớp hay không')],
+  // Boolean switches - NO validation needed (default False is valid)
+  has_cicd: [],
+  has_automated_testing: [],
+  is_multi_tenant: [],
+  has_layered_architecture: [],
 
   // Tool fields - converted from conditional to always required
   cicd_tool: [createRequiredRule('Vui lòng chọn công cụ CI/CD')],
   automated_testing_tools: [createRequiredRule('Vui lòng nhập công cụ automated testing')],
   layered_architecture_details: [createRequiredRule('Vui lòng mô tả chi tiết kiến trúc phân lớp')],
 
-  // Additional notes
-  additional_notes_tab3: [createRequiredRule('Vui lòng nhập ghi chú bổ sung cho tab này')],
+  // Additional notes - Optional (no validation)
+  additional_notes_tab3: [],
 };
 
 // ==================== TAB 4: KIẾN TRÚC DỮ LIỆU ====================
@@ -139,16 +139,16 @@ export const Tab4ValidationRules = {
   record_count: [createRequiredRule('Vui lòng nhập số bản ghi')],
   secondary_databases: [createRequiredRule('Vui lòng nhập CSDL phụ/khác')],
 
-  // Boolean switches - now required
-  has_data_catalog: [createRequiredRule('Vui lòng chọn có Data Catalog hay không')],
-  has_mdm: [createRequiredRule('Vui lòng chọn có Master Data Management hay không')],
+  // Boolean switches - NO validation needed (default False is valid)
+  has_data_catalog: [],
+  has_mdm: [],
 
   // Data governance notes - converted from conditional to always required
   data_catalog_notes: [createRequiredRule('Vui lòng nhập ghi chú về Data Catalog')],
   mdm_notes: [createRequiredRule('Vui lòng nhập ghi chú về Master Data Management')],
 
-  // Additional notes
-  additional_notes_tab4: [createRequiredRule('Vui lòng nhập ghi chú bổ sung cho tab này')],
+  // Additional notes - Optional (no validation)
+  additional_notes_tab4: [],
 };
 
 // ==================== TAB 5: TÍCH HỢP HỆ THỐNG ====================
@@ -160,16 +160,16 @@ export const Tab5ValidationRules = {
   api_standard: [createRequiredArrayRule('Vui lòng chọn ít nhất một chuẩn API')],
   api_list: [createRequiredArrayRule('Vui lòng nhập ít nhất một API/Webservice')],
 
-  // API Gateway & Management - now required
-  has_api_gateway: [createRequiredRule('Vui lòng chọn có API Gateway hay không')],
+  // API Gateway & Management - Boolean switches have no validation (default False)
+  has_api_gateway: [],
   api_gateway_name: [createRequiredRule('Vui lòng chọn tên API Gateway')],
-  has_api_versioning: [createRequiredRule('Vui lòng chọn có API versioning hay không')],
-  has_rate_limiting: [createRequiredRule('Vui lòng chọn có rate limiting hay không')],
+  has_api_versioning: [],
+  has_rate_limiting: [],
 
-  // API Documentation & Monitoring - now required
+  // API Documentation & Monitoring - Boolean switch has no validation (default False)
   api_documentation: [createRequiredRule('Vui lòng nhập tài liệu API')],
   api_versioning_standard: [createRequiredRule('Vui lòng chọn chuẩn phiên bản API')],
-  has_integration_monitoring: [createRequiredRule('Vui lòng chọn có giám sát tích hợp hay không')],
+  has_integration_monitoring: [],
 
   // Integration systems - now required
   integrated_internal_systems: [createRequiredArrayRule('Vui lòng chọn ít nhất một hệ thống nội bộ tích hợp')],
@@ -178,11 +178,11 @@ export const Tab5ValidationRules = {
 
   // API Connection Modal fields (for SystemIntegrationConnection)
   error_handling: [createRequiredRule('Vui lòng nhập cơ chế xử lý lỗi/retry')],
-  has_api_docs: [createRequiredRule('Vui lòng chọn có tài liệu API hay không')],
+  has_api_docs: [],  // Boolean - no validation needed (default False)
   notes: [createRequiredRule('Vui lòng nhập ghi chú')],
 
-  // Additional notes
-  additional_notes_tab5: [createRequiredRule('Vui lòng nhập ghi chú bổ sung cho tab này')],
+  // Additional notes - Optional (no validation)
+  additional_notes_tab5: [],
 };
 
 // ==================== TAB 6: AN TOÀN THÔNG TIN ====================
@@ -190,15 +190,15 @@ export const Tab5ValidationRules = {
 export const Tab6ValidationRules = {
   // Core security fields - always required
   authentication_method: [createRequiredArrayRule('Vui lòng chọn ít nhất một phương thức xác thực')],
-  has_encryption: [createRequiredRule('Vui lòng chọn có mã hóa dữ liệu hay không')],
-  has_audit_log: [createRequiredRule('Vui lòng chọn có log audit trail hay không')],
+  has_encryption: [],  // Boolean - no validation needed (default False)
+  has_audit_log: [],   // Boolean - no validation needed (default False)
   security_level: [createRequiredRule('Vui lòng chọn mức độ an toàn thông tin')],
 
-  // Security documentation - now required
-  has_security_documents: [createRequiredRule('Vui lòng chọn có tài liệu ATTT hay không')],
+  // Security documentation - Boolean - no validation needed (default False)
+  has_security_documents: [],
 
-  // Additional notes
-  additional_notes_tab6: [createRequiredRule('Vui lòng nhập ghi chú bổ sung cho tab này')],
+  // Additional notes - Optional (no validation)
+  additional_notes_tab6: [],
 };
 
 // ==================== TAB 7: HẠ TẦNG ====================
@@ -216,8 +216,8 @@ export const Tab7ValidationRules = {
   compute_type: [createRequiredRule('Vui lòng chọn loại hạ tầng tính toán')],
   deployment_frequency: [createRequiredRule('Vui lòng chọn tần suất triển khai')],
 
-  // Additional notes
-  additional_notes_tab7: [createRequiredRule('Vui lòng nhập ghi chú bổ sung cho tab này')],
+  // Additional notes - Optional (no validation)
+  additional_notes_tab7: [],
 };
 
 // ==================== TAB 8: VẬN HÀNH ====================
@@ -232,8 +232,8 @@ export const Tab8ValidationRules = {
   // users_total, users_mau, users_dau: Removed - not required (null=True, blank=True in database)
   // These are metrics that may not be available when creating a new system
 
-  // Additional notes
-  additional_notes_tab8: [createRequiredRule('Vui lòng nhập ghi chú bổ sung cho tab này')],
+  // Additional notes - Optional (no validation)
+  additional_notes_tab8: [],
 };
 
 // ==================== TAB 9: ĐÁNH GIÁ ====================
@@ -274,13 +274,13 @@ export const TabFieldGroups: Record<string, string[]> = {
   '1': [
     'org', 'system_name', 'system_name_en', 'purpose', 'status',
     'criticality_level', 'scope', 'requirement_type', 'target_completion_date',
-    'system_group', 'go_live_date', 'current_version',
-    'additional_notes_tab1'
+    'system_group', 'go_live_date', 'current_version'
+    // additional_notes_tab1: Optional - not in validation
   ],
   '2': [
     'business_objectives', 'business_processes', 'user_types',
-    'has_design_documents', 'annual_users', 'total_accounts', 'users_mau', 'users_dau', 'num_organizations',
-    'additional_notes_tab2'
+    'has_design_documents', 'annual_users', 'total_accounts', 'users_mau', 'users_dau', 'num_organizations'
+    // additional_notes_tab2: Optional - not in validation
   ],
   '3': [
     // Core technology
@@ -294,8 +294,8 @@ export const TabFieldGroups: Record<string, string[]> = {
     // Boolean switches
     'has_cicd', 'has_automated_testing', 'is_multi_tenant', 'has_layered_architecture',
     // Tool fields (now always required)
-    'cicd_tool', 'automated_testing_tools', 'layered_architecture_details',
-    'additional_notes_tab3'
+    'cicd_tool', 'automated_testing_tools', 'layered_architecture_details'
+    // additional_notes_tab3: Optional - not in validation
   ],
   '4': [
     // Core data fields
@@ -304,8 +304,8 @@ export const TabFieldGroups: Record<string, string[]> = {
     // Database additional fields (uncommented 2026-01-23)
     'file_storage_type', 'record_count', 'secondary_databases',
     // Data governance
-    'has_data_catalog', 'has_mdm', 'data_catalog_notes', 'mdm_notes',
-    'additional_notes_tab4'
+    'has_data_catalog', 'has_mdm', 'data_catalog_notes', 'mdm_notes'
+    // additional_notes_tab4: Optional - not in validation
   ],
   '5': [
     // API statistics
@@ -315,25 +315,25 @@ export const TabFieldGroups: Record<string, string[]> = {
     // API Documentation & Monitoring
     'api_documentation', 'api_versioning_standard', 'has_integration_monitoring',
     // Integration systems
-    'integrated_internal_systems', 'integrated_external_systems', 'data_exchange_method',
-    'additional_notes_tab5'
+    'integrated_internal_systems', 'integrated_external_systems', 'data_exchange_method'
+    // additional_notes_tab5: Optional - not in validation
   ],
   '6': [
     'authentication_method', 'has_encryption', 'has_audit_log', 'security_level',
-    'has_security_documents',
-    'additional_notes_tab6'
+    'has_security_documents'
+    // additional_notes_tab6: Optional - not in validation
   ],
   '7': [
     // Core infrastructure
     'server_configuration', 'backup_plan', 'storage_capacity', 'disaster_recovery_plan',
     // Deployment & infrastructure details
-    'deployment_location', 'compute_specifications', 'compute_type', 'deployment_frequency',
-    'additional_notes_tab7'
+    'deployment_location', 'compute_specifications', 'compute_type', 'deployment_frequency'
+    // additional_notes_tab7: Optional - not in validation
   ],
   '8': [
     'business_owner', 'technical_owner', 'responsible_person',
-    'responsible_phone', 'responsible_email', 'support_level',
-    'additional_notes_tab8'
+    'responsible_phone', 'responsible_email', 'support_level'
+    // additional_notes_tab8: Optional - not in validation
   ],
   '9': [
     'performance_rating', 'user_satisfaction_rating', 'technical_debt_level',

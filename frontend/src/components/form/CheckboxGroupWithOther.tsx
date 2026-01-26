@@ -47,6 +47,10 @@ export const CheckboxGroupWithOther = ({
       } else {
         // This is custom text (not a predefined option)
         customText = val;
+        // BUG FIX: When custom text exists, ensure "other" checkbox is checked
+        if (!predefinedChecked.includes(otherValue)) {
+          predefinedChecked.push(otherValue);
+        }
       }
     });
 

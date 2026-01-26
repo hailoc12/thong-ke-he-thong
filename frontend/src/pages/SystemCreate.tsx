@@ -242,6 +242,7 @@ const cicdToolOptions = [
   { label: 'Azure Pipelines', value: 'azure_pipelines' },
   { label: 'CircleCI', value: 'circle_ci' },
   { label: 'Travis CI', value: 'travis_ci' },
+  { label: 'Không có', value: 'none' },
   { label: 'Khác', value: 'other' },
 ];
 

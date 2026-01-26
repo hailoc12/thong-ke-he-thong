@@ -130,20 +130,17 @@ class System(models.Model):
     # ======================================================================
     # SECTION 3: Technology Architecture
     # ======================================================================
-    programming_language = models.CharField(
-        max_length=255,
+    programming_language = models.TextField(
         blank=True,
         verbose_name=_('Programming Language'),
         help_text='e.g., Python, Java, JavaScript, C#'
     )
-    framework = models.CharField(
-        max_length=255,
+    framework = models.TextField(
         blank=True,
         verbose_name=_('Framework/Library'),
         help_text='e.g., Django, Spring Boot, React, Angular'
     )
-    database_name = models.CharField(
-        max_length=255,
+    database_name = models.TextField(
         blank=True,
         verbose_name=_('Database'),
         help_text='e.g., PostgreSQL, MySQL, MongoDB, Oracle'
@@ -167,14 +164,12 @@ class System(models.Model):
         blank=True,
         help_text='List of data sources (databases, APIs, files, etc.)'
     )
-    data_classification_type = models.CharField(
-        max_length=500,  # Increased to 500 to allow comma-separated values
+    data_classification_type = models.TextField(
         blank=True,
         verbose_name=_('Data Classification'),
         help_text='Data classification levels (can include: Public, Internal, Confidential, Secret, or custom values)'
     )
-    data_volume = models.CharField(
-        max_length=255,
+    data_volume = models.TextField(
         blank=True,
         verbose_name=_('Data Volume'),
         help_text='e.g., 100GB, 1TB, 10TB'
@@ -198,8 +193,7 @@ class System(models.Model):
         blank=True,
         help_text='List of APIs/Webservices provided or consumed'
     )
-    data_exchange_method = models.CharField(
-        max_length=255,
+    data_exchange_method = models.TextField(
         blank=True,
         verbose_name=_('Data Exchange Method'),
         help_text='e.g., REST API, SOAP, File Transfer, Database Sync'
@@ -222,8 +216,7 @@ class System(models.Model):
     # ======================================================================
     # SECTION 6: Security
     # ======================================================================
-    authentication_method = models.CharField(
-        max_length=500,  # Increased to 500 to allow comma-separated values
+    authentication_method = models.TextField(
         blank=True,
         verbose_name=_('Authentication Method'),
         help_text='Authentication methods (can include: username_password, sso, ldap, oauth, saml, biometric, smartcard, or custom values)'
@@ -238,8 +231,7 @@ class System(models.Model):
         verbose_name=_('Has Audit Log?'),
         help_text='Có log audit trail?'
     )
-    compliance_standards_list = models.CharField(
-        max_length=500,
+    compliance_standards_list = models.TextField(
         blank=True,
         verbose_name=_('Compliance Standards'),
         help_text='e.g., ISO 27001, GDPR, PCI DSS, SOC 2'
@@ -248,26 +240,22 @@ class System(models.Model):
     # ======================================================================
     # SECTION 7: Infrastructure
     # ======================================================================
-    server_configuration = models.CharField(
-        max_length=500,
+    server_configuration = models.TextField(
         blank=True,
         verbose_name=_('Server Configuration'),
         help_text='CPU, RAM, Storage specifications'
     )
-    storage_capacity = models.CharField(
-        max_length=255,
+    storage_capacity = models.TextField(
         blank=True,
         verbose_name=_('Storage Capacity'),
         help_text='Total storage allocated for the system'
     )
-    backup_plan = models.CharField(
-        max_length=500,
+    backup_plan = models.TextField(
         blank=True,
         verbose_name=_('Backup Plan'),
         help_text='Backup frequency, retention, and strategy'
     )
-    disaster_recovery_plan = models.CharField(
-        max_length=500,
+    disaster_recovery_plan = models.TextField(
         blank=True,
         verbose_name=_('Disaster Recovery Plan'),
         help_text='DR strategy, RTO, RPO'
@@ -275,8 +263,8 @@ class System(models.Model):
 
     # System Group & Status
     # P0.8: Removed choices constraint to allow custom input (dropdown + "Khác" → custom text)
-    system_group = models.CharField(
-        max_length=255,  # Increased from 50 to allow longer custom values
+    # HOT FIX 2026-01-25: Changed to TextField to prevent crashes with long text
+    system_group = models.TextField(
         blank=False,
         default='other',
         verbose_name=_('System Group'),
@@ -293,9 +281,9 @@ class System(models.Model):
     upgrade_history = models.JSONField(default=list, blank=True)
 
     # Business & Technical Owners
-    business_owner = models.CharField(max_length=255, blank=True, verbose_name=_('Business Owner'))
-    technical_owner = models.CharField(max_length=255, blank=True, verbose_name=_('Technical Owner'))
-    responsible_person = models.CharField(max_length=255, blank=True)
+    business_owner = models.TextField(blank=True, verbose_name=_('Business Owner'))
+    technical_owner = models.TextField(blank=True, verbose_name=_('Technical Owner'))
+    responsible_person = models.TextField(blank=True)
     responsible_phone = models.CharField(max_length=20, blank=True)
     responsible_email = models.EmailField(blank=True)
 
@@ -571,6 +559,8 @@ class SystemArchitecture(models.Model):
         ('other', 'Khác'),
     ]
 
+    # NOTE: choices removed from field to allow custom text input via SelectWithOther
+    # This list is kept for reference/documentation only
     CICD_TOOL_CHOICES = [
         ('jenkins', 'Jenkins'),
         ('gitlab_ci', 'GitLab CI/CD'),
@@ -578,6 +568,7 @@ class SystemArchitecture(models.Model):
         ('azure_pipelines', 'Azure Pipelines'),
         ('circle_ci', 'CircleCI'),
         ('travis_ci', 'Travis CI'),
+        ('none', 'Không có'),
         ('other', 'Khác'),
     ]
 
@@ -602,8 +593,8 @@ class SystemArchitecture(models.Model):
     architecture_description = models.TextField(blank=True)
 
     # Technology Stack
-    backend_tech = models.CharField(max_length=255, blank=True, verbose_name=_('Backend Technology'))
-    frontend_tech = models.CharField(max_length=255, blank=True, verbose_name=_('Frontend Technology'))
+    backend_tech = models.TextField(blank=True, verbose_name=_('Backend Technology'))
+    frontend_tech = models.TextField(blank=True, verbose_name=_('Frontend Technology'))
     mobile_app = models.CharField(
         max_length=50,
         choices=MOBILE_CHOICES,
@@ -612,7 +603,7 @@ class SystemArchitecture(models.Model):
     )
 
     # Database
-    database_type = models.CharField(max_length=100, blank=True, verbose_name=_('Database Type'))
+    database_type = models.TextField(blank=True, verbose_name=_('Database Type'))
     database_model = models.CharField(
         max_length=50,
         choices=DATABASE_MODEL_CHOICES,
@@ -625,12 +616,11 @@ class SystemArchitecture(models.Model):
     )
 
     # Hosting
-    hosting_type = models.CharField(
-        max_length=100,
+    hosting_type = models.TextField(
         blank=True,
         help_text='cloud, on-premise, hybrid'
     )
-    cloud_provider = models.CharField(max_length=100, blank=True)
+    cloud_provider = models.TextField(blank=True)
 
     # P1 Gap Analysis: Additional Architecture Fields
     # FIXED 2026-01-23: Added migrations (0020_add_missing_architecture_fields)
@@ -646,8 +636,8 @@ class SystemArchitecture(models.Model):
     # Containerization & Orchestration
     # FIXED 2026-01-23: Changed to plain CharField to store comma-separated values
     # Frontend uses CheckboxGroupWithOther which sends array, serializer converts to CSV
-    containerization = models.CharField(
-        max_length=255,
+    # HOT FIX 2026-01-25: Changed to TextField for unlimited length
+    containerization = models.TextField(
         blank=True,
         verbose_name=_('Containerization'),
         help_text='Comma-separated list: docker,kubernetes,openshift'
@@ -713,9 +703,9 @@ class SystemArchitecture(models.Model):
         default=False,
         verbose_name=_('Has CI/CD Pipeline')
     )
+    # NOTE: choices removed to allow custom text input via SelectWithOther component
     cicd_tool = models.CharField(
-        max_length=50,
-        choices=CICD_TOOL_CHOICES,
+        max_length=100,  # Increased to allow custom text
         blank=True,
         verbose_name=_('CI/CD Tool')
     )
@@ -725,8 +715,7 @@ class SystemArchitecture(models.Model):
         default=False,
         verbose_name=_('Has Automated Testing')
     )
-    automated_testing_tools = models.CharField(
-        max_length=255,
+    automated_testing_tools = models.TextField(
         blank=True,
         help_text='e.g., Jest, Pytest, Selenium, JUnit'
     )
@@ -885,7 +874,7 @@ class SystemOperations(models.Model):
         blank=True,
         verbose_name=_('Development Type')
     )
-    developer = models.CharField(max_length=255, blank=True, verbose_name=_('Developer'))
+    developer = models.TextField(blank=True, verbose_name=_('Developer'))
     dev_team_size = models.IntegerField(null=True, blank=True)
 
     # Warranty & Maintenance
@@ -900,7 +889,7 @@ class SystemOperations(models.Model):
     maintenance_end_date = models.DateField(null=True, blank=True)
 
     # Operations Team
-    operator = models.CharField(max_length=255, blank=True, verbose_name=_('Operator'))
+    operator = models.TextField(blank=True, verbose_name=_('Operator'))
     ops_team_size = models.IntegerField(null=True, blank=True)
     vendor_dependency = models.CharField(
         max_length=20,
@@ -911,7 +900,7 @@ class SystemOperations(models.Model):
     can_self_maintain = models.BooleanField(default=False, verbose_name=_('Can Self Maintain'))
 
     # Support
-    support_level = models.CharField(max_length=50, blank=True, help_text='24/7, business hours, etc.')
+    support_level = models.TextField(blank=True, help_text='24/7, business hours, etc.')
     avg_incident_response_hours = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -1016,15 +1005,14 @@ class SystemIntegration(models.Model):
 
     # Standards
     uses_standard_api = models.BooleanField(default=False)
-    api_standard = models.CharField(max_length=100, blank=True, help_text='REST, SOAP, GraphQL, etc.')
+    api_standard = models.TextField(blank=True, help_text='REST, SOAP, GraphQL, etc.')
 
     # P2 Gap Analysis: API Gateway & Management
     has_api_gateway = models.BooleanField(
         default=False,
         verbose_name=_('Has API Gateway')
     )
-    api_gateway_name = models.CharField(
-        max_length=100,
+    api_gateway_name = models.TextField(
         blank=True,
         verbose_name=_('API Gateway Name'),
         help_text='Kong, AWS API Gateway, Azure API Management, etc.'
@@ -1058,8 +1046,7 @@ class SystemIntegration(models.Model):
         verbose_name=_('API Documentation'),
         help_text='Link to API documentation or description'
     )
-    api_versioning_standard = models.CharField(
-        max_length=100,
+    api_versioning_standard = models.TextField(
         blank=True,
         verbose_name=_('API Versioning Standard'),
         help_text='Semantic versioning, date-based, etc.'
@@ -1251,7 +1238,7 @@ class SystemCost(models.Model):
 
     # Cost Notes
     cost_notes = models.TextField(blank=True)
-    funding_source = models.CharField(max_length=255, blank=True)
+    funding_source = models.TextField(blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1273,13 +1260,13 @@ class SystemVendor(models.Model):
     )
 
     # Primary Vendor
-    vendor_name = models.CharField(max_length=255, blank=True, verbose_name=_('Vendor Name'))
+    vendor_name = models.TextField(blank=True, verbose_name=_('Vendor Name'))
     vendor_type = models.CharField(
         max_length=100,
         blank=True,
         help_text='domestic, foreign, joint_venture'
     )
-    vendor_contact_person = models.CharField(max_length=255, blank=True)
+    vendor_contact_person = models.TextField(blank=True)
     vendor_phone = models.CharField(max_length=20, blank=True)
     vendor_email = models.EmailField(blank=True)
 

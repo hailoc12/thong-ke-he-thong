@@ -521,6 +521,75 @@ a.ant-typography:hover,
   }
 }
 
+/* ============================================
+   TABLE RESPONSIVE - Fix fixed columns overlap
+   ============================================ */
+
+/* Mobile: Disable fixed columns behavior completely */
+@media (max-width: 767px) {
+  /* Remove fixed positioning on mobile */
+  .ant-table-cell-fix-left,
+  .ant-table-cell-fix-right {
+    position: static !important;
+    z-index: auto !important;
+    background: inherit !important;
+  }
+
+  /* Remove shadow effects from fixed columns */
+  .ant-table-cell-fix-left-last::after,
+  .ant-table-cell-fix-right-first::after {
+    display: none !important;
+  }
+
+  /* Ensure proper table cell sizing on mobile */
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td {
+    padding: 8px 8px !important;
+    font-size: 13px !important;
+    white-space: nowrap;
+  }
+
+  /* Table header on mobile */
+  .ant-table-thead > tr > th {
+    font-size: 12px !important;
+    font-weight: var(--font-weight-semibold) !important;
+    background-color: var(--color-gray-100) !important;
+  }
+
+  /* Smaller tags in table on mobile */
+  .ant-table .ant-tag {
+    font-size: 11px !important;
+    padding: 0 4px !important;
+    margin: 0 !important;
+  }
+
+  /* Action buttons smaller on mobile */
+  .ant-table .ant-btn-link,
+  .ant-table .ant-btn-text {
+    padding: 0 4px !important;
+    font-size: 12px !important;
+  }
+
+  /* Remove min-width constraints on mobile table */
+  .ant-table {
+    min-width: unset !important;
+  }
+
+  .ant-table-content {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Tablet: Smaller adjustments */
+@media (min-width: 768px) and (max-width: 991px) {
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td {
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+  }
+}
+
 /* Print styles */
 @media print {
   body {

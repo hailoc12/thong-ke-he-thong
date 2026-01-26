@@ -306,7 +306,8 @@ const Systems = () => {
           showQuickJumper: !isMobile,
         }}
         onChange={handleTableChange}
-        scroll={{ x: isMobile ? 400 : 1300 }}
+        scroll={{ x: isMobile ? 'max-content' : 1300 }}
+        tableLayout={isMobile ? 'auto' : 'fixed'}
       />
     </div>
   );

@@ -6,6 +6,7 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isLeader: boolean; // Special permission for lanhdaobo account
   isLoading: boolean;
   error: string | null;
   login: (credentials: LoginRequest) => Promise<void>;
@@ -13,10 +14,14 @@ interface AuthState {
   checkAuth: () => void;
 }
 
+// List of usernames that can access Strategic Dashboard
+const LEADER_USERNAMES = ['lanhdaobo', 'admin'];
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isAdmin: false,
+  isLeader: false,
   isLoading: false,
   error: null,
 
@@ -41,6 +46,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           user,
           isAuthenticated: true,
           isAdmin: user.role === 'admin',
+          isLeader: LEADER_USERNAMES.includes(user.username),
           isLoading: false,
           error: null,
         });
@@ -53,6 +59,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         user: null,
         isAuthenticated: false,
         isAdmin: false,
+        isLeader: false,
         isLoading: false,
         error: errorMessage,
       });
@@ -72,6 +79,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       user: null,
       isAuthenticated: false,
       isAdmin: false,
+      isLeader: false,
       error: null,
     });
   },
@@ -87,6 +95,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({
           isAuthenticated: true,
           isAdmin: user.role === 'admin',
+          isLeader: LEADER_USERNAMES.includes(user.username),
           user,
         });
       } catch (error) {
@@ -100,6 +109,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({
           isAuthenticated: false,
           isAdmin: false,
+          isLeader: false,
           user: null
         });
       }
@@ -107,6 +117,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({
         isAuthenticated: false,
         isAdmin: false,
+        isLeader: false,
         user: null
       });
     }

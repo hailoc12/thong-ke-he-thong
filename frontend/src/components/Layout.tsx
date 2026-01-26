@@ -30,7 +30,7 @@ const MainLayout = () => {
   const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAdmin, logout } = useAuthStore();
+  const { user, isAdmin, isLeader, logout } = useAuthStore();
 
   // Detect mobile screen size
   useEffect(() => {
@@ -84,8 +84,8 @@ const MainLayout = () => {
           icon: <DashboardOutlined />,
           label: 'Tổng quan',
         }] : []),
-        // Strategic Dashboard menu - admin only
-        ...(isAdmin ? [{
+        // Strategic Dashboard menu - only for leaders (lanhdaobo, admin)
+        ...(isLeader ? [{
           key: '/dashboard/strategic',
           icon: <FundOutlined />,
           label: 'Dashboard Chiến lược',

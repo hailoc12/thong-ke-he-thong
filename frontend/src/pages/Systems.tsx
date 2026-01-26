@@ -7,7 +7,7 @@ import api from '../config/api';
 import { useAuthStore } from '../stores/authStore';
 import type { System, ApiResponse } from '../types';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const Systems = () => {
   const navigate = useNavigate();

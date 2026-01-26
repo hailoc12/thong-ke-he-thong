@@ -141,10 +141,11 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
-    'PAGE_SIZE_QUERY_PARAM': 'page_size',  # Allow client to control page_size with ?page_size=100
-    'MAX_PAGE_SIZE': 1000,  # Increased for Excel export (supports up to 1000 items)
+    'DEFAULT_PAGINATION_CLASS': 'config.pagination.CustomPageNumberPagination',
+    # Pagination settings are now defined in config/pagination.py
+    # PAGE_SIZE: 20 (default)
+    # PAGE_SIZE_QUERY_PARAM: 'page_size' (allows ?page_size=N)
+    # MAX_PAGE_SIZE: 1000 (for Excel exports)
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',

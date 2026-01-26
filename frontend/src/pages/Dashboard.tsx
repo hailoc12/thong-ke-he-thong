@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Card, Row, Col, Statistic, Typography, Skeleton, Button, Space, Timeline, Badge, Select, DatePicker, Dropdown, Table, Progress } from 'antd';
+import { Card, Row, Col, Statistic, Typography, Skeleton, Button, Space, Timeline, Badge, Select, DatePicker, Table, Progress, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -11,11 +11,9 @@ import {
   ArrowDownOutlined,
   MinusOutlined,
   ReloadOutlined,
-  DownloadOutlined,
   FilterOutlined,
   ClearOutlined,
-  FileTextOutlined,
-  FileDoneOutlined,
+  FileExcelOutlined,
 } from '@ant-design/icons';
 import CountUp from 'react-countup';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
@@ -26,6 +24,7 @@ import { colors, shadows, borderRadius, spacing } from '../theme/tokens';
 import { useAuthStore } from '../stores/authStore';
 import OrganizationDashboard from './OrganizationDashboard';
 import DashboardSystemsList from '../components/DashboardSystemsList';
+import { exportDashboardToExcel } from '../utils/exportExcel';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -55,6 +54,8 @@ const Dashboard = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [organizations, setOrganizations] = useState<Array<{ id: number; name: string }>>([]);
   const [completionStats, setCompletionStats] = useState<any>(null);
+  const [exporting, setExporting] = useState(false);
+  const [orgCompletionPage, setOrgCompletionPage] = useState({ current: 1, pageSize: 10 });
 
   // Filter states
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
@@ -105,7 +106,8 @@ const Dashboard = () => {
 
   const fetchOrganizations = async () => {
     try {
-      const response = await api.get('/organizations/');
+      // Fetch ALL organizations without pagination for Excel export
+      const response = await api.get('/organizations/?page_size=1000');
       setOrganizations(response.data.results || response.data);
     } catch (error) {
       console.error('Failed to fetch organizations:', error);
@@ -194,78 +196,33 @@ const Dashboard = () => {
     }
   };
 
-  const exportToJSON = () => {
-    const selectedOrg = organizations.find(org => org.id.toString() === organizationFilter);
-    const exportData = {
-      metadata: {
-        exportDate: new Date().toISOString(),
-        reportType: 'Dashboard Statistics',
-        filters: {
-          dateRange: dateRange ? [dateRange[0]?.format('DD/MM/YYYY'), dateRange[1]?.format('DD/MM/YYYY')] : null,
-          status: statusFilter !== 'all' ? statusFilter : null,
-          criticality: criticalityFilter !== 'all' ? criticalityFilter : null,
-          organization: organizationFilter !== 'all' ? selectedOrg?.name : null,
-        },
-      },
-      summary: {
-        total: statistics?.total || 0,
-        activeCount: statistics?.by_status.operating || 0,
-        activeRate: getActiveRate() + '%',
-        criticalCount: statistics?.by_criticality.high || 0,
-        criticalRate: getCriticalRate() + '%',
-        maintenanceRate: getPilotRate() + '%',
-        totalUsers: statistics?.users_total || 0,
-      },
-      byStatus: statistics?.by_status || {},
-      byCriticality: statistics?.by_criticality || {},
-      trendData: trendChartData,
-      recentActivities: [], // Empty - no recent activities
-    };
+  const exportToExcel = async () => {
+    setExporting(true);
+    try {
+      // Fetch all systems for the Excel export
+      const params = new URLSearchParams();
+      if (organizationFilter !== 'all') {
+        params.append('org', organizationFilter);
+      }
+      params.append('page_size', '1000'); // Get all systems
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `dashboard-report-${dayjs().format('YYYY-MM-DD-HHmm')}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+      const systemsResponse = await api.get<ApiResponse<System>>(`/systems/?${params.toString()}`);
 
-  const exportToCSV = () => {
-    const headers = ['Metric', 'Value', 'Percentage'];
-    const rows = [
-      ['Tổng số hệ thống', statistics?.total || 0, '100%'],
-      [STATUS_LABELS.operating, statistics?.by_status.operating || 0, getActiveRate() + '%'],
-      [STATUS_LABELS.stopped, statistics?.by_status.stopped || 0, ''],
-      [STATUS_LABELS.pilot, statistics?.by_status.pilot || 0, getPilotRate() + '%'],
-      [STATUS_LABELS.replacing, statistics?.by_status.replacing || 0, ''],
-      [''],
-      ['Cực kỳ quan trọng', statistics?.by_criticality.high || 0, getCriticalRate() + '%'],
-      ['Quan trọng', statistics?.by_criticality.high || 0, ''],
-      ['Trung bình', statistics?.by_criticality.medium || 0, ''],
-      ['Thấp', statistics?.by_criticality.low || 0, ''],
-      [''],
-      ['Tổng số người dùng', statistics?.users_total || 0, ''],
-    ];
+      // Pass all organizations to include those without systems
+      await exportDashboardToExcel(
+        statistics,
+        completionStats,
+        systemsResponse.data.results || [],
+        organizations
+      );
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(',')),
-      '',
-      'Exported on: ' + new Date().toLocaleString('vi-VN'),
-    ].join('\n');
-
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `dashboard-report-${dayjs().format('YYYY-MM-DD-HHmm')}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      message.success('Đã xuất báo cáo Excel thành công!');
+    } catch (error) {
+      console.error('Error exporting Excel:', error);
+      message.error('Lỗi khi xuất báo cáo Excel');
+    } finally {
+      setExporting(false);
+    }
   };
 
 
@@ -520,33 +477,16 @@ const Dashboard = () => {
           >
             {isMobile ? '' : 'Làm mới'}
           </Button>
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: 'json',
-                  label: 'Xuất JSON',
-                  icon: <FileDoneOutlined />,
-                  onClick: exportToJSON,
-                },
-                {
-                  key: 'csv',
-                  label: 'Xuất CSV',
-                  icon: <FileTextOutlined />,
-                  onClick: exportToCSV,
-                },
-              ],
-            }}
-            placement="bottomRight"
+          <Button
+            type="primary"
+            icon={<FileExcelOutlined />}
+            onClick={exportToExcel}
+            loading={exporting}
+            aria-label="Xuất báo cáo Excel"
+            title="Xuất báo cáo Excel"
           >
-            <Button
-              icon={<DownloadOutlined />}
-              aria-label="Xuất báo cáo dashboard"
-              title="Xuất báo cáo"
-            >
-              {isMobile ? '' : 'Xuất báo cáo'}
-            </Button>
-          </Dropdown>
+            {isMobile ? '' : exporting ? 'Đang xuất...' : 'Xuất Excel'}
+          </Button>
         </Space>
       </div>
 
@@ -936,15 +876,30 @@ const Dashboard = () => {
                   <Table
                     dataSource={completionStats?.summary?.organizations || []}
                     rowKey="id"
-                    pagination={{ pageSize: 10, showSizeChanger: true }}
-                    scroll={{ x: 800 }}
+                    pagination={{
+                      current: orgCompletionPage.current,
+                      pageSize: orgCompletionPage.pageSize,
+                      showSizeChanger: true,
+                      showQuickJumper: true,
+                      showTotal: (total, range) => `${range[0]}-${range[1]} / ${total} đơn vị`,
+                      onChange: (page, pageSize) => setOrgCompletionPage({ current: page, pageSize }),
+                    }}
+                    scroll={{ x: 850 }}
                     columns={[
+                      {
+                        title: 'STT',
+                        key: 'index',
+                        width: 60,
+                        fixed: 'left',
+                        align: 'center',
+                        render: (_: any, __: any, index: number) =>
+                          (orgCompletionPage.current - 1) * orgCompletionPage.pageSize + index + 1,
+                      },
                       {
                         title: 'Đơn vị',
                         dataIndex: 'name',
                         key: 'name',
                         width: 250,
-                        fixed: 'left',
                       },
                       {
                         title: 'Số hệ thống',

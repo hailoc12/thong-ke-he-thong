@@ -14,6 +14,7 @@ import {
   ProjectOutlined,
   ApiOutlined,
   BookOutlined,
+  FundOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
@@ -82,6 +83,12 @@ const MainLayout = () => {
           key: '/',
           icon: <DashboardOutlined />,
           label: 'Tổng quan',
+        }] : []),
+        // Strategic Dashboard menu - admin only
+        ...(isAdmin ? [{
+          key: '/dashboard/strategic',
+          icon: <FundOutlined />,
+          label: 'Dashboard Chiến lược',
         }] : []),
         // Unit Dashboard menu - only for non-admin users
         ...(!isAdmin ? [{

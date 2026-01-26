@@ -58,3 +58,5 @@ frontend/.env.production
 frontend/.env.development
 backend/.env
 *.env.local
+.env.production
+backend/logs/*.log

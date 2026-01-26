@@ -263,6 +263,24 @@ class SystemViewSet(viewsets.ModelViewSet):
             del stats['total_completion']  # Remove temp field
             org_list.append(stats)
 
+        # Include all organizations (even those without systems)
+        from apps.organizations.models import Organization
+        all_orgs = Organization.objects.all()
+        existing_org_ids = {stats['id'] for stats in org_list}
+        for org in all_orgs:
+            if org.id not in existing_org_ids:
+                org_list.append({
+                    'id': org.id,
+                    'name': org.name,
+                    'system_count': 0,
+                    'avg_completion': 0.0,
+                    'systems_100_percent': 0,
+                    'systems_below_50_percent': 0,
+                })
+
+        # Sort org_list by name for consistent ordering
+        org_list.sort(key=lambda x: x['name'])
+
         # Sort systems
         ordering = request.query_params.get('ordering', 'system_name')
         reverse = ordering.startswith('-')

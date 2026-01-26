@@ -96,11 +96,6 @@ const RECOMMENDATION_LABELS: Record<string, string> = {
   merge: 'Hợp nhất',
   unknown: 'Chưa đánh giá',
 };
-const SCOPE_LABELS: Record<string, string> = {
-  internal_unit: 'Nội bộ đơn vị',
-  org_wide: 'Toàn Bộ',
-  external: 'Bên ngoài',
-};
 
 interface StrategicStats {
   overview: {
@@ -406,16 +401,6 @@ const StrategicDashboard = () => {
         color: CRITICALITY_COLORS[key] || '#999',
         filterKey: key,
       }));
-  }, [stats]);
-
-  const orgChartData = useMemo(() => {
-    if (!stats) return [];
-    return stats.systems_per_org.slice(0, 10).map((org, index) => ({
-      name: org.org__name.length > 20 ? org.org__name.substring(0, 20) + '...' : org.org__name,
-      fullName: org.org__name,
-      value: org.count,
-      color: COLORS[index % COLORS.length],
-    }));
   }, [stats]);
 
   const recommendationChartData = useMemo(() => {
@@ -871,7 +856,7 @@ const StrategicDashboard = () => {
                         <BarChart
                           data={investmentStats.by_organization}
                           layout="vertical"
-                          onClick={(data) => {
+                          onClick={(data: { activePayload?: Array<{ payload?: { org_name?: string } }> } | null) => {
                             if (data?.activePayload?.[0]?.payload?.org_name) {
                               handleDrilldown('org', data.activePayload[0].payload.org_name, `Hệ thống của ${data.activePayload[0].payload.org_name}`);
                             }

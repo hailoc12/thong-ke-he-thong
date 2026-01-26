@@ -880,7 +880,6 @@ const Dashboard = () => {
                       current: orgCompletionPage.current,
                       pageSize: orgCompletionPage.pageSize,
                       showSizeChanger: true,
-                      showQuickJumper: true,
                       showTotal: (total, range) => `${range[0]}-${range[1]} / ${total} đơn vị`,
                       onChange: (page, pageSize) => setOrgCompletionPage({ current: page, pageSize }),
                     }}

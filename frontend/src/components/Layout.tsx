@@ -84,7 +84,7 @@ const MainLayout = () => {
           icon: <DashboardOutlined />,
           label: 'Tổng quan',
         }] : []),
-        // Strategic Dashboard menu - only for leaders (lanhdaobo, admin)
+        // Strategic Dashboard menu - only for lanhdaobo (admin cannot see)
         ...(isLeader ? [{
           key: '/dashboard/strategic',
           icon: <FundOutlined />,

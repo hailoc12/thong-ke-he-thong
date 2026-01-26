@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q
+from django.db.models import Q, Count, Sum, Avg
+from django.db.models.functions import Coalesce
 
 from apps.accounts.permissions import IsOrgUserOrAdmin, CanManageOrgSystems
 from .models import System, Attachment
@@ -164,6 +165,493 @@ class SystemViewSet(viewsets.ModelViewSet):
         }
 
         return Response(stats)
+
+    @action(detail=False, methods=['get'])
+    def strategic_stats(self, request):
+        """
+        Strategic Dashboard - Overview Statistics
+        Returns comprehensive stats for strategic dashboard overview tab.
+        Only accessible by lanhdaobo role.
+        """
+        user = request.user
+        if user.role != 'lanhdaobo':
+            return Response(
+                {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Get all active systems
+        queryset = System.objects.filter(is_deleted=False)
+        total_systems = queryset.count()
+
+        # Organization count
+        from apps.organizations.models import Organization
+        total_orgs = Organization.objects.count()
+
+        # Status distribution
+        status_distribution = {
+            'operating': queryset.filter(status='operating').count(),
+            'pilot': queryset.filter(status='pilot').count(),
+            'testing': queryset.filter(status='testing').count(),
+            'stopped': queryset.filter(status='stopped').count(),
+            'replacing': queryset.filter(status='replacing').count(),
+        }
+
+        # Criticality distribution
+        criticality_distribution = {
+            'high': queryset.filter(criticality_level='high').count(),
+            'medium': queryset.filter(criticality_level='medium').count(),
+            'low': queryset.filter(criticality_level='low').count(),
+        }
+
+        # Scope distribution
+        scope_distribution = {
+            'internal_unit': queryset.filter(scope='internal_unit').count(),
+            'org_wide': queryset.filter(scope='org_wide').count(),
+            'external': queryset.filter(scope='external').count(),
+        }
+
+        # Systems per organization (top 10)
+        systems_per_org = list(
+            queryset.values('org__name')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:10]
+        )
+
+        # Recommendation distribution (from assessment)
+        recommendation_distribution = {
+            'keep': 0,
+            'upgrade': 0,
+            'replace': 0,
+            'merge': 0,
+            'unknown': 0,
+        }
+        for system in queryset.select_related('assessment'):
+            try:
+                if hasattr(system, 'assessment') and system.assessment:
+                    rec = system.assessment.recommendation
+                    if rec in recommendation_distribution:
+                        recommendation_distribution[rec] += 1
+                    else:
+                        recommendation_distribution['unknown'] += 1
+                else:
+                    recommendation_distribution['unknown'] += 1
+            except Exception:
+                recommendation_distribution['unknown'] += 1
+
+        # Integration stats
+        total_api_provided = queryset.aggregate(
+            total=Coalesce(Sum('api_provided_count'), 0)
+        )['total']
+        total_api_consumed = queryset.aggregate(
+            total=Coalesce(Sum('api_consumed_count'), 0)
+        )['total']
+
+        systems_with_integration = queryset.filter(
+            Q(api_provided_count__gt=0) | Q(api_consumed_count__gt=0)
+        ).count()
+        systems_without_integration = total_systems - systems_with_integration
+
+        # Calculate health score
+        health_score = 100
+        health_score -= status_distribution.get('stopped', 0) * 5
+        health_score -= recommendation_distribution.get('replace', 0) * 3
+        health_score -= recommendation_distribution.get('unknown', 0) * 0.5
+        if total_systems > 0:
+            integration_rate = systems_with_integration / total_systems
+            health_score += integration_rate * 10
+        health_score = max(0, min(100, round(health_score)))
+
+        # Alerts
+        alerts = {
+            'critical': recommendation_distribution.get('replace', 0),
+            'warning': status_distribution.get('stopped', 0),
+            'info': recommendation_distribution.get('unknown', 0),
+        }
+
+        return Response({
+            'overview': {
+                'total_systems': total_systems,
+                'total_organizations': total_orgs,
+                'health_score': health_score,
+                'alerts': alerts,
+            },
+            'status_distribution': status_distribution,
+            'criticality_distribution': criticality_distribution,
+            'scope_distribution': scope_distribution,
+            'systems_per_org': systems_per_org,
+            'recommendation_distribution': recommendation_distribution,
+            'integration': {
+                'total_api_provided': total_api_provided,
+                'total_api_consumed': total_api_consumed,
+                'with_integration': systems_with_integration,
+                'without_integration': systems_without_integration,
+            },
+        })
+
+    @action(detail=False, methods=['get'])
+    def investment_stats(self, request):
+        """
+        Strategic Dashboard - Investment Analytics
+        Returns cost/investment data per organization.
+        Only accessible by lanhdaobo role.
+        """
+        user = request.user
+        if user.role != 'lanhdaobo':
+            return Response(
+                {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        from apps.organizations.models import Organization
+
+        queryset = System.objects.filter(is_deleted=False)
+
+        # Total investment across all systems
+        total_investment = 0
+        cost_breakdown = {
+            'development': 0,
+            'license': 0,
+            'maintenance': 0,
+            'infrastructure': 0,
+            'personnel': 0,
+        }
+
+        for system in queryset.select_related('cost'):
+            try:
+                if hasattr(system, 'cost') and system.cost:
+                    cost = system.cost
+                    if cost.initial_investment:
+                        total_investment += float(cost.initial_investment)
+                    if cost.development_cost:
+                        cost_breakdown['development'] += float(cost.development_cost)
+                    if cost.annual_license_cost:
+                        cost_breakdown['license'] += float(cost.annual_license_cost)
+                    if cost.annual_maintenance_cost:
+                        cost_breakdown['maintenance'] += float(cost.annual_maintenance_cost)
+                    if cost.annual_infrastructure_cost:
+                        cost_breakdown['infrastructure'] += float(cost.annual_infrastructure_cost)
+                    if cost.annual_personnel_cost:
+                        cost_breakdown['personnel'] += float(cost.annual_personnel_cost)
+            except Exception:
+                pass
+
+        # Investment by organization
+        by_organization = []
+        for org in Organization.objects.all():
+            org_systems = queryset.filter(org=org)
+            system_count = org_systems.count()
+            org_total_cost = 0
+
+            for sys in org_systems.select_related('cost'):
+                try:
+                    if hasattr(sys, 'cost') and sys.cost and sys.cost.initial_investment:
+                        org_total_cost += float(sys.cost.initial_investment)
+                except Exception:
+                    pass
+
+            if system_count > 0:
+                by_organization.append({
+                    'org_id': org.id,
+                    'org_name': org.name,
+                    'system_count': system_count,
+                    'total_cost': org_total_cost,
+                })
+
+        by_organization.sort(key=lambda x: x['system_count'], reverse=True)
+
+        # Cost efficiency metrics
+        total_users = queryset.aggregate(total=Coalesce(Sum('users_total'), 0))['total']
+        avg_cost_per_user = total_investment / total_users if total_users > 0 else 0
+
+        return Response({
+            'total_investment': total_investment,
+            'by_organization': by_organization[:15],
+            'cost_breakdown': cost_breakdown,
+            'cost_efficiency': {
+                'avg_cost_per_user': round(avg_cost_per_user, 2),
+                'total_users': total_users,
+            },
+        })
+
+    @action(detail=False, methods=['get'])
+    def integration_stats(self, request):
+        """
+        Strategic Dashboard - Integration Analytics
+        Returns API and integration statistics.
+        Only accessible by lanhdaobo role.
+        """
+        user = request.user
+        if user.role != 'lanhdaobo':
+            return Response(
+                {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        queryset = System.objects.filter(is_deleted=False)
+        total_systems = queryset.count()
+
+        # API counts
+        total_api_provided = queryset.aggregate(
+            total=Coalesce(Sum('api_provided_count'), 0)
+        )['total']
+        total_api_consumed = queryset.aggregate(
+            total=Coalesce(Sum('api_consumed_count'), 0)
+        )['total']
+
+        # Systems with/without integration
+        systems_with_integration = queryset.filter(
+            Q(api_provided_count__gt=0) | Q(api_consumed_count__gt=0)
+        ).count()
+        systems_without_integration = total_systems - systems_with_integration
+
+        # Data islands (systems with no integration)
+        data_islands = list(
+            queryset.filter(
+                Q(api_provided_count__isnull=True) | Q(api_provided_count=0),
+                Q(api_consumed_count__isnull=True) | Q(api_consumed_count=0)
+            ).values_list('system_name', flat=True)[:10]
+        )
+
+        # Systems with most APIs
+        top_api_providers = list(
+            queryset.filter(api_provided_count__gt=0)
+            .order_by('-api_provided_count')
+            .values('id', 'system_name', 'api_provided_count')[:10]
+        )
+
+        top_api_consumers = list(
+            queryset.filter(api_consumed_count__gt=0)
+            .order_by('-api_consumed_count')
+            .values('id', 'system_name', 'api_consumed_count')[:10]
+        )
+
+        return Response({
+            'total_api_provided': total_api_provided,
+            'total_api_consumed': total_api_consumed,
+            'systems_with_integration': systems_with_integration,
+            'systems_without_integration': systems_without_integration,
+            'integration_rate': round((systems_with_integration / total_systems * 100), 1) if total_systems > 0 else 0,
+            'data_islands': data_islands,
+            'top_api_providers': top_api_providers,
+            'top_api_consumers': top_api_consumers,
+        })
+
+    @action(detail=False, methods=['get'])
+    def optimization_stats(self, request):
+        """
+        Strategic Dashboard - Optimization Analytics
+        Returns recommendations and legacy system analysis.
+        Only accessible by lanhdaobo role.
+        """
+        user = request.user
+        if user.role != 'lanhdaobo':
+            return Response(
+                {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        from datetime import datetime, timedelta
+
+        queryset = System.objects.filter(is_deleted=False)
+
+        # Recommendation distribution
+        recommendations = {
+            'keep': 0,
+            'upgrade': 0,
+            'replace': 0,
+            'merge': 0,
+            'unknown': 0,
+        }
+
+        legacy_systems = []
+        for system in queryset.select_related('assessment'):
+            try:
+                if hasattr(system, 'assessment') and system.assessment:
+                    rec = system.assessment.recommendation
+                    if rec in recommendations:
+                        recommendations[rec] += 1
+                    else:
+                        recommendations['unknown'] += 1
+
+                    # Collect systems marked for replacement
+                    if rec == 'replace':
+                        legacy_systems.append({
+                            'id': system.id,
+                            'name': system.system_name,
+                            'org_name': system.org.name if system.org else None,
+                            'go_live_date': system.go_live_date.isoformat() if system.go_live_date else None,
+                            'users': system.users_total or 0,
+                        })
+                else:
+                    recommendations['unknown'] += 1
+            except Exception:
+                recommendations['unknown'] += 1
+
+        # Systems that need attention (stopped or replacing)
+        attention_needed = list(
+            queryset.filter(status__in=['stopped', 'replacing'])
+            .values('id', 'system_name', 'status', 'org__name')[:10]
+        )
+
+        return Response({
+            'recommendations': recommendations,
+            'legacy_systems': legacy_systems[:10],
+            'attention_needed': attention_needed,
+            'total_needing_action': recommendations['replace'] + recommendations['upgrade'],
+            'assessment_coverage': round(
+                ((queryset.count() - recommendations['unknown']) / queryset.count() * 100), 1
+            ) if queryset.count() > 0 else 0,
+        })
+
+    @action(detail=False, methods=['get'])
+    def monitoring_stats(self, request):
+        """
+        Strategic Dashboard - Monitoring Analytics
+        Returns organization rankings and completion stats.
+        Only accessible by lanhdaobo role.
+        """
+        user = request.user
+        if user.role != 'lanhdaobo':
+            return Response(
+                {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        from apps.organizations.models import Organization
+
+        queryset = System.objects.filter(is_deleted=False)
+
+        # Organization rankings
+        organization_rankings = []
+        for org in Organization.objects.all():
+            org_systems = list(queryset.filter(org=org))
+            system_count = len(org_systems)
+
+            if system_count > 0:
+                # Calculate average completion
+                total_completion = sum(
+                    calculate_system_completion_percentage(sys)
+                    for sys in org_systems
+                )
+                avg_completion = round(total_completion / system_count, 1)
+
+                # Calculate average performance (if available)
+                performance_scores = []
+                for sys in org_systems:
+                    try:
+                        if hasattr(sys, 'assessment') and sys.assessment and sys.assessment.performance_rating:
+                            performance_scores.append(sys.assessment.performance_rating)
+                    except Exception:
+                        pass
+
+                avg_performance = round(sum(performance_scores) / len(performance_scores), 1) if performance_scores else None
+
+                organization_rankings.append({
+                    'org_id': org.id,
+                    'org_name': org.name,
+                    'system_count': system_count,
+                    'avg_completion': avg_completion,
+                    'avg_performance': avg_performance,
+                })
+
+        # Sort by system count
+        organization_rankings.sort(key=lambda x: x['system_count'], reverse=True)
+
+        # Overall stats
+        all_systems = list(queryset)
+        total_completion = sum(
+            calculate_system_completion_percentage(sys)
+            for sys in all_systems
+        )
+        avg_completion_all = round(total_completion / len(all_systems), 1) if all_systems else 0
+
+        return Response({
+            'organization_rankings': organization_rankings,
+            'summary': {
+                'total_organizations': len(organization_rankings),
+                'avg_completion_all': avg_completion_all,
+                'orgs_with_100_percent': sum(1 for o in organization_rankings if o['avg_completion'] == 100),
+                'orgs_below_50_percent': sum(1 for o in organization_rankings if o['avg_completion'] < 50),
+            },
+        })
+
+    @action(detail=False, methods=['get'])
+    def drilldown(self, request):
+        """
+        Strategic Dashboard - Drill-down endpoint
+        Returns list of systems matching specific criteria.
+        Query params:
+        - filter_type: status, criticality, scope, recommendation, org, integration
+        - filter_value: the specific value to filter by
+        """
+        user = request.user
+        if user.role != 'lanhdaobo':
+            return Response(
+                {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        filter_type = request.query_params.get('filter_type')
+        filter_value = request.query_params.get('filter_value')
+
+        if not filter_type or not filter_value:
+            return Response(
+                {'error': 'filter_type and filter_value are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        queryset = System.objects.filter(is_deleted=False)
+
+        if filter_type == 'status':
+            queryset = queryset.filter(status=filter_value)
+        elif filter_type == 'criticality':
+            queryset = queryset.filter(criticality_level=filter_value)
+        elif filter_type == 'scope':
+            queryset = queryset.filter(scope=filter_value)
+        elif filter_type == 'org':
+            queryset = queryset.filter(org__name=filter_value)
+        elif filter_type == 'integration':
+            if filter_value == 'with':
+                queryset = queryset.filter(
+                    Q(api_provided_count__gt=0) | Q(api_consumed_count__gt=0)
+                )
+            elif filter_value == 'without':
+                queryset = queryset.filter(
+                    Q(api_provided_count__isnull=True) | Q(api_provided_count=0),
+                    Q(api_consumed_count__isnull=True) | Q(api_consumed_count=0)
+                )
+        elif filter_type == 'recommendation':
+            # Need to filter through assessment relation
+            system_ids = []
+            for system in queryset.select_related('assessment'):
+                try:
+                    if hasattr(system, 'assessment') and system.assessment:
+                        if system.assessment.recommendation == filter_value:
+                            system_ids.append(system.id)
+                    elif filter_value == 'unknown':
+                        system_ids.append(system.id)
+                except Exception:
+                    if filter_value == 'unknown':
+                        system_ids.append(system.id)
+            queryset = queryset.filter(id__in=system_ids)
+
+        # Return paginated results
+        systems = list(
+            queryset.select_related('org')
+            .values(
+                'id', 'system_name', 'system_code', 'status',
+                'criticality_level', 'scope', 'org__name',
+                'users_total', 'go_live_date'
+            )[:100]
+        )
+
+        return Response({
+            'count': len(systems),
+            'filter_type': filter_type,
+            'filter_value': filter_value,
+            'systems': systems,
+        })
 
     @action(detail=False, methods=['get'])
     def completion_stats(self, request):

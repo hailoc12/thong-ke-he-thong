@@ -7,7 +7,7 @@ interface LeaderRouteProps {
 
 /**
  * LeaderRoute - Protected route for leader accounts only
- * Only users in LEADER_USERNAMES list (lanhdaobo, admin) can access
+ * Only lanhdaobo can access - admin cannot see this route
  */
 const LeaderRoute: React.FC<LeaderRouteProps> = ({ children }) => {
   const { isAuthenticated, isLeader } = useAuthStore();

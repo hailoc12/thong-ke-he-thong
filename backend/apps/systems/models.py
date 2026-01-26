@@ -201,6 +201,7 @@ class System(models.Model):
 
     # API Inventory
     api_provided_count = models.IntegerField(
+        default=0,
         null=True,
         blank=True,
         verbose_name=_('APIs Provided Count'),

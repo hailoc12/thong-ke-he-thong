@@ -12,7 +12,7 @@ REQUIRED_FIELDS_MAP: Dict[str, List[str]] = {
     'tab2': ['business_objectives', 'business_processes', 'user_types', 'annual_users'],
     'tab3': ['programming_language', 'framework', 'database_name', 'hosting_platform', 'architecture_type', 'backend_tech', 'frontend_tech', 'mobile_app'],
     'tab4': ['data_sources', 'data_types', 'data_classification_type', 'data_volume', 'storage_size_gb', 'file_storage_size_gb', 'growth_rate_percent', 'file_storage_type', 'record_count', 'secondary_databases'],
-    'tab5': ['data_exchange_method', 'api_provided_count'],
+    'tab5': ['data_exchange_method'],
     'tab6': ['authentication_method', 'has_encryption', 'has_audit_log', 'security_level'],
     'tab7': ['server_configuration', 'backup_plan', 'storage_capacity', 'disaster_recovery_plan'],
     'tab8': ['business_owner', 'technical_owner', 'responsible_phone', 'responsible_email', 'support_level', 'users_mau', 'users_dau'],

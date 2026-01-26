@@ -304,6 +304,7 @@ const StrategicDashboard = () => {
       description: string;
       action: string;
       priority: number;
+      drilldown?: { filterType: string; filterValue: string; title: string };
     }> = [];
 
     // Critical: Systems needing replacement
@@ -316,6 +317,7 @@ const StrategicDashboard = () => {
         description: 'Các hệ thống này đã lỗi thời, tiềm ẩn rủi ro bảo mật và hiệu suất. Việc trì hoãn thay thế có thể dẫn đến gián đoạn dịch vụ và tăng chi phí khắc phục.',
         action: 'Lập kế hoạch thay thế trong Q1-Q2/2026',
         priority: 1,
+        drilldown: { filterType: 'recommendation', filterValue: 'replace', title: 'Hệ thống cần thay thế' },
       });
     }
 
@@ -330,6 +332,7 @@ const StrategicDashboard = () => {
         description: `Có ${stats.integration.without_integration} hệ thống hoạt động độc lập, tạo ra "đảo dữ liệu" làm giảm hiệu quả vận hành và khả năng ra quyết định dựa trên dữ liệu.`,
         action: 'Xây dựng lộ trình tích hợp dữ liệu liên thông',
         priority: 2,
+        drilldown: { filterType: 'integration', filterValue: 'without', title: 'Hệ thống chưa tích hợp' },
       });
     }
 
@@ -344,6 +347,7 @@ const StrategicDashboard = () => {
         description: `${stats.recommendation_distribution.unknown} hệ thống chưa có đánh giá chất lượng. Thiếu đánh giá làm khó khăn trong việc xác định ưu tiên đầu tư và rủi ro tiềm ẩn.`,
         action: 'Triển khai đánh giá hệ thống toàn diện',
         priority: 3,
+        drilldown: { filterType: 'recommendation', filterValue: 'unknown', title: 'Hệ thống chưa được đánh giá' },
       });
     }
 
@@ -357,6 +361,7 @@ const StrategicDashboard = () => {
         description: 'Nâng cấp các hệ thống này sẽ cải thiện hiệu suất, bảo mật và trải nghiệm người dùng mà không cần thay thế hoàn toàn.',
         action: 'Ưu tiên nâng cấp hệ thống quan trọng cao',
         priority: 4,
+        drilldown: { filterType: 'recommendation', filterValue: 'upgrade', title: 'Hệ thống cần nâng cấp' },
       });
     }
 
@@ -371,6 +376,7 @@ const StrategicDashboard = () => {
         description: 'Tỷ lệ hệ thống quan trọng cao đòi hỏi đầu tư nhiều hơn cho bảo mật, backup và disaster recovery.',
         action: 'Rà soát kế hoạch DR/BCP cho các hệ thống này',
         priority: 5,
+        drilldown: { filterType: 'criticality', filterValue: 'high', title: 'Hệ thống mức độ quan trọng CAO' },
       });
     }
 
@@ -384,6 +390,7 @@ const StrategicDashboard = () => {
         description: 'Đây là nền tảng tốt để xây dựng hệ sinh thái dữ liệu liên thông. Cân nhắc tập trung hóa API Gateway để quản lý và bảo mật tốt hơn.',
         action: 'Đánh giá triển khai API Gateway tập trung',
         priority: 6,
+        drilldown: { filterType: 'integration', filterValue: 'with', title: 'Hệ thống đã tích hợp API' },
       });
     }
 
@@ -760,6 +767,12 @@ const StrategicDashboard = () => {
                     <Col xs={24} lg={12} key={rec.id}>
                       <Card
                         size="small"
+                        hoverable={!!rec.drilldown}
+                        onClick={() => {
+                          if (rec.drilldown) {
+                            handleDrilldown(rec.drilldown.filterType, rec.drilldown.filterValue, rec.drilldown.title);
+                          }
+                        }}
                         style={{
                           borderRadius: borderRadius.base,
                           borderLeft: `4px solid ${
@@ -770,6 +783,7 @@ const StrategicDashboard = () => {
                           background: rec.type === 'critical' ? '#fff2f0' :
                             rec.type === 'warning' ? '#fffbe6' :
                             rec.type === 'optimization' ? '#e6f7ff' : '#f6ffed',
+                          cursor: rec.drilldown ? 'pointer' : 'default',
                         }}
                       >
                         <Space direction="vertical" size={8} style={{ width: '100%' }}>
@@ -802,6 +816,14 @@ const StrategicDashboard = () => {
                               <strong>Đề xuất:</strong> {rec.action}
                             </Text>
                           </div>
+                          {rec.drilldown && (
+                            <div style={{ marginTop: 8, textAlign: 'right' }}>
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                <EyeOutlined style={{ marginRight: 4 }} />
+                                Click để xem danh sách hệ thống
+                              </Text>
+                            </div>
+                          )}
                         </Space>
                       </Card>
                     </Col>

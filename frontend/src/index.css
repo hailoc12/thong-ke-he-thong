@@ -324,10 +324,21 @@ input, textarea, select {
 
 /* Table Improvements */
 .ant-table-thead > tr > th {
-  background-color: var(--bg-gray) !important;
+  background-color: var(--color-gray-50) !important;
   font-weight: var(--font-weight-semibold) !important;
   color: var(--text-primary) !important;
-  border-bottom: 2px solid var(--border-color) !important;
+  border-bottom: 2px solid var(--border-main) !important;
+  white-space: nowrap !important;  /* Prevent header wrap */
+}
+
+/* Systems table specific styling */
+.systems-table .ant-table-thead > tr > th {
+  padding: 12px 8px !important;
+  font-size: 13px !important;
+}
+
+.systems-table .ant-table-tbody > tr > td {
+  padding: 10px 8px !important;
 }
 
 .ant-table-tbody > tr:hover > td {

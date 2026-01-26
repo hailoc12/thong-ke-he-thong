@@ -116,45 +116,37 @@ const Systems = () => {
 
   const columns: ColumnsType<System> = [
     {
-      title: 'Mã hệ thống',
+      title: 'Mã HT',
       dataIndex: 'system_code',
       key: 'system_code',
-      width: 120,
-      fixed: isMobile ? undefined : 'left',
-      responsive: ['md'] as any, // Hide on mobile
+      width: 130,
+      ellipsis: { showTitle: true },
     },
     {
       title: 'Tên hệ thống',
       dataIndex: 'system_name',
       key: 'system_name',
-      width: isMobile ? undefined : 250,
-      ellipsis: {
-        showTitle: true,
-      },
+      width: 220,
+      ellipsis: { showTitle: true },
     },
     {
       title: 'Đơn vị',
       dataIndex: 'org_name',
       key: 'org_name',
-      width: 180,
-      ellipsis: {
-        showTitle: true,
-      },
-      responsive: ['lg'] as any, // Hide on mobile and tablet
+      width: 160,
+      ellipsis: { showTitle: true },
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      width: isMobile ? 90 : 120,
-      ellipsis: {
-        showTitle: true,
-      },
+      width: 100,
+      align: 'center',
       render: (status: string) => {
         const label = getStatusLabel(status);
         return (
           <Tag color={getStatusColor(status)}>
-            {isMobile ? label.short : label.full}
+            {label.full}
           </Tag>
         );
       },
@@ -163,8 +155,8 @@ const Systems = () => {
       title: 'Mức độ',
       dataIndex: 'criticality_level',
       key: 'criticality_level',
-      width: 120,
-      responsive: ['lg'] as any, // Hide on mobile and tablet
+      width: 100,
+      align: 'center',
       render: (level: string, record: System) => (
         <Tag color={getCriticalityColor(level)}>
           {record.criticality_display}
@@ -172,41 +164,36 @@ const Systems = () => {
       ),
     },
     {
-      title: 'Người quản lý',
+      title: 'Quản lý',
       dataIndex: 'business_owner',
       key: 'business_owner',
-      width: 150,
-      ellipsis: {
-        showTitle: true,
-      },
-      responsive: ['lg'] as any, // Hide on mobile and tablet
+      width: 130,
+      ellipsis: { showTitle: true },
     },
     {
-      title: 'Số người dùng',
+      title: 'Users',
       dataIndex: 'users_total',
       key: 'users_total',
-      width: 120,
+      width: 70,
       align: 'right',
-      responsive: ['md'] as any, // Hide on mobile
       render: (value: number) => value?.toLocaleString() || 0,
     },
     {
-      title: 'Tỷ lệ hoàn thành',
+      title: 'Hoàn thành',
       dataIndex: 'completion_percentage',
       key: 'completion_percentage',
-      width: 140,
+      width: 95,
       align: 'center',
-      responsive: ['lg'] as any, // Hide on mobile and tablet
       render: (value: number) => {
         const percentage = value || 0;
-        let color = '#f5222d'; // Red for low completion
+        let color = '#f5222d';
         if (percentage >= 80) {
-          color = '#52c41a'; // Green for high completion
+          color = '#52c41a';
         } else if (percentage >= 50) {
-          color = '#faad14'; // Orange for medium completion
+          color = '#faad14';
         }
         return (
-          <Tag color={color} style={{ minWidth: '60px', textAlign: 'center' }}>
+          <Tag color={color} style={{ minWidth: '55px', textAlign: 'center' }}>
             {percentage.toFixed(1)}%
           </Tag>
         );
@@ -215,10 +202,10 @@ const Systems = () => {
     {
       title: 'Thao tác',
       key: 'action',
-      width: isMobile ? 120 : 200,
-      fixed: isMobile ? undefined : 'right',
+      width: 140,
+      align: 'center',
       render: (_: any, record: System) => (
-        <Space direction={isMobile ? 'vertical' : 'horizontal'} size="small">
+        <Space size="small">
           <Button type="link" size="small" onClick={() => navigate(`/systems/${record.id}`)}>
             Xem
           </Button>
@@ -283,6 +270,8 @@ const Systems = () => {
         dataSource={systems}
         rowKey="id"
         loading={loading}
+        size="middle"
+        className="systems-table"
         locale={{
           emptyText: (
             <Empty
@@ -301,13 +290,12 @@ const Systems = () => {
         }}
         pagination={{
           ...pagination,
-          ...(isMobile && { size: 'small' as const }),
-          showSizeChanger: !isMobile,
-          showQuickJumper: !isMobile,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total) => `Tổng ${total} hệ thống`,
         }}
         onChange={handleTableChange}
-        scroll={{ x: isMobile ? 'max-content' : 1300 }}
-        tableLayout={isMobile ? 'auto' : 'fixed'}
+        scroll={{ x: 1150 }}
       />
     </div>
   );

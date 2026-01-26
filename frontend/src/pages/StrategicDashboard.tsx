@@ -33,6 +33,11 @@ import {
   AppstoreOutlined,
   TeamOutlined,
   DownloadOutlined,
+  RobotOutlined,
+  BulbOutlined,
+  SafetyOutlined,
+  SyncOutlined,
+  AlertOutlined,
 } from '@ant-design/icons';
 import {
   PieChart,
@@ -210,6 +215,9 @@ const StrategicDashboard = () => {
   const [drilldownSystems, setDrilldownSystems] = useState<DrilldownSystem[]>([]);
   const [drilldownLoading, setDrilldownLoading] = useState(false);
 
+  // AI Assistant state
+  const [aiAssistantExpanded, setAiAssistantExpanded] = useState(true);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -283,6 +291,105 @@ const StrategicDashboard = () => {
 
     setAlerts(newAlerts);
   };
+
+  // AI Assistant - Generate intelligent recommendations
+  const aiRecommendations = useMemo(() => {
+    if (!stats) return [];
+
+    const recommendations: Array<{
+      id: string;
+      type: 'critical' | 'warning' | 'optimization' | 'insight';
+      icon: React.ReactNode;
+      title: string;
+      description: string;
+      action: string;
+      priority: number;
+    }> = [];
+
+    // Critical: Systems needing replacement
+    if (stats.recommendation_distribution.replace > 0) {
+      recommendations.push({
+        id: 'replace-systems',
+        type: 'critical',
+        icon: <AlertOutlined style={{ color: '#f5222d' }} />,
+        title: `${stats.recommendation_distribution.replace} hệ thống cần thay thế gấp`,
+        description: 'Các hệ thống này đã lỗi thời, tiềm ẩn rủi ro bảo mật và hiệu suất. Việc trì hoãn thay thế có thể dẫn đến gián đoạn dịch vụ và tăng chi phí khắc phục.',
+        action: 'Lập kế hoạch thay thế trong Q1-Q2/2026',
+        priority: 1,
+      });
+    }
+
+    // Warning: Low integration rate
+    if (stats.integration.without_integration > stats.integration.with_integration) {
+      const isolatedPercent = Math.round((stats.integration.without_integration / stats.overview.total_systems) * 100);
+      recommendations.push({
+        id: 'integration-gap',
+        type: 'warning',
+        icon: <ApiOutlined style={{ color: '#fa8c16' }} />,
+        title: `${isolatedPercent}% hệ thống chưa được tích hợp`,
+        description: `Có ${stats.integration.without_integration} hệ thống hoạt động độc lập, tạo ra "đảo dữ liệu" làm giảm hiệu quả vận hành và khả năng ra quyết định dựa trên dữ liệu.`,
+        action: 'Xây dựng lộ trình tích hợp dữ liệu liên thông',
+        priority: 2,
+      });
+    }
+
+    // Warning: Many systems not assessed
+    if (stats.recommendation_distribution.unknown > 30) {
+      const unknownPercent = Math.round((stats.recommendation_distribution.unknown / stats.overview.total_systems) * 100);
+      recommendations.push({
+        id: 'assessment-gap',
+        type: 'warning',
+        icon: <ExclamationCircleOutlined style={{ color: '#faad14' }} />,
+        title: `${unknownPercent}% hệ thống chưa được đánh giá`,
+        description: `${stats.recommendation_distribution.unknown} hệ thống chưa có đánh giá chất lượng. Thiếu đánh giá làm khó khăn trong việc xác định ưu tiên đầu tư và rủi ro tiềm ẩn.`,
+        action: 'Triển khai đánh giá hệ thống toàn diện',
+        priority: 3,
+      });
+    }
+
+    // Optimization: Systems to upgrade
+    if (stats.recommendation_distribution.upgrade > 5) {
+      recommendations.push({
+        id: 'upgrade-opportunity',
+        type: 'optimization',
+        icon: <RiseOutlined style={{ color: '#1890ff' }} />,
+        title: `${stats.recommendation_distribution.upgrade} hệ thống có thể nâng cấp`,
+        description: 'Nâng cấp các hệ thống này sẽ cải thiện hiệu suất, bảo mật và trải nghiệm người dùng mà không cần thay thế hoàn toàn.',
+        action: 'Ưu tiên nâng cấp hệ thống quan trọng cao',
+        priority: 4,
+      });
+    }
+
+    // Insight: High criticality systems
+    const highCriticalPercent = Math.round((stats.criticality_distribution.high / stats.overview.total_systems) * 100);
+    if (highCriticalPercent > 50) {
+      recommendations.push({
+        id: 'high-criticality',
+        type: 'insight',
+        icon: <SafetyOutlined style={{ color: '#722ed1' }} />,
+        title: `${highCriticalPercent}% hệ thống có mức độ quan trọng CAO`,
+        description: 'Tỷ lệ hệ thống quan trọng cao đòi hỏi đầu tư nhiều hơn cho bảo mật, backup và disaster recovery.',
+        action: 'Rà soát kế hoạch DR/BCP cho các hệ thống này',
+        priority: 5,
+      });
+    }
+
+    // Insight: Integration potential
+    if (stats.integration.total_api_provided > 500) {
+      recommendations.push({
+        id: 'integration-potential',
+        type: 'insight',
+        icon: <BulbOutlined style={{ color: '#52c41a' }} />,
+        title: `${stats.integration.total_api_provided.toLocaleString()} API đang được cung cấp`,
+        description: 'Đây là nền tảng tốt để xây dựng hệ sinh thái dữ liệu liên thông. Cân nhắc tập trung hóa API Gateway để quản lý và bảo mật tốt hơn.',
+        action: 'Đánh giá triển khai API Gateway tập trung',
+        priority: 6,
+      });
+    }
+
+    // Sort by priority
+    return recommendations.sort((a, b) => a.priority - b.priority);
+  }, [stats]);
 
   // Drill-down function
   const handleDrilldown = useCallback(async (filterType: string, filterValue: string, title: string) => {
@@ -591,6 +698,118 @@ const StrategicDashboard = () => {
             banner
             closable
           />
+        </motion.div>
+      )}
+
+      {/* AI Assistant Card */}
+      {aiRecommendations.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          style={{ marginBottom: spacing.lg }}
+        >
+          <Card
+            style={{
+              borderRadius: borderRadius.lg,
+              boxShadow: shadows.md,
+              background: 'linear-gradient(135deg, #f6f8fc 0%, #eef2f7 100%)',
+              border: '1px solid #e6f4ff',
+            }}
+          >
+            <Row justify="space-between" align="middle" style={{ marginBottom: aiAssistantExpanded ? 16 : 0 }}>
+              <Col>
+                <Space>
+                  <div style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #1890ff 0%, #722ed1 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <RobotOutlined style={{ fontSize: 20, color: 'white' }} />
+                  </div>
+                  <div>
+                    <Title level={4} style={{ margin: 0 }}>
+                      Trợ lý ảo CDS
+                    </Title>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      <SyncOutlined spin style={{ marginRight: 4 }} />
+                      Phân tích dữ liệu và đề xuất hành động
+                    </Text>
+                  </div>
+                </Space>
+              </Col>
+              <Col>
+                <Button
+                  type="text"
+                  onClick={() => setAiAssistantExpanded(!aiAssistantExpanded)}
+                >
+                  {aiAssistantExpanded ? 'Thu gọn' : `Xem ${aiRecommendations.length} đề xuất`}
+                </Button>
+              </Col>
+            </Row>
+
+            {aiAssistantExpanded && (
+              <div>
+                <Divider style={{ margin: '0 0 16px 0' }} />
+                <Row gutter={[16, 16]}>
+                  {aiRecommendations.map((rec) => (
+                    <Col xs={24} lg={12} key={rec.id}>
+                      <Card
+                        size="small"
+                        style={{
+                          borderRadius: borderRadius.base,
+                          borderLeft: `4px solid ${
+                            rec.type === 'critical' ? '#f5222d' :
+                            rec.type === 'warning' ? '#fa8c16' :
+                            rec.type === 'optimization' ? '#1890ff' : '#52c41a'
+                          }`,
+                          background: rec.type === 'critical' ? '#fff2f0' :
+                            rec.type === 'warning' ? '#fffbe6' :
+                            rec.type === 'optimization' ? '#e6f7ff' : '#f6ffed',
+                        }}
+                      >
+                        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                          <Space>
+                            {rec.icon}
+                            <Text strong style={{ fontSize: 14 }}>
+                              {rec.title}
+                            </Text>
+                            <Tag color={
+                              rec.type === 'critical' ? 'red' :
+                              rec.type === 'warning' ? 'orange' :
+                              rec.type === 'optimization' ? 'blue' : 'green'
+                            } style={{ marginLeft: 'auto' }}>
+                              {rec.type === 'critical' ? 'Nghiêm trọng' :
+                               rec.type === 'warning' ? 'Cảnh báo' :
+                               rec.type === 'optimization' ? 'Tối ưu' : 'Gợi ý'}
+                            </Tag>
+                          </Space>
+                          <Text type="secondary" style={{ fontSize: 13 }}>
+                            {rec.description}
+                          </Text>
+                          <div style={{
+                            padding: '8px 12px',
+                            background: 'white',
+                            borderRadius: borderRadius.sm,
+                            border: '1px dashed #d9d9d9',
+                          }}>
+                            <Text style={{ fontSize: 13 }}>
+                              <BulbOutlined style={{ marginRight: 8, color: '#faad14' }} />
+                              <strong>Đề xuất:</strong> {rec.action}
+                            </Text>
+                          </div>
+                        </Space>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+              </div>
+            )}
+          </Card>
         </motion.div>
       )}
 

@@ -122,7 +122,8 @@ const Systems = () => {
     return '#EF4444';
   };
 
-  const columns: ColumnsType<System> = [
+  // Build columns - hide "Đơn vị" for org users since they only see their own org
+  const allColumns: ColumnsType<System> = [
     {
       title: isMobile ? 'Mã' : 'Mã hệ thống',
       dataIndex: 'system_code',
@@ -134,17 +135,17 @@ const Systems = () => {
       title: 'Tên hệ thống',
       dataIndex: 'system_name',
       key: 'system_name',
-      width: isMobile ? 150 : 250,
+      width: isMobile ? 150 : 280,
       ellipsis: { showTitle: true },
     },
-    {
+    // Only show "Đơn vị" column for admin users
+    ...(isAdmin ? [{
       title: 'Đơn vị',
       dataIndex: 'org_name',
       key: 'org_name',
       width: 180,
       ellipsis: { showTitle: true },
-      responsive: ['lg'] as any,
-    },
+    }] : []),
     {
       title: isMobile ? 'TT' : 'Trạng thái',
       dataIndex: 'status',
@@ -274,7 +275,7 @@ const Systems = () => {
       </div>
 
       <Table
-        columns={columns}
+        columns={allColumns}
         dataSource={systems}
         rowKey="id"
         loading={loading}

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, Typography, Tag, Input, Empty, Popconfirm, message } from 'antd';
-import { PlusOutlined, SearchOutlined, InboxOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Typography, Tag, Input, Empty, Popconfirm, message, Progress, Tooltip } from 'antd';
+import { PlusOutlined, SearchOutlined, InboxOutlined, DeleteOutlined, ExclamationCircleOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../config/api';
 import { useAuthStore } from '../stores/authStore';
 import type { System, ApiResponse } from '../types';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const Systems = () => {
   const navigate = useNavigate();
@@ -114,39 +114,48 @@ const Systems = () => {
     return colors[level] || 'default';
   };
 
+  const getCompletionColor = (percentage: number): string => {
+    if (percentage === 100) return '#22C55E';
+    if (percentage >= 76) return '#84CC16';
+    if (percentage >= 51) return '#FBBF24';
+    if (percentage >= 26) return '#F59E0B';
+    return '#EF4444';
+  };
+
   const columns: ColumnsType<System> = [
     {
-      title: 'Mã HT',
+      title: isMobile ? 'Mã' : 'Mã hệ thống',
       dataIndex: 'system_code',
       key: 'system_code',
-      width: 130,
+      width: isMobile ? 80 : 120,
       ellipsis: { showTitle: true },
     },
     {
       title: 'Tên hệ thống',
       dataIndex: 'system_name',
       key: 'system_name',
-      width: 220,
+      width: isMobile ? 150 : 250,
       ellipsis: { showTitle: true },
     },
     {
       title: 'Đơn vị',
       dataIndex: 'org_name',
       key: 'org_name',
-      width: 160,
+      width: 180,
       ellipsis: { showTitle: true },
+      responsive: ['lg'] as any,
     },
     {
-      title: 'Trạng thái',
+      title: isMobile ? 'TT' : 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      width: 100,
+      width: isMobile ? 80 : 110,
       align: 'center',
       render: (status: string) => {
         const label = getStatusLabel(status);
         return (
           <Tag color={getStatusColor(status)}>
-            {label.full}
+            {isMobile ? label.short : label.full}
           </Tag>
         );
       },
@@ -157,6 +166,7 @@ const Systems = () => {
       key: 'criticality_level',
       width: 100,
       align: 'center',
+      responsive: ['xl'] as any,
       render: (level: string, record: System) => (
         <Tag color={getCriticalityColor(level)}>
           {record.criticality_display}
@@ -164,54 +174,52 @@ const Systems = () => {
       ),
     },
     {
-      title: 'Quản lý',
-      dataIndex: 'business_owner',
-      key: 'business_owner',
-      width: 130,
-      ellipsis: { showTitle: true },
-    },
-    {
-      title: 'Users',
-      dataIndex: 'users_total',
-      key: 'users_total',
-      width: 70,
-      align: 'right',
-      render: (value: number) => value?.toLocaleString() || 0,
-    },
-    {
-      title: 'Hoàn thành',
+      title: isMobile ? '%' : '% Hoàn thành',
       dataIndex: 'completion_percentage',
       key: 'completion_percentage',
-      width: 95,
-      align: 'center',
+      width: isMobile ? 80 : 160,
+      sorter: (a, b) => (a.completion_percentage || 0) - (b.completion_percentage || 0),
       render: (value: number) => {
         const percentage = value || 0;
-        let color = '#f5222d';
-        if (percentage >= 80) {
-          color = '#52c41a';
-        } else if (percentage >= 50) {
-          color = '#faad14';
-        }
         return (
-          <Tag color={color} style={{ minWidth: '55px', textAlign: 'center' }}>
-            {percentage.toFixed(1)}%
-          </Tag>
+          <Tooltip title={`${percentage.toFixed(1)}%`}>
+            <Progress
+              percent={Math.round(percentage)}
+              strokeColor={getCompletionColor(percentage)}
+              size="small"
+              format={(p) => `${p}%`}
+            />
+          </Tooltip>
         );
       },
     },
     {
-      title: 'Thao tác',
+      title: '',
       key: 'action',
-      width: 140,
+      width: isMobile ? 90 : 120,
       align: 'center',
       render: (_: any, record: System) => (
-        <Space size="small">
-          <Button type="link" size="small" onClick={() => navigate(`/systems/${record.id}`)}>
-            Xem
-          </Button>
-          <Button type="link" size="small" onClick={() => navigate(`/systems/${record.id}/edit`)}>
-            Sửa
-          </Button>
+        <Space size={isMobile ? 4 : 8}>
+          <Tooltip title="Xem chi tiết">
+            <Button
+              type="link"
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => navigate(`/systems/${record.id}`)}
+            >
+              {!isMobile && 'Xem'}
+            </Button>
+          </Tooltip>
+          <Tooltip title="Chỉnh sửa">
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => navigate(`/systems/${record.id}/edit`)}
+            >
+              {!isMobile && 'Sửa'}
+            </Button>
+          </Tooltip>
           {canDeleteSystem(record) && (
             <Popconfirm
               title="Xóa hệ thống"
@@ -228,9 +236,9 @@ const Systems = () => {
               cancelText="Hủy"
               okButtonProps={{ danger: true }}
             >
-              <Button type="text" danger size="small" icon={<DeleteOutlined />}>
-                Xóa
-              </Button>
+              <Tooltip title="Xóa">
+                <Button type="text" danger size="small" icon={<DeleteOutlined />} />
+              </Tooltip>
             </Popconfirm>
           )}
         </Space>
@@ -270,7 +278,7 @@ const Systems = () => {
         dataSource={systems}
         rowKey="id"
         loading={loading}
-        size="middle"
+        size={isMobile ? 'small' : 'middle'}
         className="systems-table"
         locale={{
           emptyText: (
@@ -290,12 +298,13 @@ const Systems = () => {
         }}
         pagination={{
           ...pagination,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total) => `Tổng ${total} hệ thống`,
+          showSizeChanger: !isMobile,
+          showQuickJumper: !isMobile,
+          showTotal: isMobile ? undefined : (total) => `Tổng ${total} hệ thống`,
+          ...(isMobile && { size: 'small' as const }),
         }}
         onChange={handleTableChange}
-        scroll={{ x: 1150 }}
+        scroll={{ x: isMobile ? 'max-content' : 900 }}
       />
     </div>
   );

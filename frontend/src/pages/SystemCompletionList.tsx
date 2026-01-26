@@ -90,6 +90,16 @@ const SystemCompletionList = () => {
   const [loading, setLoading] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Handle responsive
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Filters from URL
   const orgFilter = searchParams.get('org') || 'all';
@@ -180,41 +190,45 @@ const SystemCompletionList = () => {
 
   const columns: ColumnsType<SystemCompletionData> = [
     {
-      title: 'Mã hệ thống',
+      title: isMobile ? 'Mã' : 'Mã hệ thống',
       dataIndex: 'system_code',
       key: 'system_code',
-      width: 150,
-      fixed: 'left',
+      width: isMobile ? 80 : 150,
+      fixed: isMobile ? undefined : 'left',
+      responsive: isMobile ? undefined : ['md'] as any,
     },
     {
       title: 'Tên hệ thống',
       dataIndex: 'system_name',
       key: 'system_name',
-      width: 250,
-      fixed: 'left',
+      width: isMobile ? 150 : 250,
+      fixed: isMobile ? undefined : 'left',
+      ellipsis: { showTitle: true },
     },
     {
       title: 'Đơn vị',
       dataIndex: 'org_name',
       key: 'org_name',
       width: 180,
+      ellipsis: { showTitle: true },
+      responsive: ['lg'] as any, // Hide on mobile and tablet
     },
     {
-      title: 'Trạng thái',
+      title: isMobile ? 'TT' : 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      width: 130,
+      width: isMobile ? 80 : 130,
       render: (status: string) => {
         const label = STATUS_LABELS[status] || status;
         const color = STATUS_COLORS[status] || 'default';
-        return <Tag color={color}>{label}</Tag>;
+        return <Tag color={color}>{isMobile ? label.substring(0, 6) : label}</Tag>;
       },
     },
     {
-      title: '% hoàn thành',
+      title: isMobile ? '%' : '% hoàn thành',
       dataIndex: 'completion_percentage',
       key: 'completion_percentage',
-      width: 200,
+      width: isMobile ? 100 : 200,
       sorter: (a, b) => a.completion_percentage - b.completion_percentage,
       defaultSortOrder: 'descend',
       render: (percentage: number, record: SystemCompletionData) => (
@@ -223,27 +237,30 @@ const SystemCompletionList = () => {
             percent={percentage}
             strokeColor={getCompletionColor(percentage)}
             size="small"
+            format={(p) => isMobile ? `${p}%` : `${p}%`}
           />
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {record.filled_fields}/{record.total_required_fields} trường
-          </Text>
+          {!isMobile && (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {record.filled_fields}/{record.total_required_fields} trường
+            </Text>
+          )}
         </Space>
       ),
     },
     {
-      title: 'Hành động',
+      title: '',
       key: 'action',
-      width: 150,
-      fixed: 'right',
+      width: isMobile ? 80 : 150,
+      fixed: isMobile ? undefined : 'right',
       render: (_, record: SystemCompletionData) => (
-        <Space>
+        <Space size={isMobile ? 4 : 8}>
           <Button
             type="link"
             size="small"
             icon={<EyeOutlined />}
             onClick={() => navigate(`/systems/${record.id}`)}
           >
-            Xem
+            {!isMobile && 'Xem'}
           </Button>
           <Button
             type="link"
@@ -251,7 +268,7 @@ const SystemCompletionList = () => {
             icon={<EditOutlined />}
             onClick={() => navigate(`/systems/${record.id}/edit`)}
           >
-            Sửa
+            {!isMobile && 'Sửa'}
           </Button>
         </Space>
       ),
@@ -260,23 +277,30 @@ const SystemCompletionList = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: 'space-between',
+        alignItems: isMobile ? 'stretch' : 'flex-start',
+        gap: isMobile ? 12 : 0,
+        marginBottom: 16
+      }}>
         <div>
-          <Title level={3} style={{ marginBottom: 8 }}>
-            Thống kê hoàn thành hệ thống
+          <Title level={isMobile ? 4 : 3} style={{ marginBottom: 8 }}>
+            {isMobile ? 'Thống kê hoàn thành' : 'Thống kê hoàn thành hệ thống'}
           </Title>
           {summary && (
-            <Space size="large">
-              <Text type="secondary">
-                Tổng: <strong>{summary.total_systems}</strong> hệ thống
+            <Space size={isMobile ? 'small' : 'large'} wrap>
+              <Text type="secondary" style={{ fontSize: isMobile ? 12 : 14 }}>
+                Tổng: <strong>{summary.total_systems}</strong>
               </Text>
-              <Text type="secondary">
+              <Text type="secondary" style={{ fontSize: isMobile ? 12 : 14 }}>
                 TB: <strong>{summary.avg_completion_all}%</strong>
               </Text>
-              <Text style={{ color: '#22C55E' }}>
+              <Text style={{ color: '#22C55E', fontSize: isMobile ? 12 : 14 }}>
                 100%: <strong>{summary.systems_100_percent}</strong>
               </Text>
-              <Text style={{ color: '#EF4444' }}>
+              <Text style={{ color: '#EF4444', fontSize: isMobile ? 12 : 14 }}>
                 &lt;50%: <strong>{summary.systems_below_50_percent}</strong>
               </Text>
             </Space>
@@ -286,21 +310,24 @@ const SystemCompletionList = () => {
           icon={<ReloadOutlined />}
           onClick={fetchCompletionData}
           loading={loading}
+          size={isMobile ? 'small' : 'middle'}
+          block={isMobile}
         >
-          Làm mới
+          {isMobile ? 'Làm mới' : 'Làm mới'}
         </Button>
       </div>
 
       {/* Filters */}
-      <Card style={{ marginBottom: 16 }}>
-        <Row gutter={16} align="middle">
-          <Col flex="auto">
-            <Space wrap>
+      <Card size={isMobile ? 'small' : 'default'} style={{ marginBottom: 16 }}>
+        <Row gutter={[8, 8]} align="middle">
+          <Col xs={24} sm={24} md={18} lg={18}>
+            <Space wrap size={isMobile ? 'small' : 'middle'} style={{ width: '100%' }}>
               <Select
-                style={{ width: 220 }}
+                style={{ width: isMobile ? '100%' : 220, minWidth: isMobile ? 'unset' : 180 }}
                 placeholder="Đơn vị"
                 value={orgFilter}
                 onChange={(value) => handleFilterChange('org', value)}
+                size={isMobile ? 'small' : 'middle'}
               >
                 <Option value="all">Tất cả đơn vị</Option>
                 {organizations.map((org) => (
@@ -311,12 +338,13 @@ const SystemCompletionList = () => {
               </Select>
 
               <Select
-                style={{ width: 180 }}
+                style={{ width: isMobile ? 120 : 180 }}
                 placeholder="Trạng thái"
                 value={statusFilter}
                 onChange={(value) => handleFilterChange('status', value)}
+                size={isMobile ? 'small' : 'middle'}
               >
-                <Option value="all">Tất cả trạng thái</Option>
+                <Option value="all">{isMobile ? 'Tất cả' : 'Tất cả trạng thái'}</Option>
                 <Option value="operating">{STATUS_LABELS.operating}</Option>
                 <Option value="pilot">{STATUS_LABELS.pilot}</Option>
                 <Option value="stopped">{STATUS_LABELS.stopped}</Option>
@@ -324,12 +352,13 @@ const SystemCompletionList = () => {
               </Select>
 
               <Select
-                style={{ width: 180 }}
+                style={{ width: isMobile ? 100 : 180 }}
                 placeholder="% hoàn thành"
                 value={completionFilter}
                 onChange={(value) => handleFilterChange('completion', value)}
+                size={isMobile ? 'small' : 'middle'}
               >
-                <Option value="all">Tất cả</Option>
+                <Option value="all">{isMobile ? 'Tất cả' : 'Tất cả %'}</Option>
                 <Option value="0-25">0-25%</Option>
                 <Option value="26-50">26-50%</Option>
                 <Option value="51-75">51-75%</Option>
@@ -338,17 +367,19 @@ const SystemCompletionList = () => {
               </Select>
             </Space>
           </Col>
-          <Col>
-            <Button onClick={handleClearFilters}>Xóa bộ lọc</Button>
+          <Col xs={24} sm={24} md={6} lg={6} style={{ textAlign: isMobile ? 'left' : 'right' }}>
+            <Button onClick={handleClearFilters} size={isMobile ? 'small' : 'middle'}>
+              {isMobile ? 'Xóa lọc' : 'Xóa bộ lọc'}
+            </Button>
           </Col>
         </Row>
       </Card>
 
       {/* Table */}
-      <Card>
+      <Card size={isMobile ? 'small' : 'default'}>
         {loading && !data.length ? (
-          <div style={{ textAlign: 'center', padding: 40 }}>
-            <Spin size="large" />
+          <div style={{ textAlign: 'center', padding: isMobile ? 20 : 40 }}>
+            <Spin size={isMobile ? 'default' : 'large'} />
           </div>
         ) : (
           <Table
@@ -356,28 +387,33 @@ const SystemCompletionList = () => {
             dataSource={data}
             rowKey="id"
             loading={loading}
+            size={isMobile ? 'small' : 'middle'}
             pagination={{
-              pageSize: 20,
-              showSizeChanger: true,
-              showTotal: (total) => `Tổng ${total} hệ thống`,
+              pageSize: isMobile ? 10 : 20,
+              showSizeChanger: !isMobile,
+              showTotal: isMobile ? undefined : (total) => `Tổng ${total} hệ thống`,
+              size: isMobile ? 'small' : 'default',
             }}
-            scroll={{ x: 1200 }}
+            scroll={{ x: isMobile ? 'max-content' : 1200 }}
+            tableLayout={isMobile ? 'auto' : 'fixed'}
             expandable={{
               expandedRowRender: (record) => (
-                <div style={{ padding: '12px 24px' }}>
-                  <Text strong>Các trường chưa điền:</Text>
+                <div style={{ padding: isMobile ? '8px 12px' : '12px 24px' }}>
+                  <Text strong style={{ fontSize: isMobile ? 12 : 14 }}>
+                    {isMobile ? 'Chưa điền:' : 'Các trường chưa điền:'}
+                  </Text>
                   <br />
                   {record.incomplete_fields.length > 0 ? (
-                    <Space wrap style={{ marginTop: 8 }}>
+                    <Space wrap size={isMobile ? 4 : 8} style={{ marginTop: 8 }}>
                       {record.incomplete_fields.map((field) => (
-                        <Tag key={field} color="red">
+                        <Tag key={field} color="red" style={{ fontSize: isMobile ? 11 : 14 }}>
                           {field}
                         </Tag>
                       ))}
                     </Space>
                   ) : (
-                    <Text type="success" style={{ marginTop: 8 }}>
-                      ✅ Đã điền đủ tất cả trường bắt buộc
+                    <Text type="success" style={{ marginTop: 8, fontSize: isMobile ? 12 : 14 }}>
+                      ✅ Đã điền đủ
                     </Text>
                   )}
                 </div>

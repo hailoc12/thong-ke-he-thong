@@ -623,15 +623,27 @@ class SystemViewSet(viewsets.ModelViewSet):
                 )
         elif filter_type == 'recommendation':
             # Need to filter through assessment relation
+            # Match logic with strategic_stats recommendation_distribution calculation
+            valid_recommendations = ['keep', 'upgrade', 'replace', 'merge']
             system_ids = []
             for system in queryset.select_related('assessment'):
                 try:
                     if hasattr(system, 'assessment') and system.assessment:
-                        if system.assessment.recommendation == filter_value:
+                        rec = system.assessment.recommendation
+                        if filter_value == 'unknown':
+                            # System has assessment but recommendation not in valid list
+                            if rec not in valid_recommendations:
+                                system_ids.append(system.id)
+                        else:
+                            # Match specific recommendation
+                            if rec == filter_value:
+                                system_ids.append(system.id)
+                    else:
+                        # System has no assessment → counts as unknown
+                        if filter_value == 'unknown':
                             system_ids.append(system.id)
-                    elif filter_value == 'unknown':
-                        system_ids.append(system.id)
                 except Exception:
+                    # Exception accessing assessment → counts as unknown
                     if filter_value == 'unknown':
                         system_ids.append(system.id)
             queryset = queryset.filter(id__in=system_ids)

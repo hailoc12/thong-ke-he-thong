@@ -38,6 +38,16 @@ const SystemDetail = () => {
   const navigate = useNavigate();
   const [system, setSystem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Handle responsive
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetchSystem();
@@ -157,11 +167,11 @@ const SystemDetail = () => {
       key: '1',
       label: (
         <span>
-          <InfoCircleOutlined /> Thông tin cơ bản
+          <InfoCircleOutlined /> {isMobile ? 'Cơ bản' : 'Thông tin cơ bản'}
         </span>
       ),
       children: (
-        <Descriptions bordered column={2}>
+        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2, lg: 2, xl: 2 }} size={isMobile ? 'small' : 'default'}>
           <Descriptions.Item label="Tổ chức" span={2}>
             {system.org_name || '-'}
           </Descriptions.Item>
@@ -192,11 +202,11 @@ const SystemDetail = () => {
       key: '2',
       label: (
         <span>
-          <AppstoreOutlined /> Bối cảnh nghiệp vụ
+          <AppstoreOutlined /> {isMobile ? 'Nghiệp vụ' : 'Bối cảnh nghiệp vụ'}
         </span>
       ),
       children: (
-        <Descriptions bordered column={2}>
+        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2, lg: 2, xl: 2 }} size={isMobile ? 'small' : 'default'}>
           <Descriptions.Item label="Mục tiêu nghiệp vụ" span={2}>
             {renderArrayField(system.business_objectives, 'Chưa có mục tiêu')}
           </Descriptions.Item>
@@ -229,11 +239,11 @@ const SystemDetail = () => {
       key: '3',
       label: (
         <span>
-          <DatabaseOutlined /> Kiến trúc công nghệ
+          <DatabaseOutlined /> {isMobile ? 'Công nghệ' : 'Kiến trúc công nghệ'}
         </span>
       ),
       children: (
-        <Descriptions bordered column={2}>
+        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2, lg: 2, xl: 2 }} size={isMobile ? 'small' : 'default'}>
           <Descriptions.Item label="Ngôn ngữ lập trình" span={1}>
             {system.programming_language || '-'}
           </Descriptions.Item>
@@ -253,11 +263,11 @@ const SystemDetail = () => {
       key: '4',
       label: (
         <span>
-          <DatabaseOutlined /> Kiến trúc dữ liệu
+          <DatabaseOutlined /> {isMobile ? 'Dữ liệu' : 'Kiến trúc dữ liệu'}
         </span>
       ),
       children: (
-        <Descriptions bordered column={2}>
+        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2, lg: 2, xl: 2 }} size={isMobile ? 'small' : 'default'}>
           <Descriptions.Item label="Nguồn dữ liệu" span={2}>
             {renderArrayField(system.data_sources, 'Chưa có nguồn dữ liệu')}
           </Descriptions.Item>
@@ -274,11 +284,11 @@ const SystemDetail = () => {
       key: '5',
       label: (
         <span>
-          <ApiOutlined /> Tích hợp hệ thống
+          <ApiOutlined /> {isMobile ? 'Tích hợp' : 'Tích hợp hệ thống'}
         </span>
       ),
       children: (
-        <Descriptions bordered column={2}>
+        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2, lg: 2, xl: 2 }} size={isMobile ? 'small' : 'default'}>
           <Descriptions.Item label="Hệ thống nội bộ tích hợp" span={1}>
             {renderArrayField(system.integrated_internal_systems, 'Không có')}
           </Descriptions.Item>
@@ -298,11 +308,11 @@ const SystemDetail = () => {
       key: '6',
       label: (
         <span>
-          <SafetyOutlined /> An toàn thông tin
+          <SafetyOutlined /> {isMobile ? 'Bảo mật' : 'An toàn thông tin'}
         </span>
       ),
       children: (
-        <Descriptions bordered column={2}>
+        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2, lg: 2, xl: 2 }} size={isMobile ? 'small' : 'default'}>
           <Descriptions.Item label="Phương thức xác thực" span={1}>
             {system.authentication_method ? getAuthMethodText(system.authentication_method) : '-'}
           </Descriptions.Item>
@@ -322,11 +332,11 @@ const SystemDetail = () => {
       key: '7',
       label: (
         <span>
-          <CloudServerOutlined /> Hạ tầng kỹ thuật
+          <CloudServerOutlined /> {isMobile ? 'Hạ tầng' : 'Hạ tầng kỹ thuật'}
         </span>
       ),
       children: (
-        <Descriptions bordered column={2}>
+        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2, lg: 2, xl: 2 }} size={isMobile ? 'small' : 'default'}>
           <Descriptions.Item label="Cấu hình máy chủ" span={1}>
             {system.server_configuration || '-'}
           </Descriptions.Item>
@@ -350,7 +360,7 @@ const SystemDetail = () => {
         </span>
       ),
       children: (
-        <Descriptions bordered column={2}>
+        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2, lg: 2, xl: 2 }} size={isMobile ? 'small' : 'default'}>
           <Descriptions.Item label="Người chịu trách nhiệm" span={1}>
             {system.business_owner || '-'}
           </Descriptions.Item>
@@ -369,13 +379,13 @@ const SystemDetail = () => {
   ];
 
   return (
-    <div style={{ padding: '24px', background: '#f0f2f5', minHeight: '100vh' }}>
-      <Space style={{ marginBottom: 16 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/systems')}>
-          Quay lại
+    <div style={{ padding: isMobile ? '12px' : '24px', background: '#f0f2f5', minHeight: '100vh' }}>
+      <Space style={{ marginBottom: 16 }} wrap>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/systems')} size={isMobile ? 'middle' : 'large'}>
+          {isMobile ? 'Quay lại' : 'Quay lại danh sách'}
         </Button>
-        <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/systems/${id}/edit`)}>
-          Chỉnh sửa
+        <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/systems/${id}/edit`)} size={isMobile ? 'middle' : 'large'}>
+          {isMobile ? 'Sửa' : 'Chỉnh sửa'}
         </Button>
       </Space>
 

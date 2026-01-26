@@ -995,16 +995,16 @@ const StrategicDashboard = () => {
                 <Card
                   title="Phân bổ theo trạng thái"
                   style={{ borderRadius: borderRadius.md }}
-                  extra={<Text type="secondary">Click để xem chi tiết</Text>}
+                  extra={<Text type="secondary">Click biểu đồ hoặc chú thích để xem chi tiết</Text>}
                 >
-                  <ResponsiveContainer width="100%" height={250}>
+                  <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
                       <Pie
                         data={statusChartData}
                         cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
+                        cy="40%"
+                        innerRadius={50}
+                        outerRadius={70}
                         paddingAngle={5}
                         dataKey="value"
                         label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
@@ -1020,6 +1020,15 @@ const StrategicDashboard = () => {
                         ))}
                       </Pie>
                       <RechartsTooltip />
+                      <Legend
+                        wrapperStyle={{ cursor: 'pointer' }}
+                        onClick={(e) => {
+                          const filterKey = e.payload?.filterKey;
+                          if (filterKey) {
+                            handleDrilldown('status', filterKey, `Hệ thống ${STATUS_LABELS[filterKey] || filterKey}`);
+                          }
+                        }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </Card>
@@ -1029,16 +1038,16 @@ const StrategicDashboard = () => {
                 <Card
                   title="Phân bổ theo mức độ quan trọng"
                   style={{ borderRadius: borderRadius.md }}
-                  extra={<Text type="secondary">Click để xem chi tiết</Text>}
+                  extra={<Text type="secondary">Click biểu đồ hoặc chú thích để xem chi tiết</Text>}
                 >
-                  <ResponsiveContainer width="100%" height={250}>
+                  <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
                       <Pie
                         data={criticalityChartData}
                         cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
+                        cy="40%"
+                        innerRadius={50}
+                        outerRadius={70}
                         paddingAngle={5}
                         dataKey="value"
                         label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
@@ -1054,6 +1063,15 @@ const StrategicDashboard = () => {
                         ))}
                       </Pie>
                       <RechartsTooltip />
+                      <Legend
+                        wrapperStyle={{ cursor: 'pointer' }}
+                        onClick={(e) => {
+                          const filterKey = e.payload?.filterKey;
+                          if (filterKey) {
+                            handleDrilldown('criticality', filterKey, `Hệ thống mức độ ${CRITICALITY_LABELS[filterKey] || filterKey}`);
+                          }
+                        }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </Card>

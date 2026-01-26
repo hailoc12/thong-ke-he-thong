@@ -392,7 +392,7 @@ const SystemCompletionList = () => {
               pageSize: isMobile ? 10 : 20,
               showSizeChanger: !isMobile,
               showTotal: isMobile ? undefined : (total) => `Tổng ${total} hệ thống`,
-              size: isMobile ? 'small' : 'default',
+              ...(isMobile && { size: 'small' as const }),
             }}
             scroll={{ x: isMobile ? 'max-content' : 1200 }}
             tableLayout={isMobile ? 'auto' : 'fixed'}

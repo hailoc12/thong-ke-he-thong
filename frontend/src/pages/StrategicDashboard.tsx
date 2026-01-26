@@ -856,9 +856,11 @@ const StrategicDashboard = () => {
                         <BarChart
                           data={investmentStats.by_organization}
                           layout="vertical"
-                          onClick={(data: { activePayload?: Array<{ payload?: { org_name?: string } }> } | null) => {
-                            if (data?.activePayload?.[0]?.payload?.org_name) {
-                              handleDrilldown('org', data.activePayload[0].payload.org_name, `Hệ thống của ${data.activePayload[0].payload.org_name}`);
+                          onClick={(data) => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            const chartData = data as any;
+                            if (chartData?.activePayload?.[0]?.payload?.org_name) {
+                              handleDrilldown('org', chartData.activePayload[0].payload.org_name, `Hệ thống của ${chartData.activePayload[0].payload.org_name}`);
                             }
                           }}
                         >

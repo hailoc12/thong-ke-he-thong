@@ -298,10 +298,9 @@ const Systems = () => {
         }}
         pagination={{
           ...pagination,
-          showSizeChanger: !isMobile,
-          showQuickJumper: !isMobile,
-          showTotal: isMobile ? undefined : (total) => `Tổng ${total} hệ thống`,
-          ...(isMobile && { size: 'small' as const }),
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total) => `Tổng ${total} hệ thống`,
         }}
         onChange={handleTableChange}
         scroll={{ x: isMobile ? 'max-content' : 900 }}

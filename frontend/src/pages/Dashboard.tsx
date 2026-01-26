@@ -120,6 +120,8 @@ const Dashboard = () => {
       if (organizationFilter !== 'all') {
         params.append('org', organizationFilter);
       }
+      // Fetch ALL completion stats without pagination for Excel export
+      params.append('page_size', '1000');
       const response = await api.get(`/systems/completion_stats/?${params.toString()}`);
       setCompletionStats(response.data);
     } catch (error) {

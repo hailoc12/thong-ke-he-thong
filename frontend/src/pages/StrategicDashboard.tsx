@@ -1023,7 +1023,9 @@ const StrategicDashboard = () => {
                       <Legend
                         wrapperStyle={{ cursor: 'pointer' }}
                         onClick={(e) => {
-                          const filterKey = e.payload?.filterKey;
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          const payload = e.payload as any;
+                          const filterKey = payload?.filterKey;
                           if (filterKey) {
                             handleDrilldown('status', filterKey, `Hệ thống ${STATUS_LABELS[filterKey] || filterKey}`);
                           }
@@ -1066,7 +1068,9 @@ const StrategicDashboard = () => {
                       <Legend
                         wrapperStyle={{ cursor: 'pointer' }}
                         onClick={(e) => {
-                          const filterKey = e.payload?.filterKey;
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          const payload = e.payload as any;
+                          const filterKey = payload?.filterKey;
                           if (filterKey) {
                             handleDrilldown('criticality', filterKey, `Hệ thống mức độ ${CRITICALITY_LABELS[filterKey] || filterKey}`);
                           }

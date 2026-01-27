@@ -162,59 +162,58 @@ def test_other_options():
             page.screenshot(path='screenshot_systems_list.png')
             print(f"   ✓ Screenshot saved: screenshot_systems_list.png")
 
-            # Strategy: Find ANY system with edit button and click it
-            print(f"   → Looking for any system with edit button...")
+            # Strategy: Find "Sửa" button in table
+            print(f"   → Looking for 'Sửa' (Edit) button...")
 
-            # Find all edit links in the table
-            # Common patterns: icon with "edit", button "Sửa", or link with /edit
-            edit_buttons = page.locator('a[href*="/systems/"][href*="/edit"]').or_(
-                page.locator('button:has-text("Sửa")').locator('..').locator('a[href*="/edit"]')
+            # The screenshot shows action buttons with text "Sửa" in each row
+            # Try different selectors to find these buttons
+            edit_button = page.locator('text="Sửa"').first.or_(
+                page.locator('a:has-text("Sửa")').first
             ).or_(
-                page.locator('[title*="Sửa"]').locator('a[href*="/edit"]')
-            ).or_(
-                page.locator('[aria-label*="edit"]').locator('a[href*="/edit"]')
+                page.locator('button:has-text("Sửa")').first
             )
 
-            if edit_buttons.count() > 0:
-                # Get the first edit button
-                first_edit = edit_buttons.first
-                href = first_edit.get_attribute('href')
-                print(f"   ✓ Found edit button: {href}")
-                print(f"   → Clicking first available edit button...")
+            # Debug: Count how many "Sửa" buttons we can find
+            sua_count = page.locator('text="Sửa"').count()
+            print(f"   → Found {sua_count} elements with text 'Sửa'")
 
-                first_edit.click()
+            if sua_count > 0:
+                # Click the first "Sửa" button
+                print(f"   → Clicking first 'Sửa' button...")
+                page.locator('text="Sửa"').first.click()
                 time.sleep(3)
-            else:
-                print(f"   ⚠ No edit buttons found in current page")
-                print(f"   → Trying to find first system row and navigate...")
 
-                # Try to find first table row and extract system ID
-                first_row = page.locator('tbody tr').first
-
-                if first_row.count() > 0:
-                    # Try to find any link in first row that might lead to detail/edit
-                    row_link = first_row.locator('a').first
-
-                    if row_link.count() > 0:
-                        print(f"   → Clicking first system row...")
-                        row_link.click()
-                        time.sleep(2)
-
-                        # Look for edit button on detail page
-                        detail_edit = page.locator('button:has-text("Sửa")').or_(
-                            page.locator('a:has-text("Sửa")')
-                        ).first
-
-                        if detail_edit.count() > 0:
-                            print(f"   → Clicking edit button on detail page...")
-                            detail_edit.click()
-                            time.sleep(3)
-                    else:
-                        print(f"   ❌ No links found in table rows")
-                        raise Exception("Cannot find any system to edit")
+                # Check if we navigated to edit page
+                if '/edit' in page.url:
+                    print(f"   ✅ Successfully navigated to edit page")
                 else:
-                    print(f"   ❌ No systems found in table")
-                    raise Exception("Systems table is empty")
+                    print(f"   ⚠ Clicked 'Sửa' but not on edit page yet")
+                    print(f"   → Current URL: {page.url}")
+            else:
+                print(f"   ❌ No 'Sửa' buttons found")
+                print(f"   → Trying alternative approach: find any clickable link in table...")
+
+                # Alternative: click first system name (should go to detail page)
+                first_system_name = page.locator('tbody tr td:nth-child(2)').first
+
+                if first_system_name.count() > 0:
+                    print(f"   → Clicking first system name...")
+                    first_system_name.click()
+                    time.sleep(2)
+
+                    # Look for edit button on detail page
+                    detail_edit = page.locator('text="Sửa"').first
+
+                    if detail_edit.count() > 0:
+                        print(f"   → Clicking 'Sửa' on detail page...")
+                        detail_edit.click()
+                        time.sleep(3)
+                    else:
+                        print(f"   ❌ No 'Sửa' button on detail page")
+                        raise Exception("Cannot find edit button")
+                else:
+                    print(f"   ❌ Cannot find any systems in table")
+                    raise Exception("Systems table appears empty")
 
             # Check if we got redirected back to login
             if '/login' in page.url:

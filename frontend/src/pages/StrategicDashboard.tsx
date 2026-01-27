@@ -17,7 +17,14 @@ import {
   Modal,
   Button,
   message,
+  Input,
+  Timeline,
+  Collapse,
+  Spin,
 } from 'antd';
+
+const { TextArea } = Input;
+const { Panel } = Collapse;
 import {
   DashboardOutlined,
   DollarOutlined,
@@ -38,6 +45,18 @@ import {
   SafetyOutlined,
   SyncOutlined,
   AlertOutlined,
+  SendOutlined,
+  HistoryOutlined,
+  CloudOutlined,
+  SecurityScanOutlined,
+  FileTextOutlined,
+  DeploymentUnitOutlined,
+  DatabaseOutlined,
+  CodeOutlined,
+  ClockCircleOutlined,
+  FlagOutlined,
+  RocketOutlined,
+  LineChartOutlined,
 } from '@ant-design/icons';
 import {
   PieChart,
@@ -187,6 +206,97 @@ interface MonitoringStats {
   };
 }
 
+// New interfaces for Insights feature
+interface InsightItem {
+  id: string;
+  category: string;
+  severity: 'critical' | 'warning' | 'info' | 'success';
+  title: string;
+  description: string;
+  recommendation: string;
+  metric: {
+    count?: number;
+    percentage?: number;
+    top?: Array<{ [key: string]: string | number }>;
+  };
+  filter: {
+    type: string;
+    value?: string;
+  };
+}
+
+interface InsightsStats {
+  insights: InsightItem[];
+  summary: {
+    total_insights: number;
+    critical: number;
+    warning: number;
+    info: number;
+    success: number;
+  };
+  total_systems: number;
+}
+
+// New interfaces for Roadmap feature
+interface RoadmapSystem {
+  id: number;
+  name: string;
+  org_name: string | null;
+  status: string;
+  criticality: string;
+  improvements_needed: Array<{
+    phase: number;
+    action: string;
+    detail: string;
+  }>;
+  score: number;
+  current_phase: number;
+  phase_label: string;
+}
+
+interface RoadmapStats {
+  summary: {
+    phase1: { name: string; title: string; description: string; count: number; percentage: number };
+    phase2: { name: string; title: string; description: string; count: number; percentage: number };
+    phase3: { name: string; title: string; description: string; count: number; percentage: number };
+    completed: { name: string; title: string; description: string; count: number; percentage: number };
+  };
+  top_priorities: {
+    phase1: RoadmapSystem[];
+    phase2: RoadmapSystem[];
+    phase3: RoadmapSystem[];
+  };
+  improvement_actions: Array<{ action: string; count: number; phase: number }>;
+  total_systems: number;
+  systems_by_phase: {
+    phase1: RoadmapSystem[];
+    phase2: RoadmapSystem[];
+    phase3: RoadmapSystem[];
+    completed: RoadmapSystem[];
+  };
+}
+
+// AI Query interfaces
+interface AIQueryResponse {
+  query: string;
+  ai_response: {
+    sql?: string;
+    explanation?: string;
+    chart_type?: 'bar' | 'pie' | 'table' | 'number';
+    chart_config?: {
+      x_field?: string;
+      y_field?: string;
+      title?: string;
+    };
+    error?: string;
+  };
+  data?: {
+    columns: string[];
+    rows: Array<Record<string, any>>;
+    total_rows: number;
+  };
+}
+
 interface DrilldownSystem {
   id: number;
   system_name: string;
@@ -208,6 +318,16 @@ const StrategicDashboard = () => {
   const [monitoringStats, setMonitoringStats] = useState<MonitoringStats | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [alerts, setAlerts] = useState<Array<{ type: 'critical' | 'warning' | 'info'; message: string }>>([]);
+
+  // New feature states
+  const [insightsStats, setInsightsStats] = useState<InsightsStats | null>(null);
+  const [roadmapStats, setRoadmapStats] = useState<RoadmapStats | null>(null);
+
+  // AI Query state
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiQueryLoading, setAiQueryLoading] = useState(false);
+  const [aiQueryResponse, setAiQueryResponse] = useState<AIQueryResponse | null>(null);
+  const [aiQueryHistory, setAiQueryHistory] = useState<string[]>([]);
 
   // Drill-down modal state
   const [drilldownVisible, setDrilldownVisible] = useState(false);
@@ -255,13 +375,46 @@ const StrategicDashboard = () => {
         } else if (activeTab === 'monitoring' && !monitoringStats) {
           const response = await api.get('/systems/monitoring_stats/');
           setMonitoringStats(response.data);
+        } else if (activeTab === 'insights' && !insightsStats) {
+          const response = await api.get('/systems/insights/');
+          setInsightsStats(response.data);
+        } else if (activeTab === 'roadmap' && !roadmapStats) {
+          const response = await api.get('/systems/roadmap_stats/');
+          setRoadmapStats(response.data);
         }
       } catch (error) {
         console.error(`Failed to fetch ${activeTab} data:`, error);
       }
     };
     fetchTabData();
-  }, [activeTab, investmentStats, integrationStats, optimizationStats, monitoringStats]);
+  }, [activeTab, investmentStats, integrationStats, optimizationStats, monitoringStats, insightsStats, roadmapStats]);
+
+  // AI Query handler
+  const handleAIQuery = useCallback(async () => {
+    if (!aiQuery.trim()) {
+      message.warning('Vui lòng nhập câu hỏi');
+      return;
+    }
+
+    setAiQueryLoading(true);
+    try {
+      const response = await api.post('/systems/ai_query/', { query: aiQuery });
+      setAiQueryResponse(response.data);
+      // Add to history
+      setAiQueryHistory(prev => [aiQuery, ...prev.filter(q => q !== aiQuery)].slice(0, 10));
+    } catch (error: any) {
+      console.error('AI Query failed:', error);
+      if (error.response?.status === 503) {
+        message.error('Dịch vụ AI tạm thời không khả dụng');
+      } else if (error.response?.status === 504) {
+        message.error('Yêu cầu AI timeout, vui lòng thử lại');
+      } else {
+        message.error('Không thể xử lý câu hỏi');
+      }
+    } finally {
+      setAiQueryLoading(false);
+    }
+  }, [aiQuery]);
 
   const generateAlerts = (data: StrategicStats | null) => {
     const newAlerts: Array<{ type: 'critical' | 'warning' | 'info'; message: string }> = [];
@@ -1447,124 +1600,672 @@ const StrategicDashboard = () => {
             </Row>
           </TabPane>
 
-          {/* Tab 5: Roadmap */}
+          {/* Tab 5: Roadmap - Digital Transformation Phases */}
           <TabPane
             tab={
               <span>
                 <ScheduleOutlined />
-                Lộ trình
+                Lộ trình CĐS
               </span>
             }
             key="roadmap"
           >
             <Row gutter={[24, 24]}>
-              <Col xs={24}>
-                <Alert
-                  type="info"
-                  message="Tính năng đang phát triển"
-                  description="Module theo dõi lộ trình dự án sẽ được triển khai ở giai đoạn 3. Hiện tại đang thu thập dữ liệu về các dự án CNTT đang triển khai."
-                  showIcon
-                />
-              </Col>
+              {!roadmapStats ? (
+                <Col xs={24}>
+                  <Skeleton active paragraph={{ rows: 8 }} />
+                </Col>
+              ) : (
+                <>
+                  {/* Phase Overview Cards */}
+                  <Col xs={24}>
+                    <Alert
+                      type="info"
+                      message="Lộ trình Chuyển đổi số theo Kiến trúc tổng thể Bộ KH&CN"
+                      description="Hệ thống được phân loại theo 3 giai đoạn dựa trên mức độ sẵn sàng và các cải tiến cần thiết."
+                      showIcon
+                      icon={<RocketOutlined />}
+                    />
+                  </Col>
 
-              <Col xs={24}>
-                <Card
-                  title="🚀 Lộ trình triển khai Dashboard chiến lược"
-                  style={{ borderRadius: borderRadius.md }}
-                >
-                  <Table
-                    dataSource={[
-                      {
-                        key: '1',
-                        phase: 'Giai đoạn 1',
-                        name: 'Nền tảng',
-                        status: 'Hoàn thành',
-                        description: 'Dashboard cơ bản với dữ liệu thực',
-                        progress: 100,
-                      },
-                      {
-                        key: '2',
-                        phase: 'Giai đoạn 2',
-                        name: 'Drill-down & Export',
-                        status: 'Hoàn thành',
-                        description: 'Xem chi tiết và xuất Excel',
-                        progress: 100,
-                      },
-                      {
-                        key: '3',
-                        phase: 'Giai đoạn 3',
-                        name: 'Tích hợp & Lộ trình',
-                        status: 'Lên kế hoạch',
-                        description: 'Bản đồ kết nối và theo dõi dự án',
-                        progress: 20,
-                      },
-                      {
-                        key: '4',
-                        phase: 'Giai đoạn 4',
-                        name: 'Nâng cao',
-                        status: 'Chưa bắt đầu',
-                        description: 'AI đề xuất và mô phỏng kịch bản',
-                        progress: 0,
-                      },
-                    ]}
-                    columns={[
-                      {
-                        title: 'Giai đoạn',
-                        dataIndex: 'phase',
-                        key: 'phase',
-                        width: 120,
-                        render: (text: string) => <strong>{text}</strong>,
-                      },
-                      {
-                        title: 'Tên',
-                        dataIndex: 'name',
-                        key: 'name',
-                        width: 150,
-                      },
-                      {
-                        title: 'Trạng thái',
-                        dataIndex: 'status',
-                        key: 'status',
-                        width: 150,
-                        render: (status: string) => (
-                          <Tag
-                            color={
-                              status === 'Hoàn thành'
-                                ? 'success'
-                                : status === 'Đang triển khai'
-                                ? 'processing'
-                                : status === 'Lên kế hoạch'
-                                ? 'warning'
-                                : 'default'
-                            }
-                          >
-                            {status}
-                          </Tag>
-                        ),
-                      },
-                      {
-                        title: 'Mô tả',
-                        dataIndex: 'description',
-                        key: 'description',
-                      },
-                      {
-                        title: 'Tiến độ',
-                        dataIndex: 'progress',
-                        key: 'progress',
-                        width: 150,
-                        render: (progress: number) => (
-                          <Progress percent={progress} size="small" />
-                        ),
-                      },
-                    ]}
-                    pagination={false}
-                  />
-                </Card>
-              </Col>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card
+                      style={{
+                        borderRadius: borderRadius.md,
+                        borderLeft: '4px solid #f5222d',
+                        background: '#fff2f0',
+                      }}
+                    >
+                      <Statistic
+                        title={
+                          <Space>
+                            <ClockCircleOutlined style={{ color: '#f5222d' }} />
+                            <span>GĐ1: Xây móng (2026)</span>
+                          </Space>
+                        }
+                        value={roadmapStats.summary.phase1.count}
+                        suffix={`/ ${roadmapStats.total_systems}`}
+                        valueStyle={{ color: '#f5222d' }}
+                      />
+                      <Progress
+                        percent={roadmapStats.summary.phase1.percentage}
+                        strokeColor="#f5222d"
+                        size="small"
+                        format={() => `${roadmapStats.summary.phase1.percentage}%`}
+                      />
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {roadmapStats.summary.phase1.description}
+                      </Text>
+                    </Card>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card
+                      style={{
+                        borderRadius: borderRadius.md,
+                        borderLeft: '4px solid #fa8c16',
+                        background: '#fffbe6',
+                      }}
+                    >
+                      <Statistic
+                        title={
+                          <Space>
+                            <DeploymentUnitOutlined style={{ color: '#fa8c16' }} />
+                            <span>GĐ2: Chuẩn hóa (2027-28)</span>
+                          </Space>
+                        }
+                        value={roadmapStats.summary.phase2.count}
+                        suffix={`/ ${roadmapStats.total_systems}`}
+                        valueStyle={{ color: '#fa8c16' }}
+                      />
+                      <Progress
+                        percent={roadmapStats.summary.phase2.percentage}
+                        strokeColor="#fa8c16"
+                        size="small"
+                        format={() => `${roadmapStats.summary.phase2.percentage}%`}
+                      />
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {roadmapStats.summary.phase2.description}
+                      </Text>
+                    </Card>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card
+                      style={{
+                        borderRadius: borderRadius.md,
+                        borderLeft: '4px solid #1890ff',
+                        background: '#e6f7ff',
+                      }}
+                    >
+                      <Statistic
+                        title={
+                          <Space>
+                            <LineChartOutlined style={{ color: '#1890ff' }} />
+                            <span>GĐ3: Tối ưu (2029-30)</span>
+                          </Space>
+                        }
+                        value={roadmapStats.summary.phase3.count}
+                        suffix={`/ ${roadmapStats.total_systems}`}
+                        valueStyle={{ color: '#1890ff' }}
+                      />
+                      <Progress
+                        percent={roadmapStats.summary.phase3.percentage}
+                        strokeColor="#1890ff"
+                        size="small"
+                        format={() => `${roadmapStats.summary.phase3.percentage}%`}
+                      />
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {roadmapStats.summary.phase3.description}
+                      </Text>
+                    </Card>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={6}>
+                    <Card
+                      style={{
+                        borderRadius: borderRadius.md,
+                        borderLeft: '4px solid #52c41a',
+                        background: '#f6ffed',
+                      }}
+                    >
+                      <Statistic
+                        title={
+                          <Space>
+                            <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                            <span>Hoàn thành</span>
+                          </Space>
+                        }
+                        value={roadmapStats.summary.completed.count}
+                        suffix={`/ ${roadmapStats.total_systems}`}
+                        valueStyle={{ color: '#52c41a' }}
+                      />
+                      <Progress
+                        percent={roadmapStats.summary.completed.percentage}
+                        strokeColor="#52c41a"
+                        size="small"
+                        format={() => `${roadmapStats.summary.completed.percentage}%`}
+                      />
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {roadmapStats.summary.completed.description}
+                      </Text>
+                    </Card>
+                  </Col>
+
+                  {/* Improvement Actions Summary */}
+                  <Col xs={24} lg={12}>
+                    <Card
+                      title={
+                        <Space>
+                          <FlagOutlined style={{ color: '#722ed1' }} />
+                          <span>Các cải tiến cần thực hiện</span>
+                        </Space>
+                      }
+                      style={{ borderRadius: borderRadius.md }}
+                    >
+                      <Table
+                        dataSource={roadmapStats.improvement_actions.map((action, idx) => ({
+                          key: idx,
+                          ...action,
+                        }))}
+                        columns={[
+                          {
+                            title: 'Hành động',
+                            dataIndex: 'action',
+                            key: 'action',
+                            render: (action: string, record: any) => (
+                              <Space>
+                                {record.phase === 1 && <CloudOutlined style={{ color: '#f5222d' }} />}
+                                {record.phase === 2 && <CodeOutlined style={{ color: '#fa8c16' }} />}
+                                {record.phase === 3 && <SecurityScanOutlined style={{ color: '#1890ff' }} />}
+                                <span>{action}</span>
+                              </Space>
+                            ),
+                          },
+                          {
+                            title: 'Giai đoạn',
+                            dataIndex: 'phase',
+                            key: 'phase',
+                            width: 100,
+                            render: (phase: number) => (
+                              <Tag
+                                color={phase === 1 ? 'red' : phase === 2 ? 'orange' : 'blue'}
+                              >
+                                GĐ {phase}
+                              </Tag>
+                            ),
+                          },
+                          {
+                            title: 'Số HT cần làm',
+                            dataIndex: 'count',
+                            key: 'count',
+                            width: 100,
+                            render: (count: number) => (
+                              <Badge
+                                count={count}
+                                style={{ backgroundColor: count > 50 ? '#f5222d' : count > 20 ? '#fa8c16' : '#1890ff' }}
+                                overflowCount={999}
+                              />
+                            ),
+                          },
+                        ]}
+                        pagination={false}
+                        size="small"
+                      />
+                    </Card>
+                  </Col>
+
+                  {/* Timeline View */}
+                  <Col xs={24} lg={12}>
+                    <Card
+                      title={
+                        <Space>
+                          <ScheduleOutlined style={{ color: '#1890ff' }} />
+                          <span>Timeline Chuyển đổi số</span>
+                        </Space>
+                      }
+                      style={{ borderRadius: borderRadius.md }}
+                    >
+                      <Timeline
+                        mode="left"
+                        items={[
+                          {
+                            color: 'red',
+                            label: '2026',
+                            children: (
+                              <div>
+                                <Text strong>Giai đoạn 1: Xây móng - Hội tụ dữ liệu</Text>
+                                <br />
+                                <Text type="secondary">
+                                  Cloud migration, API Gateway, SSL/TLS
+                                </Text>
+                                <br />
+                                <Tag color="red">{roadmapStats.summary.phase1.count} hệ thống</Tag>
+                              </div>
+                            ),
+                          },
+                          {
+                            color: 'orange',
+                            label: '2027-2028',
+                            children: (
+                              <div>
+                                <Text strong>Giai đoạn 2: Chuẩn hóa - Tích hợp sâu</Text>
+                                <br />
+                                <Text type="secondary">
+                                  CI/CD, Documentation, Monitoring, Logging
+                                </Text>
+                                <br />
+                                <Tag color="orange">{roadmapStats.summary.phase2.count} hệ thống</Tag>
+                              </div>
+                            ),
+                          },
+                          {
+                            color: 'blue',
+                            label: '2029-2030',
+                            children: (
+                              <div>
+                                <Text strong>Giai đoạn 3: Tối ưu - Thông minh hóa</Text>
+                                <br />
+                                <Text type="secondary">
+                                  Data encryption, AI integration, Open data
+                                </Text>
+                                <br />
+                                <Tag color="blue">{roadmapStats.summary.phase3.count} hệ thống</Tag>
+                              </div>
+                            ),
+                          },
+                          {
+                            color: 'green',
+                            label: 'Đạt chuẩn',
+                            children: (
+                              <div>
+                                <Text strong>Hoàn thành Chuyển đổi số</Text>
+                                <br />
+                                <Text type="secondary">
+                                  Đáp ứng tất cả tiêu chí kiến trúc hiện đại
+                                </Text>
+                                <br />
+                                <Tag color="green">{roadmapStats.summary.completed.count} hệ thống</Tag>
+                              </div>
+                            ),
+                          },
+                        ]}
+                      />
+                    </Card>
+                  </Col>
+
+                  {/* Priority Systems per Phase */}
+                  <Col xs={24}>
+                    <Card
+                      title={
+                        <Space>
+                          <AlertOutlined style={{ color: '#f5222d' }} />
+                          <span>Hệ thống ưu tiên theo giai đoạn</span>
+                        </Space>
+                      }
+                      style={{ borderRadius: borderRadius.md }}
+                    >
+                      <Collapse defaultActiveKey={['1']}>
+                        <Panel
+                          header={
+                            <Space>
+                              <Tag color="red">GĐ1</Tag>
+                              <span>Hệ thống cần Cloud migration & API Gateway ({roadmapStats.top_priorities.phase1.length})</span>
+                            </Space>
+                          }
+                          key="1"
+                        >
+                          <Table
+                            dataSource={roadmapStats.top_priorities.phase1}
+                            columns={[
+                              { title: 'Hệ thống', dataIndex: 'name', key: 'name', ellipsis: true },
+                              { title: 'Đơn vị', dataIndex: 'org_name', key: 'org_name', width: 200, ellipsis: true },
+                              {
+                                title: 'Mức độ QT',
+                                dataIndex: 'criticality',
+                                key: 'criticality',
+                                width: 100,
+                                render: (c: string) => (
+                                  <Tag color={CRITICALITY_COLORS[c]}>{CRITICALITY_LABELS[c]}</Tag>
+                                ),
+                              },
+                              {
+                                title: 'Cần làm',
+                                dataIndex: 'improvements_needed',
+                                key: 'improvements',
+                                render: (improvements: any[]) => (
+                                  <Space wrap>
+                                    {improvements.filter(i => i.phase === 1).map((i, idx) => (
+                                      <Tag key={idx} color="red">{i.action}</Tag>
+                                    ))}
+                                  </Space>
+                                ),
+                              },
+                            ]}
+                            pagination={false}
+                            size="small"
+                            rowKey="id"
+                          />
+                        </Panel>
+                        <Panel
+                          header={
+                            <Space>
+                              <Tag color="orange">GĐ2</Tag>
+                              <span>Hệ thống cần CI/CD & Documentation ({roadmapStats.top_priorities.phase2.length})</span>
+                            </Space>
+                          }
+                          key="2"
+                        >
+                          <Table
+                            dataSource={roadmapStats.top_priorities.phase2}
+                            columns={[
+                              { title: 'Hệ thống', dataIndex: 'name', key: 'name', ellipsis: true },
+                              { title: 'Đơn vị', dataIndex: 'org_name', key: 'org_name', width: 200, ellipsis: true },
+                              {
+                                title: 'Mức độ QT',
+                                dataIndex: 'criticality',
+                                key: 'criticality',
+                                width: 100,
+                                render: (c: string) => (
+                                  <Tag color={CRITICALITY_COLORS[c]}>{CRITICALITY_LABELS[c]}</Tag>
+                                ),
+                              },
+                              {
+                                title: 'Cần làm',
+                                dataIndex: 'improvements_needed',
+                                key: 'improvements',
+                                render: (improvements: any[]) => (
+                                  <Space wrap>
+                                    {improvements.filter(i => i.phase === 2).map((i, idx) => (
+                                      <Tag key={idx} color="orange">{i.action}</Tag>
+                                    ))}
+                                  </Space>
+                                ),
+                              },
+                            ]}
+                            pagination={false}
+                            size="small"
+                            rowKey="id"
+                          />
+                        </Panel>
+                        <Panel
+                          header={
+                            <Space>
+                              <Tag color="blue">GĐ3</Tag>
+                              <span>Hệ thống cần Data Encryption & AI ({roadmapStats.top_priorities.phase3.length})</span>
+                            </Space>
+                          }
+                          key="3"
+                        >
+                          <Table
+                            dataSource={roadmapStats.top_priorities.phase3}
+                            columns={[
+                              { title: 'Hệ thống', dataIndex: 'name', key: 'name', ellipsis: true },
+                              { title: 'Đơn vị', dataIndex: 'org_name', key: 'org_name', width: 200, ellipsis: true },
+                              {
+                                title: 'Mức độ QT',
+                                dataIndex: 'criticality',
+                                key: 'criticality',
+                                width: 100,
+                                render: (c: string) => (
+                                  <Tag color={CRITICALITY_COLORS[c]}>{CRITICALITY_LABELS[c]}</Tag>
+                                ),
+                              },
+                              {
+                                title: 'Cần làm',
+                                dataIndex: 'improvements_needed',
+                                key: 'improvements',
+                                render: (improvements: any[]) => (
+                                  <Space wrap>
+                                    {improvements.filter(i => i.phase === 3).map((i, idx) => (
+                                      <Tag key={idx} color="blue">{i.action}</Tag>
+                                    ))}
+                                  </Space>
+                                ),
+                              },
+                            ]}
+                            pagination={false}
+                            size="small"
+                            rowKey="id"
+                          />
+                        </Panel>
+                      </Collapse>
+                    </Card>
+                  </Col>
+                </>
+              )}
             </Row>
           </TabPane>
 
-          {/* Tab 6: Monitoring */}
+          {/* Tab 6: Insights - Rule-based + AI Query */}
+          <TabPane
+            tab={
+              <span>
+                <BulbOutlined />
+                Phân tích
+              </span>
+            }
+            key="insights"
+          >
+            <Row gutter={[24, 24]}>
+              {/* AI Query Section */}
+              <Col xs={24}>
+                <Card
+                  title={
+                    <Space>
+                      <RobotOutlined style={{ color: '#722ed1' }} />
+                      <span>Trợ lý AI - Hỏi đáp dữ liệu</span>
+                      <Tag color="purple">GPT-4</Tag>
+                    </Space>
+                  }
+                  style={{
+                    borderRadius: borderRadius.md,
+                    background: 'linear-gradient(135deg, #f9f0ff 0%, #efdbff 100%)',
+                    border: '1px solid #d3adf7',
+                  }}
+                >
+                  <Row gutter={[16, 16]}>
+                    <Col xs={24}>
+                      <TextArea
+                        placeholder="Hỏi bất kỳ câu hỏi nào về dữ liệu hệ thống... Ví dụ: 'Có bao nhiêu hệ thống đang dùng Java?', 'Đơn vị nào có nhiều hệ thống nhất?', 'Tỷ lệ hệ thống đã lên Cloud là bao nhiêu?'"
+                        value={aiQuery}
+                        onChange={(e) => setAiQuery(e.target.value)}
+                        onPressEnter={(e) => {
+                          if (!e.shiftKey) {
+                            e.preventDefault();
+                            handleAIQuery();
+                          }
+                        }}
+                        rows={2}
+                        style={{ fontSize: 14 }}
+                      />
+                    </Col>
+                    <Col xs={24}>
+                      <Space wrap>
+                        <Button
+                          type="primary"
+                          icon={<SendOutlined />}
+                          loading={aiQueryLoading}
+                          onClick={handleAIQuery}
+                          style={{ background: '#722ed1', borderColor: '#722ed1' }}
+                        >
+                          Hỏi AI
+                        </Button>
+                        {aiQueryHistory.length > 0 && (
+                          <Space>
+                            <HistoryOutlined />
+                            {aiQueryHistory.slice(0, 3).map((q, idx) => (
+                              <Tag
+                                key={idx}
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setAiQuery(q)}
+                              >
+                                {q.length > 30 ? q.substring(0, 30) + '...' : q}
+                              </Tag>
+                            ))}
+                          </Space>
+                        )}
+                      </Space>
+                    </Col>
+
+                    {/* AI Response */}
+                    {aiQueryLoading && (
+                      <Col xs={24}>
+                        <Card size="small" style={{ textAlign: 'center' }}>
+                          <Spin tip="AI đang phân tích..." />
+                        </Card>
+                      </Col>
+                    )}
+
+                    {aiQueryResponse && !aiQueryLoading && (
+                      <Col xs={24}>
+                        <Card size="small" title="Kết quả phân tích">
+                          {aiQueryResponse.ai_response.error ? (
+                            <Alert
+                              type="error"
+                              message={aiQueryResponse.ai_response.error}
+                              showIcon
+                            />
+                          ) : (
+                            <Space direction="vertical" style={{ width: '100%' }}>
+                              {/* Explanation */}
+                              <div style={{ padding: '12px', background: '#f6ffed', borderRadius: 8 }}>
+                                <Text>{aiQueryResponse.ai_response.explanation}</Text>
+                              </div>
+
+                              {/* SQL Query (collapsible) */}
+                              {aiQueryResponse.ai_response.sql && (
+                                <Collapse size="small">
+                                  <Panel header="Xem SQL Query" key="sql">
+                                    <pre style={{
+                                      background: '#282c34',
+                                      color: '#abb2bf',
+                                      padding: '12px',
+                                      borderRadius: '8px',
+                                      overflow: 'auto',
+                                      fontSize: '12px',
+                                    }}>
+                                      {aiQueryResponse.ai_response.sql}
+                                    </pre>
+                                  </Panel>
+                                </Collapse>
+                              )}
+
+                              {/* Data Table */}
+                              {aiQueryResponse.data && aiQueryResponse.data.rows.length > 0 && (
+                                <Table
+                                  dataSource={aiQueryResponse.data.rows.map((row, idx) => ({
+                                    key: idx,
+                                    ...row,
+                                  }))}
+                                  columns={aiQueryResponse.data.columns.map(col => ({
+                                    title: col,
+                                    dataIndex: col,
+                                    key: col,
+                                    ellipsis: true,
+                                  }))}
+                                  pagination={{ pageSize: 5 }}
+                                  size="small"
+                                  scroll={{ x: 'max-content' }}
+                                />
+                              )}
+
+                              {/* Total rows info */}
+                              {aiQueryResponse.data && (
+                                <Text type="secondary">
+                                  Hiển thị {Math.min(aiQueryResponse.data.rows.length, 100)} / {aiQueryResponse.data.total_rows} kết quả
+                                </Text>
+                              )}
+                            </Space>
+                          )}
+                        </Card>
+                      </Col>
+                    )}
+                  </Row>
+                </Card>
+              </Col>
+
+              {/* Rule-based Insights */}
+              {!insightsStats ? (
+                <Col xs={24}>
+                  <Skeleton active paragraph={{ rows: 6 }} />
+                </Col>
+              ) : (
+                <>
+                  {/* Insights Summary */}
+                  <Col xs={24}>
+                    <Card
+                      title={
+                        <Space>
+                          <AlertOutlined style={{ color: '#1890ff' }} />
+                          <span>Phân tích tự động</span>
+                          <Badge count={insightsStats.summary.total_insights} style={{ backgroundColor: '#1890ff' }} />
+                        </Space>
+                      }
+                      extra={
+                        <Space>
+                          <Tag color="red">{insightsStats.summary.critical} nghiêm trọng</Tag>
+                          <Tag color="orange">{insightsStats.summary.warning} cảnh báo</Tag>
+                          <Tag color="blue">{insightsStats.summary.info} thông tin</Tag>
+                          <Tag color="green">{insightsStats.summary.success} tốt</Tag>
+                        </Space>
+                      }
+                      style={{ borderRadius: borderRadius.md }}
+                    >
+                      <Row gutter={[16, 16]}>
+                        {insightsStats.insights.map((insight) => (
+                          <Col xs={24} md={12} key={insight.id}>
+                            <Card
+                              size="small"
+                              style={{
+                                borderRadius: borderRadius.sm,
+                                borderLeft: `4px solid ${
+                                  insight.severity === 'critical' ? '#f5222d' :
+                                  insight.severity === 'warning' ? '#fa8c16' :
+                                  insight.severity === 'success' ? '#52c41a' : '#1890ff'
+                                }`,
+                                background:
+                                  insight.severity === 'critical' ? '#fff2f0' :
+                                  insight.severity === 'warning' ? '#fffbe6' :
+                                  insight.severity === 'success' ? '#f6ffed' : '#e6f7ff',
+                              }}
+                            >
+                              <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                                <Space>
+                                  {insight.category === 'documentation' && <FileTextOutlined />}
+                                  {insight.category === 'devops' && <DeploymentUnitOutlined />}
+                                  {insight.category === 'integration' && <ApiOutlined />}
+                                  {insight.category === 'infrastructure' && <CloudOutlined />}
+                                  {insight.category === 'technology' && <DatabaseOutlined />}
+                                  {insight.category === 'security' && <SecurityScanOutlined />}
+                                  {insight.category === 'assessment' && <AlertOutlined />}
+                                  <Text strong>{insight.title}</Text>
+                                </Space>
+                                <Text type="secondary" style={{ fontSize: 13 }}>
+                                  {insight.description}
+                                </Text>
+                                <div style={{
+                                  padding: '8px 12px',
+                                  background: 'white',
+                                  borderRadius: borderRadius.sm,
+                                  border: '1px dashed #d9d9d9',
+                                }}>
+                                  <BulbOutlined style={{ marginRight: 8, color: '#faad14' }} />
+                                  <Text style={{ fontSize: 13 }}>{insight.recommendation}</Text>
+                                </div>
+                              </Space>
+                            </Card>
+                          </Col>
+                        ))}
+                      </Row>
+                    </Card>
+                  </Col>
+                </>
+              )}
+            </Row>
+          </TabPane>
+
+          {/* Tab 7: Monitoring */}
           <TabPane
             tab={
               <span>

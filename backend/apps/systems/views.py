@@ -6,9 +6,14 @@ from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count, Sum, Avg
 from django.db.models.functions import Coalesce
+from django.conf import settings
+import json
+import logging
 
 from apps.accounts.permissions import IsOrgUserOrAdmin, CanManageOrgSystems
 from .models import System, Attachment
+
+logger = logging.getLogger(__name__)
 from .serializers import (
     SystemListSerializer,
     SystemDetailSerializer,
@@ -663,6 +668,718 @@ class SystemViewSet(viewsets.ModelViewSet):
             'filter_type': filter_type,
             'filter_value': filter_value,
             'systems': systems,
+        })
+
+    @action(detail=False, methods=['get'])
+    def insights(self, request):
+        """
+        Strategic Dashboard - Rule-based Insights
+        Automatically analyzes system data and surfaces important insights.
+        Only accessible by lanhdaobo role.
+        """
+        user = request.user
+        if user.role != 'lanhdaobo':
+            return Response(
+                {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        queryset = System.objects.filter(is_deleted=False)
+        total_systems = queryset.count()
+
+        insights = []
+
+        # === DOCUMENTATION INSIGHTS ===
+        # Systems without design docs
+        no_design_docs = queryset.filter(
+            Q(architecture__has_design_document=False) | Q(architecture__isnull=True)
+        ).count()
+        if no_design_docs > 0:
+            pct = round(no_design_docs / total_systems * 100, 1)
+            insights.append({
+                'id': 'no_design_docs',
+                'category': 'documentation',
+                'severity': 'warning' if pct > 50 else 'info',
+                'title': f'{no_design_docs} hệ thống chưa có tài liệu thiết kế',
+                'description': f'{pct}% hệ thống thiếu tài liệu thiết kế, ảnh hưởng đến khả năng bảo trì và nâng cấp.',
+                'recommendation': 'Ưu tiên bổ sung tài liệu cho các hệ thống mức độ quan trọng cao.',
+                'metric': {'count': no_design_docs, 'percentage': pct},
+                'filter': {'type': 'no_design_docs'},
+            })
+
+        # Systems without architecture diagram
+        no_arch_diagram = queryset.filter(
+            Q(architecture__has_architecture_diagram=False) | Q(architecture__isnull=True)
+        ).count()
+        if no_arch_diagram > 0:
+            pct = round(no_arch_diagram / total_systems * 100, 1)
+            insights.append({
+                'id': 'no_arch_diagram',
+                'category': 'documentation',
+                'severity': 'warning' if pct > 70 else 'info',
+                'title': f'{no_arch_diagram} hệ thống chưa có sơ đồ kiến trúc',
+                'description': f'{pct}% hệ thống thiếu sơ đồ kiến trúc, gây khó khăn trong việc đánh giá và tích hợp.',
+                'recommendation': 'Xây dựng sơ đồ kiến trúc cho các hệ thống core trước.',
+                'metric': {'count': no_arch_diagram, 'percentage': pct},
+                'filter': {'type': 'no_arch_diagram'},
+            })
+
+        # === DEVOPS INSIGHTS ===
+        # Systems without CI/CD
+        no_cicd = queryset.filter(
+            Q(operations__has_ci_cd=False) | Q(operations__isnull=True)
+        ).count()
+        if no_cicd > 0:
+            pct = round(no_cicd / total_systems * 100, 1)
+            insights.append({
+                'id': 'no_cicd',
+                'category': 'devops',
+                'severity': 'warning' if pct > 80 else 'info',
+                'title': f'{no_cicd} hệ thống chưa có CI/CD',
+                'description': f'{pct}% hệ thống triển khai thủ công, tăng rủi ro lỗi và thời gian release.',
+                'recommendation': 'Triển khai CI/CD pipeline cho các hệ thống có tần suất release cao.',
+                'metric': {'count': no_cicd, 'percentage': pct},
+                'filter': {'type': 'no_cicd'},
+            })
+
+        # Systems without API Gateway
+        no_api_gateway = queryset.filter(
+            Q(integration__has_api_gateway=False) | Q(integration__isnull=True)
+        ).count()
+        if no_api_gateway > 0:
+            pct = round(no_api_gateway / total_systems * 100, 1)
+            insights.append({
+                'id': 'no_api_gateway',
+                'category': 'integration',
+                'severity': 'warning' if pct > 70 else 'info',
+                'title': f'{no_api_gateway} hệ thống chưa có API Gateway',
+                'description': f'{pct}% hệ thống thiếu API Gateway, khó kiểm soát và bảo mật API.',
+                'recommendation': 'Triển khai API Gateway tập trung theo kiến trúc tổng thể.',
+                'metric': {'count': no_api_gateway, 'percentage': pct},
+                'filter': {'type': 'no_api_gateway'},
+            })
+
+        # === INFRASTRUCTURE INSIGHTS ===
+        # Systems still on-premise
+        on_premise = queryset.filter(hosting_platform='on_premise').count()
+        if on_premise > 0:
+            pct = round(on_premise / total_systems * 100, 1)
+            insights.append({
+                'id': 'on_premise',
+                'category': 'infrastructure',
+                'severity': 'info',
+                'title': f'{on_premise} hệ thống còn on-premise',
+                'description': f'{pct}% hệ thống chạy on-premise. Theo lộ trình chuyển đổi số, cần đánh giá khả năng di chuyển lên Cloud.',
+                'recommendation': 'Lập kế hoạch Cloud migration theo giai đoạn 1 (2026).',
+                'metric': {'count': on_premise, 'percentage': pct},
+                'filter': {'type': 'hosting_platform', 'value': 'on_premise'},
+            })
+
+        # Systems on cloud
+        on_cloud = queryset.filter(hosting_platform='cloud').count()
+        if on_cloud > 0:
+            pct = round(on_cloud / total_systems * 100, 1)
+            insights.append({
+                'id': 'cloud_ready',
+                'category': 'infrastructure',
+                'severity': 'success',
+                'title': f'{on_cloud} hệ thống đã lên Cloud',
+                'description': f'{pct}% hệ thống đã triển khai trên Cloud, đáp ứng định hướng kiến trúc hiện đại.',
+                'recommendation': 'Tiếp tục mở rộng và tối ưu hóa chi phí Cloud.',
+                'metric': {'count': on_cloud, 'percentage': pct},
+                'filter': {'type': 'hosting_platform', 'value': 'cloud'},
+            })
+
+        # === TECHNOLOGY INSIGHTS ===
+        # Technology distribution
+        tech_stats = list(
+            queryset.exclude(Q(programming_language__isnull=True) | Q(programming_language=''))
+            .values('programming_language')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:5]
+        )
+        if tech_stats:
+            top_tech = tech_stats[0]
+            top_pct = round(top_tech['count'] / total_systems * 100, 1)
+            insights.append({
+                'id': 'tech_distribution',
+                'category': 'technology',
+                'severity': 'info',
+                'title': f"Ngôn ngữ phổ biến nhất: {top_tech['programming_language']} ({top_tech['count']} hệ thống)",
+                'description': f"Top 5: {', '.join([f\"{t['programming_language']} ({t['count']})\" for t in tech_stats])}",
+                'recommendation': 'Xem xét chuẩn hóa công nghệ để dễ bảo trì và tìm nhân sự.',
+                'metric': {'top': tech_stats},
+                'filter': {'type': 'technology'},
+            })
+
+        # Database distribution
+        db_stats = list(
+            queryset.exclude(Q(database_name__isnull=True) | Q(database_name=''))
+            .values('database_name')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:5]
+        )
+        if db_stats:
+            insights.append({
+                'id': 'database_distribution',
+                'category': 'technology',
+                'severity': 'info',
+                'title': f"Database phổ biến nhất: {db_stats[0]['database_name']} ({db_stats[0]['count']} hệ thống)",
+                'description': f"Top 5: {', '.join([f\"{d['database_name']} ({d['count']})\" for d in db_stats])}",
+                'recommendation': 'Đánh giá khả năng hợp nhất database để giảm chi phí vận hành.',
+                'metric': {'top': db_stats},
+                'filter': {'type': 'database'},
+            })
+
+        # === SECURITY INSIGHTS ===
+        # Systems without data encryption
+        no_encryption = queryset.filter(
+            Q(security__has_data_encryption_at_rest=False) | Q(security__isnull=True)
+        ).count()
+        if no_encryption > 0:
+            pct = round(no_encryption / total_systems * 100, 1)
+            insights.append({
+                'id': 'no_encryption',
+                'category': 'security',
+                'severity': 'critical' if pct > 50 else 'warning',
+                'title': f'{no_encryption} hệ thống chưa mã hóa dữ liệu',
+                'description': f'{pct}% hệ thống chưa mã hóa dữ liệu at-rest, tiềm ẩn rủi ro bảo mật.',
+                'recommendation': 'Ưu tiên triển khai mã hóa cho các hệ thống xử lý dữ liệu nhạy cảm.',
+                'metric': {'count': no_encryption, 'percentage': pct},
+                'filter': {'type': 'no_encryption'},
+            })
+
+        # === ASSESSMENT INSIGHTS ===
+        # Systems not assessed
+        not_assessed = 0
+        needs_upgrade = 0
+        needs_replace = 0
+        for system in queryset.select_related('assessment'):
+            try:
+                if not hasattr(system, 'assessment') or not system.assessment:
+                    not_assessed += 1
+                elif system.assessment.recommendation == 'upgrade':
+                    needs_upgrade += 1
+                elif system.assessment.recommendation == 'replace':
+                    needs_replace += 1
+            except Exception:
+                not_assessed += 1
+
+        if not_assessed > 0:
+            pct = round(not_assessed / total_systems * 100, 1)
+            insights.append({
+                'id': 'not_assessed',
+                'category': 'assessment',
+                'severity': 'warning' if pct > 50 else 'info',
+                'title': f'{not_assessed} hệ thống chưa được đánh giá',
+                'description': f'{pct}% hệ thống chưa có kết quả assessment, không thể lập kế hoạch tối ưu.',
+                'recommendation': 'Hoàn thiện đánh giá để có cơ sở lập lộ trình nâng cấp.',
+                'metric': {'count': not_assessed, 'percentage': pct},
+                'filter': {'type': 'recommendation', 'value': 'unknown'},
+            })
+
+        if needs_replace > 0:
+            insights.append({
+                'id': 'needs_replace',
+                'category': 'assessment',
+                'severity': 'critical',
+                'title': f'{needs_replace} hệ thống cần thay thế',
+                'description': 'Các hệ thống này được đánh giá cần thay thế do lỗi thời hoặc không đáp ứng yêu cầu.',
+                'recommendation': 'Lập kế hoạch thay thế và chuyển đổi dữ liệu.',
+                'metric': {'count': needs_replace},
+                'filter': {'type': 'recommendation', 'value': 'replace'},
+            })
+
+        if needs_upgrade > 0:
+            insights.append({
+                'id': 'needs_upgrade',
+                'category': 'assessment',
+                'severity': 'warning',
+                'title': f'{needs_upgrade} hệ thống cần nâng cấp',
+                'description': 'Các hệ thống này cần nâng cấp để cải thiện hiệu năng hoặc tính năng.',
+                'recommendation': 'Lập kế hoạch nâng cấp theo thứ tự ưu tiên.',
+                'metric': {'count': needs_upgrade},
+                'filter': {'type': 'recommendation', 'value': 'upgrade'},
+            })
+
+        # Sort insights by severity
+        severity_order = {'critical': 0, 'warning': 1, 'info': 2, 'success': 3}
+        insights.sort(key=lambda x: severity_order.get(x['severity'], 99))
+
+        # Summary stats
+        summary = {
+            'total_insights': len(insights),
+            'critical': sum(1 for i in insights if i['severity'] == 'critical'),
+            'warning': sum(1 for i in insights if i['severity'] == 'warning'),
+            'info': sum(1 for i in insights if i['severity'] == 'info'),
+            'success': sum(1 for i in insights if i['severity'] == 'success'),
+        }
+
+        return Response({
+            'insights': insights,
+            'summary': summary,
+            'total_systems': total_systems,
+        })
+
+    @action(detail=False, methods=['post'])
+    def ai_query(self, request):
+        """
+        Strategic Dashboard - AI SQL Assistant
+        Uses OpenAI to interpret natural language queries about system data.
+        Only accessible by lanhdaobo role.
+
+        Request body:
+        {
+            "query": "Có bao nhiêu hệ thống đang dùng Java?"
+        }
+        """
+        user = request.user
+        if user.role != 'lanhdaobo':
+            return Response(
+                {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        query = request.data.get('query', '').strip()
+        if not query:
+            return Response(
+                {'error': 'Query is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # OpenAI API key from settings or environment
+        import os
+        api_key = os.environ.get('OPENAI_API_KEY', getattr(settings, 'OPENAI_API_KEY', None))
+        if not api_key:
+            return Response(
+                {'error': 'OpenAI API key not configured'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # Build context about the database schema
+        schema_context = """
+        Database schema for IT systems inventory:
+
+        Table: systems_system (main table)
+        - id: integer primary key
+        - system_name: varchar - tên hệ thống
+        - system_code: varchar - mã hệ thống
+        - status: varchar - trạng thái (operating, pilot, testing, stopped, replacing)
+        - criticality_level: varchar - mức độ quan trọng (high, medium, low)
+        - scope: varchar - phạm vi (internal_unit, org_wide, external)
+        - hosting_platform: varchar - nền tảng (on_premise, cloud, hybrid, other)
+        - programming_language: varchar - ngôn ngữ lập trình
+        - framework: varchar - framework
+        - database_name: varchar - database
+        - users_total: integer - tổng số người dùng
+        - api_provided_count: integer - số API cung cấp
+        - api_consumed_count: integer - số API tiêu thụ
+        - go_live_date: date - ngày vận hành
+        - org_id: foreign key to organizations_organization
+
+        Table: organizations_organization
+        - id: integer primary key
+        - name: varchar - tên đơn vị
+
+        Related tables (one-to-one with systems_system via system_id):
+        - systems_systemarchitecture: has_design_document, has_architecture_diagram, architecture_type
+        - systems_systemoperations: has_ci_cd, has_monitoring, has_logging
+        - systems_systemintegration: has_api_gateway, integration_pattern
+        - systems_systemsecurity: has_data_encryption_at_rest, has_ssl_tls
+        - systems_systemassessment: recommendation (keep, upgrade, replace, merge), performance_rating
+        - systems_systemcost: initial_investment, annual_maintenance_cost
+        """
+
+        # Call OpenAI API
+        try:
+            import requests
+
+            openai_response = requests.post(
+                'https://api.openai.com/v1/chat/completions',
+                headers={
+                    'Authorization': f'Bearer {api_key}',
+                    'Content-Type': 'application/json',
+                },
+                json={
+                    'model': 'gpt-4o-mini',
+                    'messages': [
+                        {
+                            'role': 'system',
+                            'content': f"""Bạn là trợ lý AI phân tích dữ liệu hệ thống CNTT cho Bộ Khoa học và Công nghệ.
+
+{schema_context}
+
+Nhiệm vụ:
+1. Phân tích câu hỏi của người dùng (bằng tiếng Việt)
+2. Viết SQL query để trả lời câu hỏi (PostgreSQL syntax)
+3. Giải thích kết quả bằng tiếng Việt
+
+Response format (JSON):
+{{
+    "sql": "SELECT ... FROM ... WHERE ...",
+    "explanation": "Giải thích câu query và cách hiểu kết quả",
+    "chart_type": "bar|pie|table|number",
+    "chart_config": {{"x_field": "...", "y_field": "...", "title": "..."}}
+}}
+
+Rules:
+- Always use table aliases (s for systems_system, o for organizations_organization, etc.)
+- Join related tables using system_id foreign key
+- Return only safe SELECT queries, never UPDATE/DELETE/DROP
+- If query is unclear, ask for clarification
+- Respond in Vietnamese"""
+                        },
+                        {
+                            'role': 'user',
+                            'content': query
+                        }
+                    ],
+                    'temperature': 0.3,
+                    'max_tokens': 1000,
+                },
+                timeout=30,
+            )
+
+            if openai_response.status_code != 200:
+                logger.error(f"OpenAI API error: {openai_response.text}")
+                return Response(
+                    {'error': 'AI service temporarily unavailable'},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE
+                )
+
+            ai_result = openai_response.json()
+            ai_content = ai_result['choices'][0]['message']['content']
+
+            # Parse AI response
+            try:
+                # Try to extract JSON from the response
+                import re
+                json_match = re.search(r'\{[\s\S]*\}', ai_content)
+                if json_match:
+                    ai_data = json.loads(json_match.group())
+                else:
+                    ai_data = {'explanation': ai_content, 'sql': None}
+            except json.JSONDecodeError:
+                ai_data = {'explanation': ai_content, 'sql': None}
+
+            # Execute SQL if provided and safe
+            query_result = None
+            if ai_data.get('sql'):
+                sql = ai_data['sql'].strip()
+                # Basic safety check
+                sql_upper = sql.upper()
+                if not sql_upper.startswith('SELECT') or any(
+                    keyword in sql_upper
+                    for keyword in ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'TRUNCATE', 'CREATE', '--', ';']
+                ):
+                    ai_data['sql'] = None
+                    ai_data['error'] = 'Query không an toàn, chỉ cho phép SELECT'
+                else:
+                    try:
+                        from django.db import connection
+                        with connection.cursor() as cursor:
+                            cursor.execute(sql)
+                            columns = [col[0] for col in cursor.description]
+                            rows = cursor.fetchall()
+                            query_result = {
+                                'columns': columns,
+                                'rows': [dict(zip(columns, row)) for row in rows[:100]],  # Limit 100 rows
+                                'total_rows': len(rows),
+                            }
+                    except Exception as e:
+                        logger.error(f"SQL execution error: {e}")
+                        ai_data['error'] = f'Lỗi thực thi SQL: {str(e)}'
+
+            return Response({
+                'query': query,
+                'ai_response': ai_data,
+                'data': query_result,
+            })
+
+        except requests.exceptions.Timeout:
+            return Response(
+                {'error': 'AI service timeout'},
+                status=status.HTTP_504_GATEWAY_TIMEOUT
+            )
+        except Exception as e:
+            logger.error(f"AI query error: {e}")
+            return Response(
+                {'error': 'Internal server error'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['get'])
+    def roadmap_stats(self, request):
+        """
+        Strategic Dashboard - Roadmap Statistics
+        Maps systems to digital transformation phases based on current state.
+        Only accessible by lanhdaobo role.
+
+        Phases based on "Kiến trúc tổng thể số thống nhất Bộ KH&CN":
+        - Phase 1 (2026): Ổn định hạ tầng – Hội tụ dữ liệu – Thiết lập nền tảng
+        - Phase 2 (2027-2028): Chuẩn hóa toàn diện – Tích hợp sâu – Số hóa nghiệp vụ
+        - Phase 3 (2029-2030): Tối ưu hóa – Thông minh hóa – Dữ liệu mở
+        """
+        user = request.user
+        if user.role != 'lanhdaobo':
+            return Response(
+                {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        queryset = System.objects.filter(is_deleted=False).select_related(
+            'org', 'architecture', 'operations', 'integration', 'security', 'assessment'
+        )
+        total_systems = queryset.count()
+
+        # Phase criteria mapping
+        phase1_systems = []  # Need basic infrastructure improvements
+        phase2_systems = []  # Need standardization and integration
+        phase3_systems = []  # Ready for optimization and AI
+        completed_systems = []  # Already meet most criteria
+
+        for system in queryset:
+            system_data = {
+                'id': system.id,
+                'name': system.system_name,
+                'org_name': system.org.name if system.org else None,
+                'status': system.status,
+                'criticality': system.criticality_level,
+                'improvements_needed': [],
+                'score': 0,  # Higher = more mature
+            }
+
+            # Check Phase 1 criteria (Infrastructure & Foundation)
+            # Cloud readiness
+            if system.hosting_platform == 'cloud':
+                system_data['score'] += 20
+            elif system.hosting_platform == 'hybrid':
+                system_data['score'] += 10
+            else:
+                system_data['improvements_needed'].append({
+                    'phase': 1,
+                    'action': 'Cloud Migration',
+                    'detail': 'Di chuyển lên Cloud hoặc Hybrid',
+                })
+
+            # API Gateway
+            has_api_gw = False
+            try:
+                if hasattr(system, 'integration') and system.integration:
+                    has_api_gw = system.integration.has_api_gateway
+            except Exception:
+                pass
+
+            if has_api_gw:
+                system_data['score'] += 15
+            else:
+                system_data['improvements_needed'].append({
+                    'phase': 1,
+                    'action': 'API Gateway',
+                    'detail': 'Triển khai API Gateway tập trung',
+                })
+
+            # Basic security (SSL/TLS)
+            has_ssl = False
+            try:
+                if hasattr(system, 'security') and system.security:
+                    has_ssl = system.security.has_ssl_tls
+            except Exception:
+                pass
+
+            if has_ssl:
+                system_data['score'] += 10
+            else:
+                system_data['improvements_needed'].append({
+                    'phase': 1,
+                    'action': 'SSL/TLS',
+                    'detail': 'Triển khai SSL/TLS',
+                })
+
+            # Check Phase 2 criteria (Standardization & Integration)
+            # CI/CD
+            has_cicd = False
+            try:
+                if hasattr(system, 'operations') and system.operations:
+                    has_cicd = system.operations.has_ci_cd
+            except Exception:
+                pass
+
+            if has_cicd:
+                system_data['score'] += 15
+            else:
+                system_data['improvements_needed'].append({
+                    'phase': 2,
+                    'action': 'CI/CD Pipeline',
+                    'detail': 'Triển khai CI/CD tự động',
+                })
+
+            # Documentation
+            has_docs = False
+            has_arch = False
+            try:
+                if hasattr(system, 'architecture') and system.architecture:
+                    has_docs = system.architecture.has_design_document
+                    has_arch = system.architecture.has_architecture_diagram
+            except Exception:
+                pass
+
+            if has_docs:
+                system_data['score'] += 10
+            else:
+                system_data['improvements_needed'].append({
+                    'phase': 2,
+                    'action': 'Documentation',
+                    'detail': 'Hoàn thiện tài liệu thiết kế',
+                })
+
+            if has_arch:
+                system_data['score'] += 10
+            else:
+                system_data['improvements_needed'].append({
+                    'phase': 2,
+                    'action': 'Architecture Diagram',
+                    'detail': 'Xây dựng sơ đồ kiến trúc',
+                })
+
+            # Monitoring & Logging
+            has_monitoring = False
+            has_logging = False
+            try:
+                if hasattr(system, 'operations') and system.operations:
+                    has_monitoring = system.operations.has_monitoring
+                    has_logging = system.operations.has_logging
+            except Exception:
+                pass
+
+            if has_monitoring and has_logging:
+                system_data['score'] += 10
+            else:
+                system_data['improvements_needed'].append({
+                    'phase': 2,
+                    'action': 'Observability',
+                    'detail': 'Triển khai Monitoring & Logging',
+                })
+
+            # Check Phase 3 criteria (Optimization & AI)
+            # Data encryption
+            has_encryption = False
+            try:
+                if hasattr(system, 'security') and system.security:
+                    has_encryption = system.security.has_data_encryption_at_rest
+            except Exception:
+                pass
+
+            if has_encryption:
+                system_data['score'] += 10
+            else:
+                system_data['improvements_needed'].append({
+                    'phase': 3,
+                    'action': 'Data Encryption',
+                    'detail': 'Mã hóa dữ liệu at-rest',
+                })
+
+            # Categorize by phase needed
+            phase1_improvements = [i for i in system_data['improvements_needed'] if i['phase'] == 1]
+            phase2_improvements = [i for i in system_data['improvements_needed'] if i['phase'] == 2]
+            phase3_improvements = [i for i in system_data['improvements_needed'] if i['phase'] == 3]
+
+            if phase1_improvements:
+                system_data['current_phase'] = 1
+                system_data['phase_label'] = 'Giai đoạn 1: Xây móng'
+                phase1_systems.append(system_data)
+            elif phase2_improvements:
+                system_data['current_phase'] = 2
+                system_data['phase_label'] = 'Giai đoạn 2: Chuẩn hóa'
+                phase2_systems.append(system_data)
+            elif phase3_improvements:
+                system_data['current_phase'] = 3
+                system_data['phase_label'] = 'Giai đoạn 3: Tối ưu hóa'
+                phase3_systems.append(system_data)
+            else:
+                system_data['current_phase'] = 4
+                system_data['phase_label'] = 'Hoàn thành'
+                completed_systems.append(system_data)
+
+        # Sort each phase by criticality (high first)
+        criticality_order = {'high': 0, 'medium': 1, 'low': 2}
+        for systems_list in [phase1_systems, phase2_systems, phase3_systems, completed_systems]:
+            systems_list.sort(key=lambda x: criticality_order.get(x['criticality'], 99))
+
+        # Phase summary
+        phase_summary = {
+            'phase1': {
+                'name': 'Giai đoạn 1 (2026)',
+                'title': 'Xây móng - Hội tụ dữ liệu',
+                'description': 'Ổn định hạ tầng, Cloud migration, API Gateway, SSL/TLS',
+                'count': len(phase1_systems),
+                'percentage': round(len(phase1_systems) / total_systems * 100, 1) if total_systems > 0 else 0,
+            },
+            'phase2': {
+                'name': 'Giai đoạn 2 (2027-2028)',
+                'title': 'Chuẩn hóa - Tích hợp sâu',
+                'description': 'CI/CD, Documentation, Monitoring, Logging',
+                'count': len(phase2_systems),
+                'percentage': round(len(phase2_systems) / total_systems * 100, 1) if total_systems > 0 else 0,
+            },
+            'phase3': {
+                'name': 'Giai đoạn 3 (2029-2030)',
+                'title': 'Tối ưu hóa - Thông minh hóa',
+                'description': 'Data encryption, AI integration, Open data',
+                'count': len(phase3_systems),
+                'percentage': round(len(phase3_systems) / total_systems * 100, 1) if total_systems > 0 else 0,
+            },
+            'completed': {
+                'name': 'Hoàn thành',
+                'title': 'Đạt chuẩn',
+                'description': 'Đã đáp ứng các tiêu chí chuyển đổi số',
+                'count': len(completed_systems),
+                'percentage': round(len(completed_systems) / total_systems * 100, 1) if total_systems > 0 else 0,
+            },
+        }
+
+        # Top priorities for each phase
+        top_priorities = {
+            'phase1': phase1_systems[:10],
+            'phase2': phase2_systems[:10],
+            'phase3': phase3_systems[:10],
+        }
+
+        # Improvement actions summary
+        all_improvements = []
+        for system in queryset:
+            system_data = {
+                'id': system.id,
+                'name': system.system_name,
+            }
+            # Re-calculate improvements for summary
+            for sys_list in [phase1_systems, phase2_systems, phase3_systems]:
+                for s in sys_list:
+                    if s['id'] == system.id:
+                        all_improvements.extend(s['improvements_needed'])
+                        break
+
+        # Count improvements by action
+        from collections import Counter
+        action_counts = Counter(i['action'] for i in all_improvements)
+        improvement_actions = [
+            {'action': action, 'count': count, 'phase': next(
+                (i['phase'] for i in all_improvements if i['action'] == action), 1
+            )}
+            for action, count in action_counts.most_common()
+        ]
+
+        return Response({
+            'summary': phase_summary,
+            'top_priorities': top_priorities,
+            'improvement_actions': improvement_actions,
+            'total_systems': total_systems,
+            'systems_by_phase': {
+                'phase1': phase1_systems,
+                'phase2': phase2_systems,
+                'phase3': phase3_systems,
+                'completed': completed_systems,
+            },
         })
 
     @action(detail=False, methods=['get'])

@@ -72,23 +72,23 @@ def test_other_options():
             print(f"   → Login page loaded, screenshot saved")
             print(f"   → Current URL: {page.url}")
 
-            # Fill login form
-            # Try to find username field with longer timeout
-            username_field = page.locator('input[name="username"]')
-            print(f"   → Looking for username field...")
+            # Fill login form using Vietnamese placeholders
+            print(f"   → Looking for username field with placeholder...")
+            username_field = page.locator('input[placeholder="Tên đăng nhập"]')
+            password_field = page.locator('input[placeholder="Mật khẩu"]')
+
             if username_field.count() > 0:
                 print(f"   → Username field found!")
                 username_field.fill(USERNAME)
-                page.fill('input[name="password"]', PASSWORD)
-                page.click('button[type="submit"]')
+                password_field.fill(PASSWORD)
+
+                # Click the blue "Đăng nhập" button
+                login_button = page.locator('button:has-text("Đăng nhập")')
+                login_button.click()
+                print(f"   → Login button clicked")
             else:
-                print(f"   ❌ Username field not found, trying alternative selectors...")
-                # Try alternative selectors
-                alt_username = page.locator('input[type="text"]').or_(page.locator('input[placeholder*="user" i]')).first
-                alt_password = page.locator('input[type="password"]').first
-                alt_username.fill(USERNAME, timeout=5000)
-                alt_password.fill(PASSWORD)
-                page.locator('button[type="submit"]').or_(page.locator('button:has-text("Login")')).or_(page.locator('button:has-text("Đăng nhập")')).first.click()
+                print(f"   ❌ Login form not found with expected placeholders")
+                raise Exception("Could not find login form fields")
 
             # Wait for redirect after login
             page.wait_for_url("**/systems", timeout=10000)

@@ -86,8 +86,8 @@ class SystemArchitectureSerializer(serializers.ModelSerializer):
     messaging_queue = CommaSeparatedListField(required=False)  # ADDED 2026-01-25 - Fix validation error
 
     # Fix: Allow custom text for fields with 'other' option
-    database_model = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
-    mobile_app = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
+    database_model = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
+    mobile_app = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
 
     class Meta:
         model = SystemArchitecture
@@ -109,11 +109,11 @@ class SystemOperationsSerializer(serializers.ModelSerializer):
     """Serializer for SystemOperations (PHẦN 4/B.2)"""
 
     # Fix: Allow custom text for fields with 'other' option
-    deployment_location = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
-    compute_type = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
-    dev_type = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
-    warranty_status = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
-    vendor_dependency = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
+    deployment_location = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
+    compute_type = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
+    dev_type = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
+    warranty_status = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
+    vendor_dependency = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
 
     class Meta:
         model = SystemOperations
@@ -339,7 +339,7 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
     backup_plan = CommaSeparatedListField(required=False)
 
     # Fix: Allow custom text for fields with 'other' option
-    hosting_platform = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
+    hosting_platform = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
 
     # Nested writes for related models
     architecture_data = SystemArchitectureSerializer(source='architecture', required=False)

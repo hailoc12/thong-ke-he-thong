@@ -691,9 +691,7 @@ class SystemViewSet(viewsets.ModelViewSet):
 
         # === DOCUMENTATION INSIGHTS ===
         # Systems without design docs
-        no_design_docs = queryset.filter(
-            Q(architecture__has_design_document=False) | Q(architecture__isnull=True)
-        ).count()
+        no_design_docs = queryset.filter(has_design_documents=False).count()
         if no_design_docs > 0:
             pct = round(no_design_docs / total_systems * 100, 1)
             insights.append({
@@ -727,7 +725,7 @@ class SystemViewSet(viewsets.ModelViewSet):
         # === DEVOPS INSIGHTS ===
         # Systems without CI/CD
         no_cicd = queryset.filter(
-            Q(operations__has_ci_cd=False) | Q(operations__isnull=True)
+            Q(architecture__has_cicd=False) | Q(architecture__isnull=True)
         ).count()
         if no_cicd > 0:
             pct = round(no_cicd / total_systems * 100, 1)
@@ -835,9 +833,7 @@ class SystemViewSet(viewsets.ModelViewSet):
 
         # === SECURITY INSIGHTS ===
         # Systems without data encryption
-        no_encryption = queryset.filter(
-            Q(security__has_data_encryption_at_rest=False) | Q(security__isnull=True)
-        ).count()
+        no_encryption = queryset.filter(has_encryption=False).count()
         if no_encryption > 0:
             pct = round(no_encryption / total_systems * 100, 1)
             insights.append({
@@ -1181,29 +1177,23 @@ Rules:
                     'detail': 'Triển khai API Gateway tập trung',
                 })
 
-            # Basic security (SSL/TLS)
-            has_ssl = False
-            try:
-                if hasattr(system, 'security') and system.security:
-                    has_ssl = system.security.has_ssl_tls
-            except Exception:
-                pass
-
-            if has_ssl:
+            # Basic security (Encryption)
+            has_encryption = system.has_encryption
+            if has_encryption:
                 system_data['score'] += 10
             else:
                 system_data['improvements_needed'].append({
                     'phase': 1,
-                    'action': 'SSL/TLS',
-                    'detail': 'Triển khai SSL/TLS',
+                    'action': 'Data Encryption',
+                    'detail': 'Triển khai mã hóa dữ liệu',
                 })
 
             # Check Phase 2 criteria (Standardization & Integration)
             # CI/CD
             has_cicd = False
             try:
-                if hasattr(system, 'operations') and system.operations:
-                    has_cicd = system.operations.has_ci_cd
+                if hasattr(system, 'architecture') and system.architecture:
+                    has_cicd = system.architecture.has_cicd
             except Exception:
                 pass
 
@@ -1217,11 +1207,10 @@ Rules:
                 })
 
             # Documentation
-            has_docs = False
+            has_docs = system.has_design_documents
             has_arch = False
             try:
                 if hasattr(system, 'architecture') and system.architecture:
-                    has_docs = system.architecture.has_design_document
                     has_arch = system.architecture.has_architecture_diagram
             except Exception:
                 pass
@@ -1244,17 +1233,9 @@ Rules:
                     'detail': 'Xây dựng sơ đồ kiến trúc',
                 })
 
-            # Monitoring & Logging
-            has_monitoring = False
-            has_logging = False
-            try:
-                if hasattr(system, 'operations') and system.operations:
-                    has_monitoring = system.operations.has_monitoring
-                    has_logging = system.operations.has_logging
-            except Exception:
-                pass
-
-            if has_monitoring and has_logging:
+            # Audit Log (as proxy for monitoring)
+            has_audit_log = system.has_audit_log
+            if has_audit_log:
                 system_data['score'] += 10
             else:
                 system_data['improvements_needed'].append({

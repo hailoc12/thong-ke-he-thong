@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('systems', '0013_remove_systemarchitecture_api_style_and_more'),
+        ('systems', '0012_add_data_governance_fields'),
     ]
 
     operations = [

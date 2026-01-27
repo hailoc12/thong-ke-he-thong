@@ -201,7 +201,7 @@ function getLabel(map: Record<string, string>, value: string | undefined | null)
 /**
  * Fix cells that SheetJS incorrectly interpreted as formulas
  * When aoa_to_sheet sees values starting with =, +, -, @ it creates formula cells
- * This function converts them back to text cells
+ * This function converts them back to text cells with ' prefix to prevent Excel formula interpretation
  */
 function fixFormulaLikeCells(ws: XLSX.WorkSheet): void {
   const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
@@ -212,21 +212,22 @@ function fixFormulaLikeCells(ws: XLSX.WorkSheet): void {
       const cell = ws[cellAddress];
 
       if (cell && cell.t === 'f' && cell.f) {
-        // This is a formula cell - convert to text
+        // This is a formula cell - convert to text with ' prefix
         // The formula text doesn't include the leading '='
-        // So we need to reconstruct the original value
-        const originalValue = '=' + cell.f;
+        // Prefix with ' to tell Excel this is text, not a formula
+        // Excel will hide the ' and display the rest as text
+        const originalValue = "'" + '=' + cell.f;
         cell.t = 's'; // Change type to string
-        cell.v = originalValue; // Set value to the original text
+        cell.v = originalValue; // Set value with ' prefix
         delete cell.f; // Remove formula property
       }
 
-      // Also handle cells that start with +, -, @ which might be interpreted as formulas
+      // Also handle string cells that start with +, -, @
       if (cell && cell.t === 's' && typeof cell.v === 'string') {
         const firstChar = cell.v.charAt(0);
         if (firstChar === '+' || firstChar === '-' || firstChar === '@') {
-          // Keep as string but ensure it's not interpreted as formula
-          // The value is already a string, so no change needed
+          // Prefix with ' to prevent formula interpretation
+          cell.v = "'" + cell.v;
         }
       }
     }

@@ -101,16 +101,28 @@ def test_other_options():
             print("─" * 80)
 
             page.goto(f"{BASE_URL}/systems/new", wait_until="networkidle")
-            time.sleep(2)
-            print("✅ Form loaded")
+            time.sleep(3)
+            page.screenshot(path='screenshot_create_form.png')
+            print(f"✅ Form loaded, screenshot saved")
+            print(f"   → Current URL: {page.url}")
 
             # Step 3: Fill basic required fields
             print("\n" + "─" * 80)
             print("📝 STEP 3: Filling required fields...")
             print("─" * 80)
 
-            # System name
-            page.fill('input[name="system_name"]', 'Playwright Test - Other Options - ' + str(int(time.time())))
+            # Wait for form to be fully loaded
+            time.sleep(2)
+
+            # System name - try to find with different strategies
+            system_name_field = page.locator('input[name="system_name"]')
+            if system_name_field.count() == 0:
+                print("   ⚠ system_name field not found by name, trying alternative selectors...")
+                system_name_field = page.locator('input[placeholder*="Tên hệ thống"]').or_(
+                    page.locator('#system_name')
+                ).first
+
+            system_name_field.fill('Playwright Test - Other Options - ' + str(int(time.time())), timeout=10000)
             print("   ✓ System name filled")
 
             # Scope - select first option

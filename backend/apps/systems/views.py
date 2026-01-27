@@ -801,12 +801,13 @@ class SystemViewSet(viewsets.ModelViewSet):
         if tech_stats:
             top_tech = tech_stats[0]
             top_pct = round(top_tech['count'] / total_systems * 100, 1)
+            tech_list = ', '.join(["{} ({})".format(t['programming_language'], t['count']) for t in tech_stats])
             insights.append({
                 'id': 'tech_distribution',
                 'category': 'technology',
                 'severity': 'info',
                 'title': f"Ngôn ngữ phổ biến nhất: {top_tech['programming_language']} ({top_tech['count']} hệ thống)",
-                'description': f"Top 5: {', '.join([f\"{t['programming_language']} ({t['count']})\" for t in tech_stats])}",
+                'description': f"Top 5: {tech_list}",
                 'recommendation': 'Xem xét chuẩn hóa công nghệ để dễ bảo trì và tìm nhân sự.',
                 'metric': {'top': tech_stats},
                 'filter': {'type': 'technology'},
@@ -820,12 +821,13 @@ class SystemViewSet(viewsets.ModelViewSet):
             .order_by('-count')[:5]
         )
         if db_stats:
+            db_list = ', '.join(["{} ({})".format(d['database_name'], d['count']) for d in db_stats])
             insights.append({
                 'id': 'database_distribution',
                 'category': 'technology',
                 'severity': 'info',
                 'title': f"Database phổ biến nhất: {db_stats[0]['database_name']} ({db_stats[0]['count']} hệ thống)",
-                'description': f"Top 5: {', '.join([f\"{d['database_name']} ({d['count']})\" for d in db_stats])}",
+                'description': f"Top 5: {db_list}",
                 'recommendation': 'Đánh giá khả năng hợp nhất database để giảm chi phí vận hành.',
                 'metric': {'top': db_stats},
                 'filter': {'type': 'database'},

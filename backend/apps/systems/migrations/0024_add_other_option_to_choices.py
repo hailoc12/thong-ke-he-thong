@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('systems', '0022_cicd_tool_remove_choices'),
+        ('systems', '0023_alter_system_authentication_method_and_more'),
     ]
 
     operations = [

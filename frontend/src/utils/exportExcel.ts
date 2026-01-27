@@ -128,7 +128,7 @@ function generateSummarySheet(
     ['9. Thấp', 0, ''],
     [],
     // Section 3: Theo trình độ nhập liệu
-    ['THEO TRÌNH ĐỘ NHẬP LIỆU', '', ''],
+    ['THEO TÌNH TRẠNG NHẬP LIỆU', '', ''],
     [
       '10. Tỷ lệ nhập liệu TB',
       `${statistics?.average_completion_percentage?.toFixed(1) || 0}%`,
@@ -212,7 +212,7 @@ function generateSystemsSheet(systems: any[]): any[][] {
   });
 
   return [
-    ['STT', 'TÊN HỆ THỐNG', 'ĐƠN VỊ', 'TRẠNG THÁI', 'QUAN TRỌNG', '% HOÀN THÀNH', 'NGÀY CẬP NHẬT'],
+    ['STT', 'TÊN HỆ THỐNG', 'ĐƠN VỊ', 'TRẠNG THÁI', 'MỨC ĐỘ TRIỂN KHAI', '% HOÀN THÀNH', 'NGÀY CẬP NHẬT'],
     ...sorted.map((sys, idx) => [
       idx + 1,
       sys.system_name,

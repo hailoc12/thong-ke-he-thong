@@ -90,9 +90,9 @@ def test_other_options():
                 print(f"   ❌ Login form not found with expected placeholders")
                 raise Exception("Could not find login form fields")
 
-            # Wait for redirect after login
-            page.wait_for_url("**/systems", timeout=10000)
-            print("✅ Login successful")
+            # Wait for redirect after login (goes to /dashboard)
+            page.wait_for_url("**/dashboard", timeout=10000)
+            print("✅ Login successful - redirected to dashboard")
             time.sleep(2)
 
             # Step 2: Navigate to Create System page

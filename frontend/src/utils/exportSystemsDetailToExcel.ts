@@ -236,12 +236,25 @@ function fixFormulaLikeCells(ws: XLSX.WorkSheet): void {
 
 /**
  * Escape special characters that Excel interprets as formulas
- * Note: This prefix doesn't work with aoa_to_sheet, but kept for documentation
- * The actual fix is done by fixFormulaLikeCells after sheet creation
+ * Prefix with ' to prevent Excel from interpreting as formula
+ * Excel will hide the ' and display the text correctly
  */
 function escapeExcelValue(value: any): any {
-  // Note: The ' prefix doesn't work with programmatic Excel writing
-  // Values starting with = are already handled by fixFormulaLikeCells
+  if (typeof value === 'string' && value.length > 0) {
+    const firstChar = value.charAt(0);
+    // Prefix with ' to escape formula characters
+    if (firstChar === '=' || firstChar === '+' || firstChar === '@') {
+      return "'" + value;
+    }
+    // For minus sign, only escape if not a negative number
+    if (firstChar === '-' && value.length > 1) {
+      const rest = value.substring(1);
+      // Check if it looks like a number (e.g., -123, -12.34)
+      if (!/^[\d.,]+$/.test(rest)) {
+        return "'" + value;
+      }
+    }
+  }
   return value;
 }
 

@@ -82,6 +82,14 @@ def test_other_options():
                 username_field.fill(USERNAME)
                 password_field.fill(PASSWORD)
 
+                # Check the "remember me" checkbox to store tokens in localStorage
+                remember_checkbox = page.locator('input[type="checkbox"]').or_(
+                    page.locator('[role="checkbox"]')
+                ).first
+                if remember_checkbox.count() > 0:
+                    remember_checkbox.check()
+                    print(f"   → 'Remember me' checkbox checked")
+
                 # Click the blue "Đăng nhập" button
                 login_button = page.locator('button:has-text("Đăng nhập")')
                 login_button.click()
@@ -93,7 +101,18 @@ def test_other_options():
             # Wait for redirect after login (goes to /dashboard)
             page.wait_for_url("**/dashboard", timeout=10000)
             print("✅ Login successful - redirected to dashboard")
-            time.sleep(2)
+
+            # Wait for page to fully load and auth to be set
+            time.sleep(3)
+
+            # Verify authentication by checking for user menu or logout button
+            user_menu = page.locator('text=/admin/i').or_(page.locator('[class*="user"]'))
+            if user_menu.count() > 0:
+                print("   ✓ User menu found - authentication confirmed")
+            else:
+                print("   ⚠ User menu not found - auth may not be persisted")
+
+            time.sleep(1)
 
             # Step 2: Navigate to Systems list and click "Add" button
             print("\n" + "─" * 80)
@@ -102,6 +121,12 @@ def test_other_options():
 
             page.goto(f"{BASE_URL}/systems", wait_until="networkidle")
             time.sleep(2)
+
+            # Check if we got redirected back to login
+            if '/login' in page.url:
+                print("   ❌ Redirected back to login - authentication failed")
+                page.screenshot(path='screenshot_auth_failed.png')
+                raise Exception("Authentication lost when navigating to /systems")
 
             # Click the "+ Thêm hệ thống" button
             add_button = page.locator('button:has-text("Thêm hệ thống")')

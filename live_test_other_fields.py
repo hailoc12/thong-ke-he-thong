@@ -13,7 +13,7 @@ import sys
 # The external IP (34.142.152.104) doesn't work from within the server due to routing
 BASE_URL = "http://localhost:3000"
 USERNAME = "admin"
-PASSWORD = "admin123"
+PASSWORD = "Admin@2026"
 
 # Fields to test (only those with UI)
 FIELDS_TO_TEST = [

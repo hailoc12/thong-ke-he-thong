@@ -92,23 +92,11 @@ const RISK_LABELS: Record<string, string> = {
   low: 'Thấp',
 };
 
-const PRIORITY_LABELS: Record<string, string> = {
-  high: 'Cao',
-  medium: 'Trung bình',
-  low: 'Thấp',
-};
-
 const RECOMMENDATION_LABELS: Record<string, string> = {
   keep: 'Giữ nguyên',
   upgrade: 'Nâng cấp',
   replace: 'Thay thế',
   merge: 'Sáp nhập',
-};
-
-const TECH_DEBT_LABELS: Record<string, string> = {
-  high: 'Cao',
-  medium: 'Trung bình',
-  low: 'Thấp',
 };
 
 const INTEGRATION_READINESS_LABELS: Record<string, string> = {
@@ -176,9 +164,9 @@ function generateBasicSheet(systems: SystemDetail[]): any[][] {
     sys.system_group || '',
     getLabel(STATUS_LABELS, sys.status),
     getLabel(CRITICALITY_LABELS, sys.criticality_level),
-    sys.security_level || '',
+    (sys as any).security_level || '',
     getLabel(SCOPE_LABELS, sys.scope),
-    sys.request_type || '',
+    (sys as any).request_type || '',
     sys.purpose || '',
     formatDate(sys.go_live_date),
     sys.current_version || '',
@@ -204,11 +192,11 @@ function generateBusinessSheet(systems: SystemDetail[]): any[][] {
     idx + 1,
     sys.system_code || '',
     sys.system_name || '',
-    sys.business_objectives || '',
-    sys.business_processes || '',
+    (sys as any).business_objectives || '',
+    (sys as any).business_processes || '',
     formatArray(sys.target_users),
     formatNumber(sys.users_total),
-    formatNumber(sys.total_accounts),
+    formatNumber((sys as any).total_accounts),
     formatNumber(sys.users_mau),
     formatNumber(sys.users_dau),
     formatNumber(sys.num_organizations),
@@ -463,7 +451,7 @@ function generateAssessmentSheet(systems: SystemDetail[]): any[][] {
       sys.system_name || '',
       getLabel(INTEGRATION_READINESS_LABELS, (sys as any).integration_readiness || (assess as any).integration_readiness),
       (assess as any).blockers || (sys as any).blockers || '',
-      getLabel(RECOMMENDATION_LABELS, assess.recommendation || (sys as any).recommendation),
+      getLabel(RECOMMENDATION_LABELS, (assess as any).recommendation || (sys as any).recommendation),
     ];
   });
 
@@ -616,11 +604,6 @@ function generateSecurityDetailSheet(systems: SystemDetail[]): any[][] {
 }
 
 // ===== STYLING FUNCTIONS =====
-
-function applyHeaderStyle(ws: XLSX.WorkSheet, range: XLSX.Range): void {
-  // SheetJS CE doesn't support styling, but xlsx-style or xlsx-js-style does
-  // For now, we set column widths which is supported
-}
 
 function setColumnWidths(ws: XLSX.WorkSheet, widths: number[]): void {
   ws['!cols'] = widths.map(w => ({ wch: w }));

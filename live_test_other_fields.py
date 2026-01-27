@@ -257,6 +257,10 @@ def test_other_options():
                             time.sleep(2)
                             print(f"   ✓ Switched to tab '{field['tab_text']}'")
 
+                            # Take screenshot for debugging
+                            page.screenshot(path=f'screenshot_tab_ha_tang_{field["name"]}.png')
+                            print(f"   → Screenshot saved: screenshot_tab_ha_tang_{field['name']}.png")
+
                     # Find field by label text
                     # Strategy: Find label with this text, then find the Select in the same Form.Item
                     print(f"   → Looking for label: {field['label_text']}")
@@ -268,6 +272,14 @@ def test_other_options():
 
                     if label.count() == 0:
                         print(f"   ❌ Label not found: {field['label_text']}")
+
+                        # Debug: List all visible labels on this tab
+                        print(f"   → Debug: Listing all visible labels (first 20)...")
+                        all_labels = page.locator('label').all_text_contents()
+                        for idx, lbl in enumerate(all_labels[:20]):
+                            if lbl.strip():
+                                print(f"     Label {idx}: {lbl.strip()}")
+
                         results.append({
                             'field': field['name'],
                             'status': 'NOT_FOUND',

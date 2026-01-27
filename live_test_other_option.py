@@ -11,8 +11,8 @@ from datetime import datetime
 
 # Configuration
 BASE_URL = "http://localhost:8000/api"
-USERNAME = "admin"
-PASSWORD = "admin123"
+USERNAME = "testuser_temp"
+PASSWORD = "TestPass123!"
 
 # Colors
 GREEN = '\033[0;32m'
@@ -40,17 +40,17 @@ class APITester:
         self.test_system_ids = []
 
     def login(self):
-        """Login and get token"""
+        """Login and get JWT token"""
         log_test("Logging in...")
         response = self.session.post(
-            f"{BASE_URL}/accounts/login/",
+            f"{BASE_URL}/token/",
             json={"username": USERNAME, "password": PASSWORD}
         )
         if response.status_code == 200:
             data = response.json()
-            self.token = data['token']
-            self.session.headers.update({'Authorization': f'Token {self.token}'})
-            log_info(f"Logged in as {data['user']['username']}")
+            self.token = data['access']
+            self.session.headers.update({'Authorization': f'Bearer {self.token}'})
+            log_info(f"Logged in successfully (JWT token obtained)")
             return True
         else:
             log_error(f"Login failed: {response.text}")
@@ -61,8 +61,10 @@ class APITester:
         log_test("Getting organization...")
         response = self.session.get(f"{BASE_URL}/organizations/")
         if response.status_code == 200:
-            orgs = response.json()
-            if orgs:
+            data = response.json()
+            # Handle paginated response
+            orgs = data.get('results', data) if isinstance(data, dict) else data
+            if orgs and len(orgs) > 0:
                 org_id = orgs[0]['id']
                 log_info(f"Using organization: {orgs[0]['name']} (ID: {org_id})")
                 return org_id
@@ -164,7 +166,7 @@ class APITester:
         if response.status_code == 201:
             data = response.json()
             self.test_system_ids.append(data['id'])
-            ops = data.get('operations', {})
+            ops = data.get('operations_data', {})
 
             # Verify each field
             fields = ['dev_type', 'warranty_status', 'vendor_dependency', 'deployment_location', 'compute_type']

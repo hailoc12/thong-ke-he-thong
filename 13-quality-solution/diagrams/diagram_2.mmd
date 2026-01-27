@@ -1,0 +1,19 @@
+flowchart LR
+    subgraph Nhóm 1[Đơn vị A]
+        A1[Hệ thống Quản lý văn bản]
+        A2[Hệ thống Nhân sự]
+    end
+
+    subgraph Nhóm 2[Đơn vị B]
+        B1[Hệ thống Tài chính]
+        B2[Hệ thống Báo cáo]
+    end
+
+    subgraph Nhóm 3[Ốc đảo dữ liệu]
+        C1[Hệ thống XYZ]
+    end
+
+    A1 <-->|API| A2
+    A2 <-->|Dữ liệu| B1
+    B1 -->|Xuất| B2
+    C1 -.->|Không kết nối| C1

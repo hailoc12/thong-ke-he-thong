@@ -1,0 +1,29 @@
+flowchart TB
+    subgraph Nguồn dữ liệu
+        S1[Bảng Systems - Danh mục hệ thống]
+        S2[Bảng SystemCost - Chi phí]
+        S3[Bảng SystemIntegration - Tích hợp]
+        S4[Bảng SystemAssessment - Đánh giá]
+        S5[Bảng Organizations - Đơn vị]
+    end
+
+    subgraph API Backend
+        API[Django REST API]
+    end
+
+    subgraph Dashboard
+        D1[Thẻ Tổng quan]
+        D2[Thẻ Đầu tư]
+        D3[Thẻ Tích hợp]
+        D4[Thẻ Tối ưu]
+    end
+
+    S1 --> API
+    S2 --> API
+    S3 --> API
+    S4 --> API
+    S5 --> API
+    API --> D1
+    API --> D2
+    API --> D3
+    API --> D4

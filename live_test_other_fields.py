@@ -20,9 +20,9 @@ SYSTEM_ID = 147  # Test on existing system
 FIELDS_TO_TEST = [
     {
         "name": "hosting_platform",
-        "label_text": "Phạm vi sử dụng",  # Actual label in form
-        "tab": "Cơ bản (Tab 1)",
-        "tab_text": "Cơ bản",
+        "label_text": "Nền tảng triển khai",  # Corrected: This is the actual label
+        "tab": "Hạ tầng (Tab 7)",
+        "tab_text": "Hạ tầng",
     },
     {
         "name": "deployment_location",
@@ -32,7 +32,7 @@ FIELDS_TO_TEST = [
     },
     {
         "name": "compute_type",
-        "label_text": "Loại hạ tầng tính toán",  # Actual label might differ
+        "label_text": "Loại hạ tầng tính toán",
         "tab": "Hạ tầng (Tab 7)",
         "tab_text": "Hạ tầng",
     },

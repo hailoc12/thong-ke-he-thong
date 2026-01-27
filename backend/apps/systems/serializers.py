@@ -42,6 +42,38 @@ class CommaSeparatedListField(serializers.Field):
         return str(data)
 
 
+class FlexibleChoiceField(serializers.CharField):
+    """
+    Custom CharField that accepts both:
+    1. Values from predefined choices (e.g., 'cloud', 'on_premise', 'hybrid', 'other')
+    2. Custom text values (when user selects 'Khác' and types custom text)
+
+    Used for SelectWithOther component fields.
+    Bypasses strict choice validation to allow custom user input.
+    """
+
+    def __init__(self, **kwargs):
+        # Remove choices from kwargs to prevent strict validation
+        self.model_choices = kwargs.pop('choices', None)
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data):
+        """Accept any string value within max_length"""
+        if data == '' or data is None:
+            if self.allow_blank or not self.required:
+                return ''
+            self.fail('blank')
+
+        # Convert to string and strip whitespace
+        value = str(data).strip()
+
+        # Validate max_length if specified
+        if self.max_length and len(value) > self.max_length:
+            self.fail('max_length', max_length=self.max_length)
+
+        return value
+
+
 class SystemArchitectureSerializer(serializers.ModelSerializer):
     """Serializer for SystemArchitecture (PHẦN 2/B.3)"""
 
@@ -52,6 +84,10 @@ class SystemArchitectureSerializer(serializers.ModelSerializer):
     containerization = CommaSeparatedListField(required=False)  # ADDED 2026-01-23
     api_style = CommaSeparatedListField(required=False)  # ADDED 2026-01-25 - Fix validation error
     messaging_queue = CommaSeparatedListField(required=False)  # ADDED 2026-01-25 - Fix validation error
+
+    # Fix: Allow custom text for fields with 'other' option
+    database_model = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
+    mobile_app = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
 
     class Meta:
         model = SystemArchitecture
@@ -71,6 +107,13 @@ class SystemDataInfoSerializer(serializers.ModelSerializer):
 
 class SystemOperationsSerializer(serializers.ModelSerializer):
     """Serializer for SystemOperations (PHẦN 4/B.2)"""
+
+    # Fix: Allow custom text for fields with 'other' option
+    deployment_location = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
+    compute_type = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
+    dev_type = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
+    warranty_status = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
+    vendor_dependency = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
 
     class Meta:
         model = SystemOperations
@@ -294,6 +337,9 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
     authentication_method = CommaSeparatedListField(required=False)
     data_exchange_method = CommaSeparatedListField(required=False)
     backup_plan = CommaSeparatedListField(required=False)
+
+    # Fix: Allow custom text for fields with 'other' option
+    hosting_platform = FlexibleChoiceField(max_length=1000, required=False, allow_blank=True)
 
     # Nested writes for related models
     architecture_data = SystemArchitectureSerializer(source='architecture', required=False)

@@ -88,6 +88,10 @@ class SystemArchitectureSerializer(serializers.ModelSerializer):
     # Fix: Allow custom text for fields with 'other' option
     database_model = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
     mobile_app = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
+    cache_system = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
+    search_engine = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
+    reporting_bi_tool = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
+    source_repository = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
 
     class Meta:
         model = SystemArchitecture

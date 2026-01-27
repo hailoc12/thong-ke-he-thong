@@ -672,7 +672,7 @@ class SystemArchitecture(models.Model):
 
     # Cache
     cache_system = models.CharField(
-        max_length=50,
+        max_length=10000,  # Increased to allow long custom text
         choices=CACHE_SYSTEM_CHOICES,
         blank=True,
         verbose_name=_('Cache System')
@@ -680,7 +680,7 @@ class SystemArchitecture(models.Model):
 
     # Search Engine
     search_engine = models.CharField(
-        max_length=50,
+        max_length=10000,  # Increased to allow long custom text
         choices=SEARCH_ENGINE_CHOICES,
         blank=True,
         verbose_name=_('Search Engine')
@@ -688,7 +688,7 @@ class SystemArchitecture(models.Model):
 
     # Reporting & BI
     reporting_bi_tool = models.CharField(
-        max_length=50,
+        max_length=10000,  # Increased to allow long custom text
         choices=REPORTING_BI_CHOICES,
         blank=True,
         verbose_name=_('Reporting/BI Tool')
@@ -696,7 +696,7 @@ class SystemArchitecture(models.Model):
 
     # Source Code Management
     source_repository = models.CharField(
-        max_length=50,
+        max_length=10000,  # Increased to allow long custom text
         choices=SOURCE_REPOSITORY_CHOICES,
         blank=True,
         verbose_name=_('Source Code Repository')

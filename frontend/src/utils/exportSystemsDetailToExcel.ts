@@ -135,6 +135,29 @@ const COMPUTE_TYPE_LABELS: Record<string, string> = {
   other: 'Khác',
 };
 
+const BUSINESS_OBJECTIVES_LABELS: Record<string, string> = {
+  digitize_processes: 'Số hóa quy trình',
+  integration: 'Tích hợp',
+  increase_transparency: 'Tăng minh bạch',
+  reduce_processing_time: 'Giảm thời gian xử lý',
+  improve_quality: 'Nâng cao chất lượng',
+  cost_reduction: 'Giảm chi phí',
+  compliance: 'Tuân thủ quy định',
+  data_analytics: 'Phân tích dữ liệu',
+  customer_experience: 'Trải nghiệm khách hàng',
+  automation: 'Tự động hóa',
+  other: 'Khác',
+};
+
+const TARGET_USERS_LABELS: Record<string, string> = {
+  internal_staff: 'Nhân viên nội bộ',
+  management: 'Lãnh đạo',
+  citizens: 'Công dân',
+  businesses: 'Doanh nghiệp',
+  partners: 'Đối tác',
+  other: 'Khác',
+};
+
 // ===== HELPER FUNCTIONS =====
 function formatBoolean(value: boolean | undefined | null): string {
   if (value === true) return 'Có';
@@ -142,8 +165,11 @@ function formatBoolean(value: boolean | undefined | null): string {
   return '';
 }
 
-function formatArray(value: string[] | undefined | null): string {
+function formatArray(value: string[] | undefined | null, labelMap?: Record<string, string>): string {
   if (!value || !Array.isArray(value)) return '';
+  if (labelMap) {
+    return value.map(v => labelMap[v] || v).join(', ');
+  }
   return value.join(', ');
 }
 
@@ -244,9 +270,9 @@ function generateBusinessSheet(systems: SystemDetail[]): any[][] {
     idx + 1,
     sys.system_code || '',
     sys.system_name || '',
-    (sys as any).business_objectives || '',
+    formatArray((sys as any).business_objectives, BUSINESS_OBJECTIVES_LABELS),
     (sys as any).business_processes || '',
-    formatArray(sys.target_users),
+    formatArray(sys.target_users, TARGET_USERS_LABELS),
     formatNumber(sys.users_total),
     formatNumber((sys as any).total_accounts),
     formatNumber(sys.users_mau),

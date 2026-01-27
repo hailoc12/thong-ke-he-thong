@@ -9,7 +9,9 @@ import time
 import sys
 
 # Configuration
-BASE_URL = "http://34.142.152.104:3000"
+# Note: Use localhost:3000 when running this test on the server itself
+# The external IP (34.142.152.104) doesn't work from within the server due to routing
+BASE_URL = "http://localhost:3000"
 USERNAME = "admin"
 PASSWORD = "admin123"
 

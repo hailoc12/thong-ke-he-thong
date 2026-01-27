@@ -116,9 +116,39 @@ def test_other_options():
 
             time.sleep(1)
 
-            # Step 2: Navigate directly to edit page
+            # Step 2: Navigate to systems list via sidebar menu (maintains auth)
             print("\n" + "─" * 80)
-            print(f"📝 STEP 2: Navigating to System {SYSTEM_ID} Edit Page...")
+            print("📝 STEP 2: Navigating to Systems page via menu...")
+            print("─" * 80)
+
+            # Click "Hệ thống" menu item in sidebar
+            systems_menu = page.locator('text=/.*Hệ thống.*/').or_(
+                page.locator('a[href="/systems"]')
+            ).or_(
+                page.locator('a[href*="system"]')
+            ).first
+
+            if systems_menu.count() > 0:
+                print("   → Clicking 'Hệ thống' menu item...")
+                systems_menu.click()
+                time.sleep(3)
+            else:
+                print("   ⚠ Menu item not found, trying direct navigation...")
+                page.goto(f"{BASE_URL}/systems", wait_until="networkidle")
+                time.sleep(2)
+
+            # Check if we got redirected back to login
+            if '/login' in page.url:
+                print("   ❌ Redirected back to login - authentication failed")
+                page.screenshot(path='screenshot_auth_failed.png')
+                raise Exception("Authentication lost when navigating to /systems")
+
+            print("✅ Systems list page loaded")
+            print(f"   → Current URL: {page.url}")
+
+            # Step 3: Navigate to edit page for System 147
+            print("\n" + "─" * 80)
+            print(f"📝 STEP 3: Navigating to System {SYSTEM_ID} Edit Page...")
             print("─" * 80)
 
             edit_url = f"{BASE_URL}/systems/{SYSTEM_ID}/edit"
@@ -140,9 +170,9 @@ def test_other_options():
             # Wait for form to fully load
             time.sleep(2)
 
-            # Step 3: Test each field with 'other' option
+            # Step 4: Test each field with 'other' option
             print("\n" + "=" * 80)
-            print("📝 STEP 3: Testing 'Khác' (Other) Options")
+            print("📝 STEP 4: Testing 'Khác' (Other) Options")
             print("=" * 80)
 
             results = []
@@ -257,9 +287,9 @@ def test_other_options():
                         'error': str(e)
                     })
 
-            # Step 4: Try to save form
+            # Step 5: Try to save form
             print("\n" + "=" * 80)
-            print("📝 STEP 4: Attempting to Save Form")
+            print("📝 STEP 5: Attempting to Save Form")
             print("=" * 80)
 
             # Scroll to bottom to find submit button

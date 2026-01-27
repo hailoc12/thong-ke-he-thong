@@ -9,31 +9,32 @@ import time
 import sys
 
 # Configuration
-# Note: Use localhost:3000 when running this test on the server itself
-# The external IP (34.142.152.104) doesn't work from within the server due to routing
-BASE_URL = "http://localhost:3000"
+# Testing on PRODUCTION URL with existing system
+BASE_URL = "https://hientrangcds.mst.gov.vn"
 USERNAME = "admin"
 PASSWORD = "Admin@2026"
+SYSTEM_ID = 147  # Test on existing system
 
 # Fields to test (only those with UI)
+# Using Vietnamese label text to find fields since name attributes don't work
 FIELDS_TO_TEST = [
     {
         "name": "hosting_platform",
-        "label": "Hosting Platform",
+        "label_text": "Phạm vi sử dụng",  # Actual label in form
         "tab": "Cơ bản (Tab 1)",
-        "selector_type": "name",  # Use name attribute
+        "tab_text": "Cơ bản",
     },
     {
         "name": "deployment_location",
-        "label": "Vị trí triển khai",
+        "label_text": "Vị trí triển khai",
         "tab": "Hạ tầng (Tab 7)",
-        "selector_type": "name",
+        "tab_text": "Hạ tầng",
     },
     {
         "name": "compute_type",
-        "label": "Loại compute",
+        "label_text": "Loại hạ tầng tính toán",  # Actual label might differ
         "tab": "Hạ tầng (Tab 7)",
-        "selector_type": "name",
+        "tab_text": "Hạ tầng",
     },
 ]
 
@@ -41,9 +42,10 @@ def test_other_options():
     """Run comprehensive test for all 'other' option fields"""
 
     print("=" * 80)
-    print("LIVE TEST: Testing 'Khác' (Other) Options in System Form")
+    print("LIVE TEST: Testing 'Khác' (Other) Options on Production")
     print("=" * 80)
     print(f"\nBase URL: {BASE_URL}")
+    print(f"System ID: {SYSTEM_ID}")
     print(f"Username: {USERNAME}")
     print(f"Fields to test: {len(FIELDS_TO_TEST)}")
     print("\n")
@@ -114,167 +116,103 @@ def test_other_options():
 
             time.sleep(1)
 
-            # Step 2: Navigate to Systems list through the sidebar menu
+            # Step 2: Navigate directly to edit page
             print("\n" + "─" * 80)
-            print("📝 STEP 2: Navigating to Systems page via menu...")
+            print(f"📝 STEP 2: Navigating to System {SYSTEM_ID} Edit Page...")
             print("─" * 80)
 
-            # Try to find and click "Hệ thống" menu item in sidebar
-            systems_menu = page.locator('text=/.*Hệ thống.*/').or_(
-                page.locator('a[href="/systems"]')
-            ).or_(
-                page.locator('a[href*="system"]')
-            ).first
-
-            if systems_menu.count() > 0:
-                print("   → Clicking 'Hệ thống' menu item...")
-                systems_menu.click()
-                time.sleep(3)
-            else:
-                print("   ⚠ Menu item not found, trying direct navigation...")
-                page.goto(f"{BASE_URL}/systems", wait_until="networkidle")
-                time.sleep(2)
+            edit_url = f"{BASE_URL}/systems/{SYSTEM_ID}/edit"
+            print(f"   → Navigating to: {edit_url}")
+            page.goto(edit_url, wait_until="networkidle")
+            time.sleep(3)
 
             # Check if we got redirected back to login
             if '/login' in page.url:
                 print("   ❌ Redirected back to login - authentication failed")
                 page.screenshot(path='screenshot_auth_failed.png')
-                raise Exception("Authentication lost when navigating to /systems")
+                raise Exception("Authentication lost when navigating to edit page")
 
-            # Click the "+ Thêm hệ thống" button
-            add_button = page.locator('button:has-text("Thêm hệ thống")')
-            if add_button.count() > 0:
-                print("   → Clicking 'Thêm hệ thống' button...")
-                add_button.click()
-                time.sleep(3)
-                page.screenshot(path='screenshot_create_form.png')
-                print(f"✅ Create form opened, screenshot saved")
-                print(f"   → Current URL: {page.url}")
-            else:
-                print("   ❌ 'Thêm hệ thống' button not found")
-                page.screenshot(path='screenshot_no_add_button.png')
-                raise Exception("Could not find 'Thêm hệ thống' button")
+            # Take screenshot
+            page.screenshot(path='screenshot_edit_form.png')
+            print(f"✅ Edit form loaded, screenshot saved")
+            print(f"   → Current URL: {page.url}")
 
-            # Step 3: Fill basic required fields
-            print("\n" + "─" * 80)
-            print("📝 STEP 3: Filling required fields...")
-            print("─" * 80)
-
-            # Wait for form to be fully loaded
+            # Wait for form to fully load
             time.sleep(2)
 
-            # System name - try to find with different strategies
-            system_name_field = page.locator('input[name="system_name"]')
-            if system_name_field.count() == 0:
-                print("   ⚠ system_name field not found by name, trying alternative selectors...")
-                system_name_field = page.locator('input[placeholder*="Tên hệ thống"]').or_(
-                    page.locator('#system_name')
-                ).first
-
-            system_name_field.fill('Playwright Test Other ' + str(int(time.time())), timeout=10000)
-            print("   ✓ System name filled")
-
-            # Scroll to ensure fields are visible
-            page.evaluate("window.scrollTo(0, 0)")
-            time.sleep(0.5)
-
-            # Fill required fields visible in the screenshot
-            # 1. Tổ chức (Organization) - Select dropdown
-            try:
-                # Find the select by looking for the label and then the select below it
-                org_label = page.locator('text="Tổ chức"')
-                if org_label.count() > 0:
-                    # Get the form item containing this label and find the select
-                    org_select = page.locator('.ant-select').first
-                    org_select.click()
-                    time.sleep(0.5)
-                    # Select first option
-                    page.keyboard.press('ArrowDown')
-                    time.sleep(0.3)
-                    page.keyboard.press('Enter')
-                    print("   ✓ Organization selected")
-            except Exception as e:
-                print(f"   ⚠ Could not select organization: {e}")
-
-            time.sleep(0.5)
-
-            # 2. Tên tiếng Anh (English name) - if required
-            try:
-                eng_name = page.locator('input[placeholder*="tiếng Anh"]').or_(
-                    page.locator('input[placeholder*="English"]')
-                ).first
-                if eng_name.count() > 0 and eng_name.is_visible():
-                    eng_name.fill('Test System EN')
-                    print("   ✓ English name filled")
-            except:
-                pass
-
-            # 3. Mô tả (Description) - textarea if required
-            try:
-                desc = page.locator('textarea[placeholder*="Mô tả"]').or_(
-                    page.locator('textarea[placeholder*="mục đích"]')
-                ).first
-                if desc.count() > 0 and desc.is_visible():
-                    desc.fill('Test description for other option testing')
-                    print("   ✓ Description filled")
-            except:
-                pass
-
-            time.sleep(1)
-            print("   ✓ Basic required fields filled")
-
-            # Step 4: Test each field with 'other' option
+            # Step 3: Test each field with 'other' option
             print("\n" + "=" * 80)
-            print("📝 STEP 4: Testing 'Khác' (Other) Options")
+            print("📝 STEP 3: Testing 'Khác' (Other) Options")
             print("=" * 80)
 
             results = []
 
             for i, field in enumerate(FIELDS_TO_TEST, 1):
-                print(f"\n[{i}/{len(FIELDS_TO_TEST)}] Testing: {field['label']}")
+                print(f"\n[{i}/{len(FIELDS_TO_TEST)}] Testing: {field['label_text']}")
                 print(f"   Tab: {field['tab']}")
                 print(f"   Field name: {field['name']}")
 
                 try:
                     # Navigate to correct tab if needed
-                    if "Tab 7" in field['tab']:
-                        print("   → Clicking Tab 7 (Hạ tầng)...")
-                        tab_7 = page.locator('text=/.*Hạ tầng.*/').first
-                        if tab_7.is_visible():
-                            tab_7.click()
-                            time.sleep(1)
+                    if field['tab_text'] == "Hạ tầng":
+                        print(f"   → Clicking tab '{field['tab_text']}'...")
+                        # Find tab by text
+                        tab = page.locator(f'text=/.*{field["tab_text"]}.*/').first
+                        if tab.count() > 0 and tab.is_visible():
+                            tab.click()
+                            time.sleep(2)
+                            print(f"   ✓ Switched to tab '{field['tab_text']}'")
 
-                    # Find the SelectWithOther component for this field
-                    # It's wrapped in Form.Item with name attribute
-                    field_selector = f'[name="{field["name"]}"]'
+                    # Find field by label text
+                    # Strategy: Find label with this text, then find the Select in the same Form.Item
+                    print(f"   → Looking for label: {field['label_text']}")
 
-                    # Check if field exists
-                    if not page.locator(field_selector).count():
-                        print(f"   ❌ Field not found: {field_selector}")
+                    # Try to find the label
+                    label = page.locator(f'text="{field["label_text"]}"').or_(
+                        page.locator(f'text=/.*{field["label_text"]}.*/i')
+                    ).first
+
+                    if label.count() == 0:
+                        print(f"   ❌ Label not found: {field['label_text']}")
                         results.append({
                             'field': field['name'],
                             'status': 'NOT_FOUND',
-                            'error': 'Field selector not found in DOM'
+                            'error': f'Label "{field["label_text"]}" not found in current tab'
                         })
                         continue
 
-                    # Find the Select dropdown (first child of the field wrapper)
-                    select_selector = f'{field_selector} .ant-select-selector'
+                    print(f"   ✓ Label found!")
 
-                    print(f"   → Looking for dropdown: {select_selector}")
+                    # Find the Form.Item containing this label (parent elements)
+                    # Then find the Select dropdown within that Form.Item
+                    # Get parent element and find .ant-select within it
+                    form_item = label.locator('xpath=ancestor::div[contains(@class, "ant-form-item") or contains(@class, "ant-col")]').first
+                    select_selector = form_item.locator('.ant-select-selector').first
+
+                    if select_selector.count() == 0:
+                        print(f"   ⚠ Select dropdown not found near label, trying alternative...")
+                        # Alternative: find any select after the label on the page
+                        select_selector = page.locator('.ant-select-selector').nth(i)  # Try nth select on page
+
+                    print(f"   → Found dropdown, attempting to click...")
 
                     # Click to open dropdown
-                    page.click(select_selector)
-                    time.sleep(1)
+                    select_selector.click(timeout=10000)
+                    time.sleep(1.5)
 
                     # Look for 'Khác' option in dropdown
-                    # Options appear in .ant-select-dropdown
-                    khac_option = page.locator('.ant-select-item-option').filter(has_text='Khác')
+                    # Options appear in .ant-select-dropdown (visible dropdown overlay)
+                    khac_option = page.locator('.ant-select-dropdown:visible .ant-select-item-option:has-text("Khác")')
 
                     if khac_option.count() == 0:
                         print(f"   ❌ 'Khác' option not found in dropdown")
                         # Take screenshot
                         page.screenshot(path=f'screenshot_no_khac_{field["name"]}.png')
+
+                        # Debug: list all visible options
+                        all_options = page.locator('.ant-select-dropdown:visible .ant-select-item-option').all_text_contents()
+                        print(f"   Available options: {all_options[:5]}")  # Show first 5
+
                         results.append({
                             'field': field['name'],
                             'status': 'NO_KHAC_OPTION',
@@ -286,17 +224,20 @@ def test_other_options():
 
                     # Click 'Khác' option
                     khac_option.first.click()
-                    time.sleep(1)
+                    time.sleep(1.5)
 
                     # Check if custom input textarea appeared
-                    custom_input = page.locator(f'{field_selector} textarea').first
+                    # Look for textarea anywhere on the page that just became visible
+                    custom_input = page.locator('textarea:visible').last
 
-                    if custom_input.is_visible():
-                        print(f"   ✓ Custom input textarea appeared")
-                        custom_input.fill(f"Custom {field['label']} value")
-                        print(f"   ✓ Custom text filled")
+                    if custom_input.count() > 0:
+                        try:
+                            custom_input.fill(f"Custom value for {field['name']}", timeout=5000)
+                            print(f"   ✓ Custom input textarea filled")
+                        except:
+                            print(f"   ⚠ Custom textarea found but could not fill")
                     else:
-                        print(f"   ⚠ Custom textarea not visible (might be OK if value is 'other')")
+                        print(f"   ⚠ Custom textarea not visible (field might store 'other' directly)")
 
                     time.sleep(0.5)
 
@@ -316,9 +257,9 @@ def test_other_options():
                         'error': str(e)
                     })
 
-            # Step 5: Try to save form
+            # Step 4: Try to save form
             print("\n" + "=" * 80)
-            print("📝 STEP 5: Attempting to Save Form")
+            print("📝 STEP 4: Attempting to Save Form")
             print("=" * 80)
 
             # Scroll to bottom to find submit button

@@ -380,7 +380,7 @@ const Systems = () => {
 
             <div style={{ marginTop: 16, padding: 12, backgroundColor: '#f5f5f5', borderRadius: 6 }}>
               <Typography.Text type="secondary">
-                <strong>Lưu ý:</strong> File Excel sẽ bao gồm tất cả thông tin chi tiết của hệ thống, được chia thành nhiều sheet theo từng danh mục (Cơ bản, Nghiệp vụ, Kiến trúc, Dữ liệu, Tích hợp, Bảo mật, Hạ tầng, Vận hành, Đánh giá, và các sheet Level 2 nếu có).
+                <strong>Lưu ý:</strong> File Excel sẽ bao gồm tất cả thông tin chi tiết của hệ thống, được chia thành nhiều sheet theo từng danh mục (Cơ bản, Nghiệp vụ, Kiến trúc, Dữ liệu, Tích hợp, Bảo mật, Hạ tầng, Vận hành, Đánh giá).
               </Typography.Text>
             </div>
           </div>

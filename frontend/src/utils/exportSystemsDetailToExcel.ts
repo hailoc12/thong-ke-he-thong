@@ -418,18 +418,20 @@ function generateSecuritySheet(systems: SystemDetail[]): any[][] {
 function generateInfrastructureSheet(systems: SystemDetail[]): any[][] {
   const headers = [
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'Hosting Platform',
-    'Deployment Model', 'Server Location', 'Số server', 'CPU cores',
+    'Vị trí triển khai', 'Loại compute', 'Server Location', 'Số server', 'CPU cores',
     'RAM (GB)', 'Storage (TB)', 'Bandwidth (Mbps)', 'Có CDN', 'Có Load Balancer'
   ];
 
   const rows = systems.map((sys, idx) => {
     const infra = sys.infrastructure || {};
+    const ops = sys.operations || {};
     return escapeRow([
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
       getLabel(HOSTING_PLATFORM_LABELS, (sys as any).hosting_platform),
-      (sys as any).deployment_model || '',
+      getLabel(DEPLOYMENT_LOCATION_LABELS, ops.deployment_location || (sys as any).deployment_location),
+      getLabel(COMPUTE_TYPE_LABELS, ops.compute_type || (sys as any).compute_type),
       (sys as any).server_location || '',
       formatNumber(infra.num_servers),
       formatNumber(infra.total_cpu_cores),
@@ -700,7 +702,7 @@ export async function exportSystemsDetailToExcel(systems: SystemDetail[]): Promi
 
     // Sheet 7: Hạ tầng
     const sheet7 = XLSX.utils.aoa_to_sheet(generateInfrastructureSheet(systems));
-    setColumnWidths(sheet7, [5, 15, 30, 18, 18, 18, 10, 10, 10, 12, 12, 10, 12]);
+    setColumnWidths(sheet7, [5, 15, 30, 18, 15, 15, 18, 10, 10, 10, 12, 12, 10, 12]);
     XLSX.utils.book_append_sheet(wb, sheet7, '7. Hạ tầng');
 
     // Sheet 8: Vận hành

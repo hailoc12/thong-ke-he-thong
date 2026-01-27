@@ -171,14 +171,17 @@ def test_other_options():
                     page.locator('#system_name')
                 ).first
 
-            system_name_field.fill('Playwright Test - Other Options - ' + str(int(time.time())), timeout=10000)
+            system_name_field.fill('Playwright Test Other ' + str(int(time.time())), timeout=10000)
             print("   ✓ System name filled")
 
-            # Scope - select first option
-            page.click('div[id$="scope"]')
-            time.sleep(0.5)
-            page.keyboard.press('Enter')
-            print("   ✓ Scope selected")
+            # Fill other required fields with minimal data
+            # Organization (Tổ chức) - click dropdown and select first option
+            org_field = page.locator('text=/.*Tổ chức.*/').locator('..').locator('.ant-select-selector').first
+            if org_field.count() > 0:
+                org_field.click()
+                time.sleep(0.5)
+                page.keyboard.press('Enter')
+                print("   ✓ Organization selected")
 
             time.sleep(1)
 

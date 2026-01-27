@@ -226,8 +226,13 @@ def test_other_options():
             print(f"✅ Edit form loaded, screenshot saved")
             print(f"   → Current URL: {page.url}")
 
-            # Wait for form to fully load
-            time.sleep(2)
+            # Wait for form to fully load - production might be slower
+            print(f"   → Waiting for form elements to load...")
+            time.sleep(5)
+
+            # Scroll to top to ensure fields are visible
+            page.evaluate("window.scrollTo(0, 0)")
+            time.sleep(1)
 
             # Step 4: Test each field with 'other' option
             print("\n" + "=" * 80)
@@ -272,37 +277,56 @@ def test_other_options():
 
                     print(f"   ✓ Label found!")
 
-                    # Strategy: Find select dropdown that comes after this label in DOM
-                    # Get all selects on the page
-                    all_selects = page.locator('.ant-select-selector').all()
-                    print(f"   → Total {len(all_selects)} select dropdowns on page")
+                    # Scroll label into view
+                    label.scroll_into_view_if_needed()
+                    time.sleep(0.5)
 
-                    # Get label position to find select after it
-                    label_box = label.bounding_box()
+                    # Strategy: Try multiple selectors for select dropdown
+                    print(f"   → Searching for select dropdown with multiple strategies...")
 
-                    if label_box:
-                        print(f"   → Label position: y={label_box['y']}")
+                    # Try different selectors
+                    selectors_to_try = [
+                        '.ant-select-selector',  # Standard Ant Design
+                        '.ant-select',           # Parent select element
+                        'select',                # Native select
+                        '[role="combobox"]',     # ARIA role
+                        '.rc-select-selector',   # RC (React Component) select
+                    ]
 
-                        # Find the first select that is near the label (within 200px below)
-                        select_selector = None
-                        for idx, sel in enumerate(all_selects):
-                            sel_box = sel.bounding_box()
-                            if sel_box:
-                                y_diff = sel_box['y'] - label_box['y']
-                                print(f"     Select {idx}: y={sel_box['y']}, diff={y_diff}")
+                    select_selector = None
+                    for selector_text in selectors_to_try:
+                        count = page.locator(selector_text).count()
+                        print(f"     Selector '{selector_text}': {count} found")
 
-                                # Check if this select is after the label and close to it
-                                if 0 < y_diff < 200:  # Within 200px below label
-                                    select_selector = sel
-                                    print(f"   ✓ Found matching select at index {idx}")
-                                    break
+                        if count > 0:
+                            # Found some elements, try to find one near the label
+                            all_items = page.locator(selector_text).all()
+                            label_box = label.bounding_box()
 
-                        if not select_selector:
-                            print(f"   ⚠ No select found near label, using first visible select...")
-                            select_selector = page.locator('.ant-select-selector').first
-                    else:
-                        print(f"   ⚠ Cannot get label position, using first visible select...")
-                        select_selector = page.locator('.ant-select-selector').first
+                            if label_box:
+                                for idx, item in enumerate(all_items):
+                                    item_box = item.bounding_box()
+                                    if item_box:
+                                        y_diff = item_box['y'] - label_box['y']
+
+                                        # Check if this item is after the label and close to it
+                                        if 0 < y_diff < 150:  # Within 150px below label
+                                            select_selector = item
+                                            print(f"   ✓ Found matching element with '{selector_text}' at index {idx}, y_diff={y_diff}")
+                                            break
+
+                            if select_selector:
+                                break
+
+                    if not select_selector:
+                        print(f"   ❌ No select dropdown found with any selector")
+                        page.screenshot(path=f'screenshot_no_select_{field["name"]}.png')
+                        results.append({
+                            'field': field['name'],
+                            'status': 'NO_SELECT_FOUND',
+                            'error': 'Could not find select dropdown'
+                        })
+                        continue
 
                     print(f"   → Attempting to click dropdown...")
 

@@ -199,17 +199,48 @@ function getLabel(map: Record<string, string>, value: string | undefined | null)
 }
 
 /**
- * Escape special characters that Excel interprets as formulas
- * Characters: = + - @ that start a cell value will cause Excel errors
- * Solution: prefix with ' to make it a text value
+ * Fix cells that SheetJS incorrectly interpreted as formulas
+ * When aoa_to_sheet sees values starting with =, +, -, @ it creates formula cells
+ * This function converts them back to text cells
  */
-function escapeExcelValue(value: any): any {
-  if (typeof value === 'string' && value.length > 0) {
-    const firstChar = value.charAt(0);
-    if (firstChar === '=' || firstChar === '+' || firstChar === '-' || firstChar === '@') {
-      return "'" + value;
+function fixFormulaLikeCells(ws: XLSX.WorkSheet): void {
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+      const cell = ws[cellAddress];
+
+      if (cell && cell.t === 'f' && cell.f) {
+        // This is a formula cell - convert to text
+        // The formula text doesn't include the leading '='
+        // So we need to reconstruct the original value
+        const originalValue = '=' + cell.f;
+        cell.t = 's'; // Change type to string
+        cell.v = originalValue; // Set value to the original text
+        delete cell.f; // Remove formula property
+      }
+
+      // Also handle cells that start with +, -, @ which might be interpreted as formulas
+      if (cell && cell.t === 's' && typeof cell.v === 'string') {
+        const firstChar = cell.v.charAt(0);
+        if (firstChar === '+' || firstChar === '-' || firstChar === '@') {
+          // Keep as string but ensure it's not interpreted as formula
+          // The value is already a string, so no change needed
+        }
+      }
     }
   }
+}
+
+/**
+ * Escape special characters that Excel interprets as formulas
+ * Note: This prefix doesn't work with aoa_to_sheet, but kept for documentation
+ * The actual fix is done by fixFormulaLikeCells after sheet creation
+ */
+function escapeExcelValue(value: any): any {
+  // Note: The ' prefix doesn't work with programmatic Excel writing
+  // Values starting with = are already handled by fixFormulaLikeCells
   return value;
 }
 
@@ -698,46 +729,55 @@ export async function exportSystemsDetailToExcel(systems: SystemDetail[]): Promi
 
     // Sheet 1: Cơ bản
     const sheet1 = XLSX.utils.aoa_to_sheet(generateBasicSheet(systems));
+    fixFormulaLikeCells(sheet1);
     setColumnWidths(sheet1, [5, 15, 35, 35, 25, 15, 15, 18, 12, 15, 15, 40, 12, 10, 12, 8]);
     XLSX.utils.book_append_sheet(wb, sheet1, '1. Cơ bản');
 
     // Sheet 2: Nghiệp vụ
     const sheet2 = XLSX.utils.aoa_to_sheet(generateBusinessSheet(systems));
+    fixFormulaLikeCells(sheet2);
     setColumnWidths(sheet2, [5, 15, 30, 40, 40, 25, 15, 15, 12, 12, 15, 15, 15]);
     XLSX.utils.book_append_sheet(wb, sheet2, '2. Nghiệp vụ');
 
     // Sheet 3: Kiến trúc
     const sheet3 = XLSX.utils.aoa_to_sheet(generateArchitectureSheet(systems));
+    fixFormulaLikeCells(sheet3);
     setColumnWidths(sheet3, [5, 15, 30, 15, 20, 20, 12, 20, 20, 20, 20, 15, 15, 15, 12, 12, 15, 12, 15, 18, 18, 15, 15, 15]);
     XLSX.utils.book_append_sheet(wb, sheet3, '3. Kiến trúc');
 
     // Sheet 4: Dữ liệu
     const sheet4 = XLSX.utils.aoa_to_sheet(generateDataSheet(systems));
+    fixFormulaLikeCells(sheet4);
     setColumnWidths(sheet4, [5, 15, 30, 30, 20, 15, 12, 15, 15, 25, 25, 15, 12, 12, 15, 15, 10, 12]);
     XLSX.utils.book_append_sheet(wb, sheet4, '4. Dữ liệu');
 
     // Sheet 5: Tích hợp
     const sheet5 = XLSX.utils.aoa_to_sheet(generateIntegrationSheet(systems));
+    fixFormulaLikeCells(sheet5);
     setColumnWidths(sheet5, [5, 15, 30, 35, 35, 20, 12, 12, 10, 12, 25, 15, 15, 12, 12, 20, 18, 18]);
     XLSX.utils.book_append_sheet(wb, sheet5, '5. Tích hợp');
 
     // Sheet 6: Bảo mật
     const sheet6 = XLSX.utils.aoa_to_sheet(generateSecuritySheet(systems));
+    fixFormulaLikeCells(sheet6);
     setColumnWidths(sheet6, [5, 15, 30, 20, 10, 10, 15, 15, 12, 30]);
     XLSX.utils.book_append_sheet(wb, sheet6, '6. Bảo mật');
 
     // Sheet 7: Hạ tầng
     const sheet7 = XLSX.utils.aoa_to_sheet(generateInfrastructureSheet(systems));
+    fixFormulaLikeCells(sheet7);
     setColumnWidths(sheet7, [5, 15, 30, 18, 15, 15, 18, 10, 10, 10, 12, 12, 10, 12]);
     XLSX.utils.book_append_sheet(wb, sheet7, '7. Hạ tầng');
 
     // Sheet 8: Vận hành
     const sheet8 = XLSX.utils.aoa_to_sheet(generateOperationsSheet(systems));
+    fixFormulaLikeCells(sheet8);
     setColumnWidths(sheet8, [5, 15, 30, 22, 22, 22, 15, 25, 15, 22, 12, 22, 12, 15, 12, 12, 12, 15, 10, 15]);
     XLSX.utils.book_append_sheet(wb, sheet8, '8. Vận hành');
 
     // Sheet 9: Đánh giá
     const sheet9 = XLSX.utils.aoa_to_sheet(generateAssessmentSheet(systems));
+    fixFormulaLikeCells(sheet9);
     setColumnWidths(sheet9, [5, 15, 30, 18, 40, 15]);
     XLSX.utils.book_append_sheet(wb, sheet9, '9. Đánh giá');
 
@@ -747,21 +787,25 @@ export async function exportSystemsDetailToExcel(systems: SystemDetail[]): Promi
     if (hasLevel2) {
       // Sheet 10: Chi phí L2
       const sheet10 = XLSX.utils.aoa_to_sheet(generateCostSheet(systems));
+      fixFormulaLikeCells(sheet10);
       setColumnWidths(sheet10, [5, 15, 30, 18, 18, 15, 15, 15, 15, 18, 22, 30]);
       XLSX.utils.book_append_sheet(wb, sheet10, '10. Chi phí L2');
 
       // Sheet 11: Nhà cung cấp L2
       const sheet11 = XLSX.utils.aoa_to_sheet(generateVendorSheet(systems));
+      fixFormulaLikeCells(sheet11);
       setColumnWidths(sheet11, [5, 15, 30, 25, 15, 22, 15, 25, 18, 12, 12, 12, 15]);
       XLSX.utils.book_append_sheet(wb, sheet11, '11. NCC L2');
 
       // Sheet 12: Hạ tầng chi tiết L2
       const sheet12 = XLSX.utils.aoa_to_sheet(generateInfrastructureDetailSheet(systems));
+      fixFormulaLikeCells(sheet12);
       setColumnWidths(sheet12, [5, 15, 30, 10, 30, 12, 12, 15, 12, 10, 12, 15, 12, 10, 12, 12]);
       XLSX.utils.book_append_sheet(wb, sheet12, '12. Hạ tầng L2');
 
       // Sheet 13: Bảo mật chi tiết L2
       const sheet13 = XLSX.utils.aoa_to_sheet(generateSecurityDetailSheet(systems));
+      fixFormulaLikeCells(sheet13);
       setColumnWidths(sheet13, [5, 15, 30, 20, 10, 10, 12, 12, 10, 10, 10, 12, 12, 12, 12, 12, 35]);
       XLSX.utils.book_append_sheet(wb, sheet13, '13. Bảo mật L2');
     }

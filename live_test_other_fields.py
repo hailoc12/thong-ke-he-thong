@@ -95,16 +95,27 @@ def test_other_options():
             print("✅ Login successful - redirected to dashboard")
             time.sleep(2)
 
-            # Step 2: Navigate to Create System page
+            # Step 2: Navigate to Systems list and click "Add" button
             print("\n" + "─" * 80)
             print("📝 STEP 2: Navigating to Create System page...")
             print("─" * 80)
 
-            page.goto(f"{BASE_URL}/systems/new", wait_until="networkidle")
-            time.sleep(3)
-            page.screenshot(path='screenshot_create_form.png')
-            print(f"✅ Form loaded, screenshot saved")
-            print(f"   → Current URL: {page.url}")
+            page.goto(f"{BASE_URL}/systems", wait_until="networkidle")
+            time.sleep(2)
+
+            # Click the "+ Thêm hệ thống" button
+            add_button = page.locator('button:has-text("Thêm hệ thống")')
+            if add_button.count() > 0:
+                print("   → Clicking 'Thêm hệ thống' button...")
+                add_button.click()
+                time.sleep(3)
+                page.screenshot(path='screenshot_create_form.png')
+                print(f"✅ Create form opened, screenshot saved")
+                print(f"   → Current URL: {page.url}")
+            else:
+                print("   ❌ 'Thêm hệ thống' button not found")
+                page.screenshot(path='screenshot_no_add_button.png')
+                raise Exception("Could not find 'Thêm hệ thống' button")
 
             # Step 3: Fill basic required fields
             print("\n" + "─" * 80)

@@ -317,6 +317,7 @@ const deploymentLocationOptions = [
   { label: 'Data Center', value: 'datacenter' },
   { label: 'Cloud', value: 'cloud' },
   { label: 'Hybrid', value: 'hybrid' },
+  { label: 'Khác', value: 'other' },
 ];
 
 const securityLevelOptions = [
@@ -332,6 +333,7 @@ const computeTypeOptions = [
   { label: 'Container', value: 'container' },
   { label: 'Serverless', value: 'serverless' },
   { label: 'Bare Metal', value: 'bare_metal' },
+  { label: 'Khác', value: 'other' },
 ];
 
 const deploymentFrequencyOptions = [

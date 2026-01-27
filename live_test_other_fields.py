@@ -114,13 +114,26 @@ def test_other_options():
 
             time.sleep(1)
 
-            # Step 2: Navigate to Systems list and click "Add" button
+            # Step 2: Navigate to Systems list through the sidebar menu
             print("\n" + "─" * 80)
-            print("📝 STEP 2: Navigating to Create System page...")
+            print("📝 STEP 2: Navigating to Systems page via menu...")
             print("─" * 80)
 
-            page.goto(f"{BASE_URL}/systems", wait_until="networkidle")
-            time.sleep(2)
+            # Try to find and click "Hệ thống" menu item in sidebar
+            systems_menu = page.locator('text=/.*Hệ thống.*/').or_(
+                page.locator('a[href="/systems"]')
+            ).or_(
+                page.locator('a[href*="system"]')
+            ).first
+
+            if systems_menu.count() > 0:
+                print("   → Clicking 'Hệ thống' menu item...")
+                systems_menu.click()
+                time.sleep(3)
+            else:
+                print("   ⚠ Menu item not found, trying direct navigation...")
+                page.goto(f"{BASE_URL}/systems", wait_until="networkidle")
+                time.sleep(2)
 
             # Check if we got redirected back to login
             if '/login' in page.url:

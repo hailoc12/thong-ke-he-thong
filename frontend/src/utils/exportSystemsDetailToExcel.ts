@@ -26,18 +26,21 @@ const CRITICALITY_LABELS: Record<string, string> = {
   medium: 'Quan trọng',
   low: 'Bình thường',
   critical: 'Nghiêm trọng',
+  other: 'Khác',
 };
 
 const SCOPE_LABELS: Record<string, string> = {
   internal_unit: 'Nội bộ đơn vị',
   org_wide: 'Toàn tổ chức',
   external: 'Đối ngoại',
+  other: 'Khác',
 };
 
 const DEV_TYPE_LABELS: Record<string, string> = {
-  internal: 'Tự phát triển',
+  internal: 'Nội bộ',
   outsource: 'Thuê ngoài',
   combined: 'Kết hợp',
+  other: 'Khác',
 };
 
 const VENDOR_TYPE_LABELS: Record<string, string> = {
@@ -50,6 +53,7 @@ const WARRANTY_LABELS: Record<string, string> = {
   active: 'Còn bảo hành',
   expired: 'Hết bảo hành',
   none: 'Không có',
+  other: 'Khác',
 };
 
 const VENDOR_DEPENDENCY_LABELS: Record<string, string> = {
@@ -57,6 +61,7 @@ const VENDOR_DEPENDENCY_LABELS: Record<string, string> = {
   medium: 'Trung bình',
   low: 'Thấp',
   none: 'Không phụ thuộc',
+  other: 'Khác',
 };
 
 const ARCH_TYPE_LABELS: Record<string, string> = {
@@ -71,12 +76,14 @@ const MOBILE_APP_LABELS: Record<string, string> = {
   hybrid: 'Hybrid',
   pwa: 'PWA',
   none: 'Không có',
+  other: 'Khác',
 };
 
 const DB_MODEL_LABELS: Record<string, string> = {
   centralized: 'Tập trung',
   distributed: 'Phân tán',
   per_app: 'Riêng/app',
+  other: 'Khác',
 };
 
 const DATA_CLASS_LABELS: Record<string, string> = {
@@ -103,6 +110,29 @@ const INTEGRATION_READINESS_LABELS: Record<string, string> = {
   ready: 'Sẵn sàng',
   partial: 'Một phần',
   not_ready: 'Chưa sẵn sàng',
+  other: 'Khác',
+};
+
+const HOSTING_PLATFORM_LABELS: Record<string, string> = {
+  cloud: 'Cloud',
+  on_premise: 'On-premise',
+  hybrid: 'Hybrid',
+  other: 'Khác',
+};
+
+const DEPLOYMENT_LOCATION_LABELS: Record<string, string> = {
+  datacenter: 'Data Center',
+  cloud: 'Cloud',
+  hybrid: 'Hybrid',
+  other: 'Khác',
+};
+
+const COMPUTE_TYPE_LABELS: Record<string, string> = {
+  vm: 'Virtual Machine',
+  container: 'Container',
+  serverless: 'Serverless',
+  bare_metal: 'Bare Metal',
+  other: 'Khác',
 };
 
 // ===== HELPER FUNCTIONS =====
@@ -142,6 +172,28 @@ function getLabel(map: Record<string, string>, value: string | undefined | null)
   return map[value] || value;
 }
 
+/**
+ * Escape special characters that Excel interprets as formulas
+ * Characters: = + - @ that start a cell value will cause Excel errors
+ * Solution: prefix with ' to make it a text value
+ */
+function escapeExcelValue(value: any): any {
+  if (typeof value === 'string' && value.length > 0) {
+    const firstChar = value.charAt(0);
+    if (firstChar === '=' || firstChar === '+' || firstChar === '-' || firstChar === '@') {
+      return "'" + value;
+    }
+  }
+  return value;
+}
+
+/**
+ * Escape all values in a row
+ */
+function escapeRow(row: any[]): any[] {
+  return row.map(escapeExcelValue);
+}
+
 // ===== SHEET GENERATORS =====
 
 /**
@@ -155,7 +207,7 @@ function generateBasicSheet(systems: SystemDetail[]): any[][] {
     'Phiên bản', 'Hoàn thành (%)', 'Form Level'
   ];
 
-  const rows = systems.map((sys, idx) => [
+  const rows = systems.map((sys, idx) => escapeRow([
     idx + 1,
     sys.system_code || '',
     sys.system_name || '',
@@ -172,7 +224,7 @@ function generateBasicSheet(systems: SystemDetail[]): any[][] {
     sys.current_version || '',
     sys.completion_percentage ? `${sys.completion_percentage.toFixed(1)}%` : '',
     sys.form_level || 1,
-  ]);
+  ]));
 
   return [headers, ...rows];
 }
@@ -188,7 +240,7 @@ function generateBusinessSheet(systems: SystemDetail[]): any[][] {
     'Số giao dịch/năm', 'Số báo cáo/năm'
   ];
 
-  const rows = systems.map((sys, idx) => [
+  const rows = systems.map((sys, idx) => escapeRow([
     idx + 1,
     sys.system_code || '',
     sys.system_name || '',
@@ -202,7 +254,7 @@ function generateBusinessSheet(systems: SystemDetail[]): any[][] {
     formatNumber(sys.num_organizations),
     formatNumber((sys as any).transactions_per_year),
     formatNumber((sys as any).reports_per_year),
-  ]);
+  ]));
 
   return [headers, ...rows];
 }
@@ -222,7 +274,7 @@ function generateArchitectureSheet(systems: SystemDetail[]): any[][] {
 
   const rows = systems.map((sys, idx) => {
     const arch = sys.architecture || {};
-    return [
+    return escapeRow([
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
@@ -235,7 +287,7 @@ function generateArchitectureSheet(systems: SystemDetail[]): any[][] {
       arch.database_type || (sys as any).database_name || '',
       (sys as any).secondary_databases || '',
       getLabel(DB_MODEL_LABELS, arch.database_model),
-      arch.hosting_type || (sys as any).hosting_platform || '',
+      getLabel(HOSTING_PLATFORM_LABELS, arch.hosting_type || (sys as any).hosting_platform),
       arch.cloud_provider || '',
       (sys as any).containerization || '',
       (sys as any).api_style || '',
@@ -247,7 +299,7 @@ function generateArchitectureSheet(systems: SystemDetail[]): any[][] {
       (sys as any).cicd_tool || '',
       (sys as any).monitoring_tool || '',
       (sys as any).log_management || '',
-    ];
+    ]);
   });
 
   return [headers, ...rows];
@@ -267,7 +319,7 @@ function generateDataSheet(systems: SystemDetail[]): any[][] {
 
   const rows = systems.map((sys, idx) => {
     const data = sys.data_info || {};
-    return [
+    return escapeRow([
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
@@ -286,7 +338,7 @@ function generateDataSheet(systems: SystemDetail[]): any[][] {
       formatBoolean(data.has_sensitive_data),
       formatBoolean(data.has_api),
       formatNumber(data.api_endpoints_count),
-    ];
+    ]);
   });
 
   return [headers, ...rows];
@@ -306,7 +358,7 @@ function generateIntegrationSheet(systems: SystemDetail[]): any[][] {
 
   const rows = systems.map((sys, idx) => {
     const intg = sys.integration || {};
-    return [
+    return escapeRow([
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
@@ -325,7 +377,7 @@ function generateIntegrationSheet(systems: SystemDetail[]): any[][] {
       (sys as any).esb_integration_platform || '',
       (sys as any).data_exchange_method || '',
       (sys as any).data_exchange_format || '',
-    ];
+    ]);
   });
 
   return [headers, ...rows];
@@ -343,7 +395,7 @@ function generateSecuritySheet(systems: SystemDetail[]): any[][] {
 
   const rows = systems.map((sys, idx) => {
     const sec = sys.security || {};
-    return [
+    return escapeRow([
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
@@ -354,7 +406,7 @@ function generateSecuritySheet(systems: SystemDetail[]): any[][] {
       formatBoolean(sec.has_data_encryption_in_transit),
       formatBoolean((sys as any).has_audit_log),
       formatArray(sec.compliance_standards),
-    ];
+    ]);
   });
 
   return [headers, ...rows];
@@ -372,11 +424,11 @@ function generateInfrastructureSheet(systems: SystemDetail[]): any[][] {
 
   const rows = systems.map((sys, idx) => {
     const infra = sys.infrastructure || {};
-    return [
+    return escapeRow([
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
-      (sys as any).hosting_platform || '',
+      getLabel(HOSTING_PLATFORM_LABELS, (sys as any).hosting_platform),
       (sys as any).deployment_model || '',
       (sys as any).server_location || '',
       formatNumber(infra.num_servers),
@@ -386,7 +438,7 @@ function generateInfrastructureSheet(systems: SystemDetail[]): any[][] {
       formatNumber(infra.bandwidth_mbps),
       formatBoolean(infra.has_cdn),
       formatBoolean(infra.has_load_balancer),
-    ];
+    ]);
   });
 
   return [headers, ...rows];
@@ -407,7 +459,7 @@ function generateOperationsSheet(systems: SystemDetail[]): any[][] {
 
   const rows = systems.map((sys, idx) => {
     const ops = sys.operations || {};
-    return [
+    return escapeRow([
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
@@ -428,7 +480,7 @@ function generateOperationsSheet(systems: SystemDetail[]): any[][] {
       getLabel(VENDOR_DEPENDENCY_LABELS, ops.vendor_dependency),
       formatBoolean(ops.can_self_maintain),
       (sys as any).sla || '',
-    ];
+    ]);
   });
 
   return [headers, ...rows];
@@ -445,14 +497,14 @@ function generateAssessmentSheet(systems: SystemDetail[]): any[][] {
 
   const rows = systems.map((sys, idx) => {
     const assess = sys.assessment || {};
-    return [
+    return escapeRow([
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
       getLabel(INTEGRATION_READINESS_LABELS, (sys as any).integration_readiness || (assess as any).integration_readiness),
       (assess as any).blockers || (sys as any).blockers || '',
       getLabel(RECOMMENDATION_LABELS, (assess as any).recommendation || (sys as any).recommendation),
-    ];
+    ]);
   });
 
   return [headers, ...rows];
@@ -472,7 +524,7 @@ function generateCostSheet(systems: SystemDetail[]): any[][] {
     .filter(sys => sys.form_level === 2)
     .map((sys, idx) => {
       const cost = sys.cost || {};
-      return [
+      return escapeRow([
         idx + 1,
         sys.system_code || '',
         sys.system_name || '',
@@ -485,7 +537,7 @@ function generateCostSheet(systems: SystemDetail[]): any[][] {
         formatCurrency(cost.total_cost_of_ownership),
         cost.funding_source || '',
         cost.cost_notes || '',
-      ];
+      ]);
     });
 
   return [headers, ...rows];
@@ -505,7 +557,7 @@ function generateVendorSheet(systems: SystemDetail[]): any[][] {
     .filter(sys => sys.form_level === 2)
     .map((sys, idx) => {
       const vendor = sys.vendor || {};
-      return [
+      return escapeRow([
         idx + 1,
         sys.system_code || '',
         sys.system_name || '',
@@ -519,7 +571,7 @@ function generateVendorSheet(systems: SystemDetail[]): any[][] {
         formatDate(vendor.contract_end_date),
         formatRating(vendor.vendor_performance_rating),
         getLabel(RISK_LABELS, vendor.vendor_lock_in_risk),
-      ];
+      ]);
     });
 
   return [headers, ...rows];
@@ -540,7 +592,7 @@ function generateInfrastructureDetailSheet(systems: SystemDetail[]): any[][] {
     .filter(sys => sys.form_level === 2)
     .map((sys, idx) => {
       const infra = sys.infrastructure || {};
-      return [
+      return escapeRow([
         idx + 1,
         sys.system_code || '',
         sys.system_name || '',
@@ -557,7 +609,7 @@ function generateInfrastructureDetailSheet(systems: SystemDetail[]): any[][] {
         formatBoolean(infra.has_disaster_recovery),
         formatNumber(infra.rto_hours),
         formatNumber(infra.rpo_hours),
-      ];
+      ]);
     });
 
   return [headers, ...rows];
@@ -579,7 +631,7 @@ function generateSecurityDetailSheet(systems: SystemDetail[]): any[][] {
     .filter(sys => sys.form_level === 2)
     .map((sys, idx) => {
       const sec = sys.security || {};
-      return [
+      return escapeRow([
         idx + 1,
         sys.system_code || '',
         sys.system_name || '',
@@ -597,7 +649,7 @@ function generateSecurityDetailSheet(systems: SystemDetail[]): any[][] {
         formatBoolean(sec.has_vulnerability_scanning),
         formatNumber(sec.security_incidents_last_year),
         sec.security_notes || '',
-      ];
+      ]);
     });
 
   return [headers, ...rows];

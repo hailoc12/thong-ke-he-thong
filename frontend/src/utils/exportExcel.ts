@@ -10,6 +10,27 @@ import type { SystemStatistics } from '../types';
 
 dayjs.extend(utc);
 
+/**
+ * Escape Excel formula injection characters
+ * Prefixes with ' to prevent Excel interpreting as formula
+ */
+function escapeExcelValue(value: any): any {
+  if (typeof value === 'string' && value.length > 0) {
+    const firstChar = value.charAt(0);
+    if (firstChar === '=' || firstChar === '+' || firstChar === '-' || firstChar === '@') {
+      return "'" + value;
+    }
+  }
+  return value;
+}
+
+/**
+ * Escape all values in a row
+ */
+function escapeRow(row: any[]): any[] {
+  return row.map(escapeExcelValue);
+}
+
 // Vietnamese status labels
 const STATUS_LABELS: Record<string, string> = {
   operating: 'Đang vận hành',
@@ -136,7 +157,7 @@ function generateSummarySheet(
     ],
     ['11. Số hệ thống hoàn thành 100%', completionData?.summary?.systems_100_percent || 0, ''],
     ['12. Số hệ thống dưới 50%', completionData?.summary?.systems_below_50_percent || 0, ''],
-  ];
+  ].map(escapeRow);
 }
 
 /**
@@ -198,7 +219,7 @@ function generateOrgSheet(orgs: OrgStats[]): any[][] {
     ...orgs.filter((o) => o.avg_completion === 0).map((o) => [`- ${o.name}`, '', '', '', '']),
   ];
 
-  return data;
+  return data.map(escapeRow);
 }
 
 /**
@@ -222,7 +243,7 @@ function generateSystemsSheet(systems: any[]): any[][] {
       `${sys.completion_percentage || 0}%`,
       dayjs(sys.updated_at).format('DD/MM/YYYY'),
     ]),
-  ];
+  ].map(escapeRow);
 }
 
 /**
@@ -253,7 +274,7 @@ function generateFollowUpSheet(orgs: OrgStats[]): any[][] {
         note,
       ];
     }),
-  ];
+  ].map(escapeRow);
 }
 
 /**

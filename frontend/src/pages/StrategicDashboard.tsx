@@ -418,7 +418,19 @@ const StrategicDashboard = () => {
     }
   }, []);
 
-  // Excel Export
+  // Excel Export - Escape formula injection characters
+  const escapeExcelValue = (value: any): any => {
+    if (typeof value === 'string' && value.length > 0) {
+      const firstChar = value.charAt(0);
+      if (firstChar === '=' || firstChar === '+' || firstChar === '-' || firstChar === '@') {
+        return "'" + value;
+      }
+    }
+    return value;
+  };
+
+  const escapeRow = (row: any[]): any[] => row.map(escapeExcelValue);
+
   const handleExportExcel = useCallback(() => {
     if (!stats) {
       message.warning('Chưa có dữ liệu để xuất');
@@ -443,7 +455,7 @@ const StrategicDashboard = () => {
       [''],
       ['Phân bổ theo mức độ quan trọng'],
       ...Object.entries(stats.criticality_distribution).map(([k, v]) => [CRITICALITY_LABELS[k] || k, v]),
-    ];
+    ].map(escapeRow);
     const wsOverview = XLSX.utils.aoa_to_sheet(overviewData);
     XLSX.utils.book_append_sheet(wb, wsOverview, 'Tổng quan');
 
@@ -453,7 +465,7 @@ const StrategicDashboard = () => {
       [''],
       ['Đơn vị', 'Số hệ thống'],
       ...stats.systems_per_org.map(org => [org.org__name, org.count]),
-    ];
+    ].map(escapeRow);
     const wsOrg = XLSX.utils.aoa_to_sheet(orgData);
     XLSX.utils.book_append_sheet(wb, wsOrg, 'Đơn vị');
 
@@ -466,7 +478,7 @@ const StrategicDashboard = () => {
       ['Tổng API sử dụng', stats.integration.total_api_consumed],
       ['HT có tích hợp', stats.integration.with_integration],
       ['HT chưa tích hợp', stats.integration.without_integration],
-    ];
+    ].map(escapeRow);
     const wsIntegration = XLSX.utils.aoa_to_sheet(integrationData);
     XLSX.utils.book_append_sheet(wb, wsIntegration, 'Tích hợp');
 
@@ -476,7 +488,7 @@ const StrategicDashboard = () => {
       [''],
       ['Khuyến nghị', 'Số lượng'],
       ...Object.entries(stats.recommendation_distribution).map(([k, v]) => [RECOMMENDATION_LABELS[k] || k, v]),
-    ];
+    ].map(escapeRow);
     const wsRec = XLSX.utils.aoa_to_sheet(recData);
     XLSX.utils.book_append_sheet(wb, wsRec, 'Khuyến nghị');
 

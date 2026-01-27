@@ -138,6 +138,9 @@ class SystemIntegrationSerializer(serializers.ModelSerializer):
 class SystemAssessmentSerializer(serializers.ModelSerializer):
     """Serializer for SystemAssessment (PHẦN 6/B.1)"""
 
+    # Fix: Allow custom text for fields with 'other' option
+    recommendation = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
+
     class Meta:
         model = SystemAssessment
         exclude = ['system']
@@ -218,8 +221,8 @@ class SystemIntegrationConnectionSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
-    # Note: integration_method is a CharField with choices, not array
-    # No need for CommaSeparatedListField here
+    # Fix: Allow custom text for fields with 'other' option
+    integration_method = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
 
     class Meta:
         model = SystemIntegrationConnection
@@ -344,6 +347,7 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
 
     # Fix: Allow custom text for fields with 'other' option
     hosting_platform = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
+    requirement_type = FlexibleChoiceField(max_length=10000, required=False, allow_blank=True)
 
     # Nested writes for related models
     architecture_data = SystemArchitectureSerializer(source='architecture', required=False)

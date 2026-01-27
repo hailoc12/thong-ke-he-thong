@@ -74,7 +74,7 @@ class System(models.Model):
         help_text='Phạm vi sử dụng của hệ thống (REQUIRED)'
     )
     requirement_type = models.CharField(
-        max_length=50,
+        max_length=10000,
         choices=REQUIREMENT_TYPE_CHOICES,
         blank=True,
         verbose_name=_('Requirement Type'),
@@ -1160,7 +1160,7 @@ class SystemAssessment(models.Model):
         help_text='Điểm vướng: ["outdated_tech", "no_documentation", "no_api", "dirty_data", "vendor_dependency"]'
     )
     recommendation = models.CharField(
-        max_length=20,
+        max_length=10000,
         choices=RECOMMENDATION_CHOICES,
         blank=True,
         verbose_name=_('Recommendation'),
@@ -1531,7 +1531,7 @@ class SystemIntegrationConnection(models.Model):
         ('other', 'Khác'),
     ]
     integration_method = models.CharField(
-        max_length=50,
+        max_length=10000,
         choices=INTEGRATION_METHOD_CHOICES,
         verbose_name=_('Integration Method')
     )

@@ -17,9 +17,9 @@ log_error() { echo -e "${RED}✗${NC} $1" >&2; }
 log_step() { echo -e "${BLUE}▶${NC} $1"; }
 
 # === CONFIGURATION ===
-APP_DIR="/home/ubuntu/thong-ke-he-thong"
+APP_DIR="/home/admin_/thong-ke-he-thong"
 BACKUP_SCRIPT="$APP_DIR/backup-database.sh"
-LOG_DIR="/home/ubuntu/backups/logs"
+LOG_DIR="/home/admin_/backups/logs"
 
 echo "========================================================================"
 echo "Cài đặt Cron Job Backup Database Tự động"
@@ -98,11 +98,11 @@ echo "Cron schedule: $CRON_SCHEDULE (00:00 và 12:00 mỗi ngày)"
 echo ""
 echo "Các file quan trọng:"
 echo "  • Backup script: $BACKUP_SCRIPT"
-echo "  • Backup folder: /home/ubuntu/backups/postgres/"
+echo "  • Backup folder: /home/admin_/backups/postgres/"
 echo "  • Log folder: $LOG_DIR/"
 echo ""
 echo "Kiểm tra backup:"
-echo "  ls -la /home/ubuntu/backups/postgres/"
+echo "  ls -la /home/admin_/backups/postgres/"
 echo ""
 echo "Kiểm tra logs:"
 echo "  cat $LOG_DIR/backup_\$(date +%Y%m%d).log"

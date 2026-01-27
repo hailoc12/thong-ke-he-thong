@@ -17,7 +17,7 @@ log_error() { echo -e "${RED}✗${NC} $1" >&2; }
 log_step() { echo -e "${BLUE}▶${NC} $1"; }
 
 # === CONFIGURATION ===
-BACKUP_DIR="/home/ubuntu/backups/postgres"
+BACKUP_DIR="/home/admin_/backups/postgres"
 DB_NAME="system_reports"
 DB_USER="postgres"
 
@@ -32,7 +32,7 @@ usage() {
     echo "Examples:"
     echo "  $0                                    # List available backups"
     echo "  $0 latest                             # Restore latest backup"
-    echo "  $0 /home/ubuntu/backups/postgres/backup_0001_20260128_120000.sql.gz"
+    echo "  $0 /home/admin_/backups/postgres/backup_0001_20260128_120000.sql.gz"
     echo ""
     exit 1
 }
@@ -96,7 +96,7 @@ main() {
 
     # Step 4: Check current data
     log_step "Step 3: Kiểm tra dữ liệu hiện tại..."
-    CURRENT_COUNT=$(docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM systems_system;" 2>/dev/null | tr -d ' ' || echo "0")
+    CURRENT_COUNT=$(docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM systems;" 2>/dev/null | tr -d ' ' || echo "0")
     log_warn "Hiện có $CURRENT_COUNT systems trong database"
 
     # Step 5: Confirm restore
@@ -136,7 +136,7 @@ main() {
 
     # Step 9: Verify restore
     log_step "Step 7: Xác minh kết quả..."
-    NEW_COUNT=$(docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM systems_system;" 2>/dev/null | tr -d ' ' || echo "0")
+    NEW_COUNT=$(docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM systems;" 2>/dev/null | tr -d ' ' || echo "0")
     log_info "Số systems sau restore: $NEW_COUNT"
 
     # Step 10: Run migrations (in case schema changed)

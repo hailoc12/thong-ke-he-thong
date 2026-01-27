@@ -79,7 +79,7 @@ echo ""
 
 # Step 5: Check if system_reports exists and has data
 log_step "Step 5: Kiểm tra dữ liệu trong system_reports..."
-OLD_COUNT=$(docker exec temp_old_postgres psql -U postgres -d system_reports -t -c "SELECT COUNT(*) FROM systems_system;" 2>/dev/null | tr -d ' ' || echo "0")
+OLD_COUNT=$(docker exec temp_old_postgres psql -U postgres -d system_reports -t -c "SELECT COUNT(*) FROM systems;" 2>/dev/null | tr -d ' ' || echo "0")
 if [ "$OLD_COUNT" -gt 0 ]; then
     log_info "Tìm thấy $OLD_COUNT systems trong database cũ!"
 else
@@ -118,7 +118,7 @@ log_info "Container mới: $NEW_CONTAINER"
 
 # Step 8: Check current data in new container
 log_step "Step 8: Kiểm tra dữ liệu hiện tại trong container mới..."
-NEW_COUNT=$(docker exec "$NEW_CONTAINER" psql -U postgres -d system_reports -t -c "SELECT COUNT(*) FROM systems_system;" 2>/dev/null | tr -d ' ' || echo "0")
+NEW_COUNT=$(docker exec "$NEW_CONTAINER" psql -U postgres -d system_reports -t -c "SELECT COUNT(*) FROM systems;" 2>/dev/null | tr -d ' ' || echo "0")
 log_warn "Hiện có $NEW_COUNT systems trong database mới"
 
 if [ "$NEW_COUNT" -gt 0 ]; then
@@ -134,7 +134,7 @@ if [ "$NEW_COUNT" -gt 0 ]; then
 
     # Clear existing data
     log_step "Xóa dữ liệu hiện tại..."
-    docker exec "$NEW_CONTAINER" psql -U postgres -d system_reports -c "TRUNCATE systems_system CASCADE;" 2>/dev/null || true
+    docker exec "$NEW_CONTAINER" psql -U postgres -d system_reports -c "TRUNCATE systems CASCADE;" 2>/dev/null || true
 fi
 
 # Step 9: Restore data to new container
@@ -152,7 +152,7 @@ log_info "Đã restore dữ liệu!"
 
 # Step 10: Verify restore
 log_step "Step 10: Xác minh kết quả..."
-FINAL_COUNT=$(docker exec "$NEW_CONTAINER" psql -U postgres -d system_reports -t -c "SELECT COUNT(*) FROM systems_system;" | tr -d ' ')
+FINAL_COUNT=$(docker exec "$NEW_CONTAINER" psql -U postgres -d system_reports -t -c "SELECT COUNT(*) FROM systems;" | tr -d ' ')
 log_info "Số systems sau khi restore: $FINAL_COUNT"
 
 if [ "$FINAL_COUNT" -eq "$OLD_COUNT" ]; then

@@ -7,7 +7,7 @@
 set -e
 
 # === CONFIGURATION ===
-BACKUP_DIR="/home/ubuntu/backups/postgres"
+BACKUP_DIR="/home/admin_/backups/postgres"
 DB_NAME="system_reports"
 DB_USER="postgres"
 MAX_BACKUPS=30  # Giữ tối đa 30 file backup (15 ngày nếu chạy mỗi 12h)
@@ -66,8 +66,8 @@ main() {
 
     # Step 4: Check database has data
     log_step "Step 4: Kiểm tra database..."
-    RECORD_COUNT=$(docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM systems_system;" 2>/dev/null | tr -d ' ' || echo "0")
-    log_info "Current records in systems_system: $RECORD_COUNT"
+    RECORD_COUNT=$(docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM systems;" 2>/dev/null | tr -d ' ' || echo "0")
+    log_info "Current records in systems: $RECORD_COUNT"
 
     # Step 5: Create backup
     log_step "Step 5: Tạo backup..."

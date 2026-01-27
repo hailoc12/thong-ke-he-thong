@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, Typography, Tag, Input, Empty, Popconfirm, message, Progress, Tooltip } from 'antd';
-import { PlusOutlined, SearchOutlined, InboxOutlined, DeleteOutlined, ExclamationCircleOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Typography, Tag, Input, Empty, Popconfirm, message, Progress, Tooltip, Modal, Radio, Spin } from 'antd';
+import { PlusOutlined, SearchOutlined, InboxOutlined, DeleteOutlined, ExclamationCircleOutlined, EyeOutlined, EditOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../config/api';
 import { useAuthStore } from '../stores/authStore';
-import type { System, ApiResponse } from '../types';
+import type { System, ApiResponse, SystemDetail } from '../types';
+import { exportSystemsDetailToExcel } from '../utils/exportSystemsDetailToExcel';
 
 const { Title } = Typography;
 
@@ -20,6 +21,10 @@ const Systems = () => {
     total: 0,
   });
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exportOption, setExportOption] = useState<'all' | 'filtered'>('all');
+  const [exporting, setExporting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const handleResize = () => {
@@ -78,6 +83,34 @@ const Systems = () => {
     // Org user can only delete systems in their organization
     if (user && system.org === user.organization) return true;
     return false;
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      // Fetch full data for export
+      const params: Record<string, string> = {};
+      if (exportOption === 'filtered' && searchQuery) {
+        params.search = searchQuery;
+      }
+
+      const response = await api.get<{ count: number; results: SystemDetail[] }>('/systems/export_data/', { params });
+      const systemsToExport = response.data.results || [];
+
+      if (systemsToExport.length === 0) {
+        message.warning('Không có dữ liệu để xuất');
+        return;
+      }
+
+      await exportSystemsDetailToExcel(systemsToExport);
+      message.success(`Đã xuất ${systemsToExport.length} hệ thống ra file Excel`);
+      setExportModalVisible(false);
+    } catch (error) {
+      console.error('Export error:', error);
+      message.error('Có lỗi xảy ra khi xuất file Excel');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -260,9 +293,17 @@ const Systems = () => {
         <Title level={isMobile ? 3 : 2} style={{ margin: 0 }}>
           Danh sách Hệ thống
         </Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/systems/create')} block={isMobile}>
-          {isMobile ? 'Thêm' : 'Thêm hệ thống'}
-        </Button>
+        <Space>
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={() => setExportModalVisible(true)}
+          >
+            {isMobile ? '' : 'Xuất Excel'}
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/systems/create')} block={isMobile}>
+            {isMobile ? 'Thêm' : 'Thêm hệ thống'}
+          </Button>
+        </Space>
       </div>
 
       <div style={{ marginBottom: 16 }}>
@@ -270,6 +311,8 @@ const Systems = () => {
           placeholder={isMobile ? "Tìm kiếm..." : "Tìm kiếm theo tên, mã hệ thống..."}
           prefix={<SearchOutlined />}
           style={{ width: isMobile ? '100%' : 300 }}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
           onPressEnter={(e) => fetchSystems(1, (e.target as HTMLInputElement).value)}
         />
       </div>
@@ -306,6 +349,43 @@ const Systems = () => {
         onChange={handleTableChange}
         scroll={{ x: isMobile ? 'max-content' : 900 }}
       />
+
+      {/* Export Modal */}
+      <Modal
+        title="Xuất dữ liệu Hệ thống ra Excel"
+        open={exportModalVisible}
+        onOk={handleExport}
+        onCancel={() => setExportModalVisible(false)}
+        okText={exporting ? 'Đang xuất...' : 'Xuất file'}
+        cancelText="Hủy"
+        confirmLoading={exporting}
+        okButtonProps={{ disabled: exporting }}
+      >
+        <Spin spinning={exporting} tip="Đang tải dữ liệu và tạo file Excel...">
+          <div style={{ padding: '16px 0' }}>
+            <Radio.Group
+              value={exportOption}
+              onChange={(e) => setExportOption(e.target.value)}
+              disabled={exporting}
+            >
+              <Space direction="vertical">
+                <Radio value="all">
+                  Xuất tất cả hệ thống ({pagination.total} hệ thống)
+                </Radio>
+                <Radio value="filtered" disabled={!searchQuery}>
+                  Chỉ xuất kết quả tìm kiếm {searchQuery ? `(từ khóa: "${searchQuery}")` : '(nhập từ khóa tìm kiếm trước)'}
+                </Radio>
+              </Space>
+            </Radio.Group>
+
+            <div style={{ marginTop: 16, padding: 12, backgroundColor: '#f5f5f5', borderRadius: 6 }}>
+              <Typography.Text type="secondary">
+                <strong>Lưu ý:</strong> File Excel sẽ bao gồm tất cả thông tin chi tiết của hệ thống, được chia thành nhiều sheet theo từng danh mục (Cơ bản, Nghiệp vụ, Kiến trúc, Dữ liệu, Tích hợp, Bảo mật, Hạ tầng, Vận hành, Đánh giá, và các sheet Level 2 nếu có).
+              </Typography.Text>
+            </div>
+          </div>
+        </Spin>
+      </Modal>
     </div>
   );
 };

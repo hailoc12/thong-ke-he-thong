@@ -666,6 +666,50 @@ class SystemViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=False, methods=['get'])
+    def export_data(self, request):
+        """
+        Export all systems with full details for Excel export.
+        Returns SystemDetailSerializer data for all systems (no pagination).
+
+        Query params:
+        - search: Filter by search term
+        - org: Filter by organization ID
+        - status: Filter by status
+        """
+        queryset = self.get_queryset()
+
+        # Apply search filter
+        search = request.query_params.get('search', '')
+        if search:
+            queryset = queryset.filter(
+                Q(system_code__icontains=search) |
+                Q(system_name__icontains=search) |
+                Q(system_name_en__icontains=search) |
+                Q(purpose__icontains=search)
+            )
+
+        # Apply org filter
+        org_id = request.query_params.get('org')
+        if org_id:
+            queryset = queryset.filter(org_id=org_id)
+
+        # Apply status filter
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        # Order by org name, then system name
+        queryset = queryset.order_by('org__name', 'system_name')
+
+        # Serialize with full details
+        serializer = SystemDetailSerializer(queryset, many=True)
+
+        return Response({
+            'count': queryset.count(),
+            'results': serializer.data
+        })
+
+    @action(detail=False, methods=['get'])
     def completion_stats(self, request):
         """
         Get detailed completion statistics for systems.

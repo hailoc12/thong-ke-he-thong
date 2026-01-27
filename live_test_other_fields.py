@@ -146,15 +146,60 @@ def test_other_options():
             print("✅ Systems list page loaded")
             print(f"   → Current URL: {page.url}")
 
-            # Step 3: Navigate to edit page for System 147
+            # Step 3: Find and click on System 147 from the list
             print("\n" + "─" * 80)
-            print(f"📝 STEP 3: Navigating to System {SYSTEM_ID} Edit Page...")
+            print(f"📝 STEP 3: Finding System {SYSTEM_ID} in the list...")
             print("─" * 80)
 
-            edit_url = f"{BASE_URL}/systems/{SYSTEM_ID}/edit"
-            print(f"   → Navigating to: {edit_url}")
-            page.goto(edit_url, wait_until="networkidle")
-            time.sleep(3)
+            # Wait for table to load
+            time.sleep(2)
+
+            # Try to find system 147 in the table
+            # Strategy 1: Look for a row containing "147" and click its edit button
+            print(f"   → Searching for System {SYSTEM_ID} in table...")
+
+            # Look for table row containing system ID 147
+            # The table might have the ID in a cell, or as data attribute
+            system_row = page.locator(f'tr:has-text("{SYSTEM_ID}")').first
+
+            if system_row.count() > 0:
+                print(f"   ✓ Found System {SYSTEM_ID} in table")
+
+                # Find the edit button/link in this row
+                # Usually an edit icon or "Sửa" button
+                edit_link = system_row.locator('a[href*="/edit"]').or_(
+                    system_row.locator('button:has-text("Sửa")').locator('..').locator('a')
+                ).or_(
+                    system_row.locator('[title*="Sửa"]')
+                ).or_(
+                    system_row.locator('[aria-label*="edit"]')
+                ).first
+
+                if edit_link.count() > 0:
+                    print(f"   → Clicking edit button for System {SYSTEM_ID}...")
+                    edit_link.click()
+                    time.sleep(3)
+                else:
+                    # If no edit button found, try clicking the row itself
+                    print(f"   ⚠ Edit button not found, clicking row...")
+                    system_row.click()
+                    time.sleep(2)
+
+                    # Then look for edit button on detail page
+                    detail_edit_btn = page.locator('button:has-text("Sửa")').or_(
+                        page.locator('a:has-text("Sửa")')
+                    ).first
+
+                    if detail_edit_btn.count() > 0:
+                        print(f"   → Clicking edit button on detail page...")
+                        detail_edit_btn.click()
+                        time.sleep(3)
+            else:
+                print(f"   ⚠ System {SYSTEM_ID} not found in current page, trying direct URL...")
+                # Fallback: try direct navigation (might fail due to auth)
+                edit_url = f"{BASE_URL}/systems/{SYSTEM_ID}/edit"
+                page.goto(edit_url, wait_until="networkidle")
+                time.sleep(3)
 
             # Check if we got redirected back to login
             if '/login' in page.url:

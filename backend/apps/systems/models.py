@@ -151,6 +151,7 @@ class System(models.Model):
             ('cloud', 'Cloud'),
             ('on_premise', 'On-premise'),
             ('hybrid', 'Hybrid'),
+            ('other', 'Khác'),
         ],
         blank=True,
         verbose_name=_('Hosting Platform')
@@ -493,12 +494,14 @@ class SystemArchitecture(models.Model):
         ('hybrid', 'Hybrid App'),
         ('pwa', 'PWA'),
         ('none', 'Không có'),
+        ('other', 'Khác'),
     ]
 
     DATABASE_MODEL_CHOICES = [
         ('centralized', 'Tập trung'),
         ('distributed', 'Phân tán'),
         ('per_app', 'Riêng từng app'),
+        ('other', 'Khác'),
     ]
 
     CONTAINERIZATION_CHOICES = [
@@ -846,12 +849,14 @@ class SystemOperations(models.Model):
         ('internal', 'Nội bộ'),
         ('outsource', 'Thuê ngoài'),
         ('combined', 'Kết hợp'),
+        ('other', 'Khác'),
     ]
 
     WARRANTY_STATUS_CHOICES = [
         ('active', 'Còn bảo hành'),
         ('expired', 'Hết bảo hành'),
         ('none', 'Không có'),
+        ('other', 'Khác'),
     ]
 
     DEPENDENCY_CHOICES = [
@@ -859,6 +864,7 @@ class SystemOperations(models.Model):
         ('medium', 'Trung bình'),
         ('low', 'Thấp'),
         ('none', 'Không'),
+        ('other', 'Khác'),
     ]
 
     system = models.OneToOneField(
@@ -914,6 +920,7 @@ class SystemOperations(models.Model):
         ('datacenter', 'Data Center'),
         ('cloud', 'Cloud'),
         ('hybrid', 'Hybrid'),
+        ('other', 'Khác'),
     ]
 
     COMPUTE_TYPE_CHOICES = [
@@ -921,6 +928,7 @@ class SystemOperations(models.Model):
         ('container', 'Container'),
         ('serverless', 'Serverless'),
         ('bare_metal', 'Bare Metal'),
+        ('other', 'Khác'),
     ]
 
     DEPLOYMENT_FREQUENCY_CHOICES = [

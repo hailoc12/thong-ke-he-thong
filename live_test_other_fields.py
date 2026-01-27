@@ -174,16 +174,54 @@ def test_other_options():
             system_name_field.fill('Playwright Test Other ' + str(int(time.time())), timeout=10000)
             print("   ✓ System name filled")
 
-            # Fill other required fields with minimal data
-            # Organization (Tổ chức) - click dropdown and select first option
-            org_field = page.locator('text=/.*Tổ chức.*/').locator('..').locator('.ant-select-selector').first
-            if org_field.count() > 0:
-                org_field.click()
-                time.sleep(0.5)
-                page.keyboard.press('Enter')
-                print("   ✓ Organization selected")
+            # Scroll to ensure fields are visible
+            page.evaluate("window.scrollTo(0, 0)")
+            time.sleep(0.5)
+
+            # Fill required fields visible in the screenshot
+            # 1. Tổ chức (Organization) - Select dropdown
+            try:
+                # Find the select by looking for the label and then the select below it
+                org_label = page.locator('text="Tổ chức"')
+                if org_label.count() > 0:
+                    # Get the form item containing this label and find the select
+                    org_select = page.locator('.ant-select').first
+                    org_select.click()
+                    time.sleep(0.5)
+                    # Select first option
+                    page.keyboard.press('ArrowDown')
+                    time.sleep(0.3)
+                    page.keyboard.press('Enter')
+                    print("   ✓ Organization selected")
+            except Exception as e:
+                print(f"   ⚠ Could not select organization: {e}")
+
+            time.sleep(0.5)
+
+            # 2. Tên tiếng Anh (English name) - if required
+            try:
+                eng_name = page.locator('input[placeholder*="tiếng Anh"]').or_(
+                    page.locator('input[placeholder*="English"]')
+                ).first
+                if eng_name.count() > 0 and eng_name.is_visible():
+                    eng_name.fill('Test System EN')
+                    print("   ✓ English name filled")
+            except:
+                pass
+
+            # 3. Mô tả (Description) - textarea if required
+            try:
+                desc = page.locator('textarea[placeholder*="Mô tả"]').or_(
+                    page.locator('textarea[placeholder*="mục đích"]')
+                ).first
+                if desc.count() > 0 and desc.is_visible():
+                    desc.fill('Test description for other option testing')
+                    print("   ✓ Description filled")
+            except:
+                pass
 
             time.sleep(1)
+            print("   ✓ Basic required fields filled")
 
             # Step 4: Test each field with 'other' option
             print("\n" + "=" * 80)

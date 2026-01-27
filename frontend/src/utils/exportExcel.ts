@@ -218,7 +218,7 @@ function generateSystemsSheet(systems: any[]): any[][] {
       sys.system_name,
       sys.org_name || 'N/A',
       STATUS_LABELS[sys.status] || sys.status,
-      CRITICALITY_LABELS[sys.criticality] || sys.criticality,
+      CRITICALITY_LABELS[sys.criticality_level] || sys.criticality_level,
       `${sys.completion_percentage || 0}%`,
       dayjs(sys.updated_at).format('DD/MM/YYYY'),
     ]),

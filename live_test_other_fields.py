@@ -257,9 +257,15 @@ def test_other_options():
                             time.sleep(2)
                             print(f"   ✓ Switched to tab '{field['tab_text']}'")
 
-                            # Take screenshot for debugging
+                            # Scroll down within the tab to load all fields
+                            print(f"   → Scrolling down to load all fields...")
+                            for _ in range(3):  # Scroll 3 times to ensure all fields loaded
+                                page.evaluate("window.scrollBy(0, 500)")
+                                time.sleep(0.5)
+
+                            # Take screenshot after scrolling
                             page.screenshot(path=f'screenshot_tab_ha_tang_{field["name"]}.png')
-                            print(f"   → Screenshot saved: screenshot_tab_ha_tang_{field['name']}.png")
+                            print(f"   → Screenshot saved after scrolling")
 
                     # Find field by label text
                     # Strategy: Find label with this text, then find the Select in the same Form.Item

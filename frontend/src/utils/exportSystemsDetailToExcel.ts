@@ -201,7 +201,10 @@ function getLabel(map: Record<string, string>, value: string | undefined | null)
 /**
  * Fix cells that SheetJS incorrectly interpreted as formulas
  * When aoa_to_sheet sees values starting with =, +, -, @ it creates formula cells
- * This function converts them back to text cells with ' prefix to prevent Excel formula interpretation
+ * This function removes the formula and converts to plain text
+ *
+ * Important: SheetJS may create cells with type 'str' but still have a formula property (cell.f)
+ * So we check for presence of cell.f, not just cell.t === 'f'
  */
 function fixFormulaLikeCells(ws: XLSX.WorkSheet): void {
   const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
@@ -211,23 +214,46 @@ function fixFormulaLikeCells(ws: XLSX.WorkSheet): void {
       const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
       const cell = ws[cellAddress];
 
-      if (cell && cell.t === 'f' && cell.f) {
-        // This is a formula cell - convert to text with ' prefix
-        // The formula text doesn't include the leading '='
-        // Prefix with ' to tell Excel this is text, not a formula
-        // Excel will hide the ' and display the rest as text
-        const originalValue = "'" + '=' + cell.f;
-        cell.t = 's'; // Change type to string
-        cell.v = originalValue; // Set value with ' prefix
-        delete cell.f; // Remove formula property
+      // Check if cell has a formula property (regardless of cell type)
+      // SheetJS may use type 'str' for formula-like strings but still have cell.f
+      if (cell && cell.f !== undefined) {
+        // This cell has a formula - reconstruct the original text value
+        // cell.f contains the formula text without the leading '='
+        // cell.v may contain the cached result
+        const formulaText = '=' + cell.f;
+        const cachedValue = cell.v;
+
+        // Combine formula and cached value if both exist (e.g., "=statistics, monitoring")
+        let textValue: string;
+        if (cachedValue !== undefined && cachedValue !== null && cachedValue !== '') {
+          textValue = formulaText + ', ' + cachedValue;
+        } else {
+          textValue = formulaText;
+        }
+
+        // Convert to pure text cell
+        cell.t = 's'; // Force type to string
+        cell.v = textValue; // Set the text value
+        cell.w = textValue; // Also set the formatted text
+        delete cell.f; // Remove formula property completely
       }
 
       // Also handle string cells that start with +, -, @
       if (cell && cell.t === 's' && typeof cell.v === 'string') {
         const firstChar = cell.v.charAt(0);
-        if (firstChar === '+' || firstChar === '-' || firstChar === '@') {
-          // Prefix with ' to prevent formula interpretation
-          cell.v = "'" + cell.v;
+        if (firstChar === '+' || firstChar === '@') {
+          // Prefix with space to prevent formula interpretation
+          // Using space instead of ' because Excel may still interpret '+ as formula
+          cell.v = ' ' + cell.v;
+          cell.w = cell.v;
+        }
+        // For minus sign, only escape if not a negative number
+        if (firstChar === '-' && cell.v.length > 1) {
+          const rest = cell.v.substring(1);
+          if (!/^[\d.,]+$/.test(rest)) {
+            cell.v = ' ' + cell.v;
+            cell.w = cell.v;
+          }
         }
       }
     }

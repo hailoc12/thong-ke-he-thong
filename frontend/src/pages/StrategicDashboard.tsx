@@ -43,7 +43,6 @@ import {
   RobotOutlined,
   BulbOutlined,
   SafetyOutlined,
-  SyncOutlined,
   AlertOutlined,
   SendOutlined,
   HistoryOutlined,
@@ -1594,6 +1593,7 @@ const StrategicDashboard = () => {
                 </div>
               </div>
             )}
+            </div>
           </Card>
         </motion.div>
       )}

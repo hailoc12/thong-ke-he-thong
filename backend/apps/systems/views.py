@@ -1347,6 +1347,17 @@ GROUP BY o.id, o.name;
             Validate SQL safety and execute it.
             Returns (query_result, error_message) tuple.
             """
+            # Clean SQL: remove markdown code blocks, extra whitespace
+            sql = sql.strip()
+            # Remove markdown code blocks (```sql ... ``` or ``` ... ```)
+            if sql.startswith('```'):
+                lines = sql.split('\n')
+                # Remove first line (```sql or ```) and last line (```)
+                if lines[0].startswith('```'):
+                    lines = lines[1:]
+                if lines and lines[-1].strip() == '```':
+                    lines = lines[:-1]
+                sql = '\n'.join(lines)
             sql = sql.strip().rstrip(';')  # Remove trailing semicolon
             # Basic safety check
             sql_upper = sql.upper()
@@ -1496,6 +1507,7 @@ Nếu câu hỏi không rõ ràng hoặc không liên quan đến dữ liệu h�
                     })
 
                 # Validate and execute SQL
+                logger.info(f"Generated SQL: {ai_data.get('sql', 'None')[:200]}...")
                 query_result, sql_error = validate_and_execute_sql(ai_data['sql'])
 
                 if query_result is not None:

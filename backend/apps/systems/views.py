@@ -958,7 +958,7 @@ class SystemViewSet(viewsets.ModelViewSet):
         schema_context = """
         Database schema for IT systems inventory:
 
-        Table: systems_system (main table)
+        Table: systems (main table)
         - id: integer primary key
         - system_name: varchar - tên hệ thống
         - system_code: varchar - mã hệ thống
@@ -973,19 +973,19 @@ class SystemViewSet(viewsets.ModelViewSet):
         - api_provided_count: integer - số API cung cấp
         - api_consumed_count: integer - số API tiêu thụ
         - go_live_date: date - ngày vận hành
-        - org_id: foreign key to organizations_organization
+        - org_id: foreign key to organizations
 
-        Table: organizations_organization
+        Table: organizations
         - id: integer primary key
         - name: varchar - tên đơn vị
 
-        Related tables (one-to-one with systems_system via system_id):
-        - systems_systemarchitecture: has_design_document, has_architecture_diagram, architecture_type
-        - systems_systemoperations: has_ci_cd, has_monitoring, has_logging
-        - systems_systemintegration: has_api_gateway, integration_pattern
-        - systems_systemsecurity: has_data_encryption_at_rest, has_ssl_tls
-        - systems_systemassessment: recommendation (keep, upgrade, replace, merge), performance_rating
-        - systems_systemcost: initial_investment, annual_maintenance_cost
+        Related tables (one-to-one with systems via system_id):
+        - system_architecture: has_design_document, has_architecture_diagram, architecture_type
+        - system_operations: has_ci_cd, has_monitoring, has_logging
+        - system_integration: has_api_gateway, integration_pattern
+        - system_security: has_data_encryption_at_rest, has_ssl_tls
+        - system_assessment: recommendation (keep, upgrade, replace, merge), performance_rating
+        - system_cost: initial_investment, annual_maintenance_cost
         """
 
         # Call OpenAI API

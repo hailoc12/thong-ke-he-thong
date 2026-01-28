@@ -1439,196 +1439,239 @@ GROUP BY o.id, o.name;
         # Maximum retry attempts
         MAX_RETRIES = 3
 
-        # Build system prompt for Claude - Multi-agent thinking mode
-        system_prompt = f"""Bạn là Trợ lý AI thông minh phân tích dữ liệu hệ thống CNTT cho Lãnh đạo Bộ Khoa học và Công nghệ Việt Nam.
+        # ====== PHASE 1 PROMPT: Generate SQL + Thinking ======
+        phase1_prompt = f"""Bạn là Trợ lý AI phân tích dữ liệu hệ thống CNTT. Nhiệm vụ của bạn là PHÂN TÍCH yêu cầu và VIẾT SQL query.
 
 {schema_context}
 
-=== CÁCH LÀM VIỆC (MULTI-AGENT APPROACH) ===
-Bạn sẽ làm việc theo 4 bước như một đội ngũ chuyên gia:
-1. **PLANNING**: Phân tích yêu cầu, lập kế hoạch các bước cần thực hiện
-2. **TASK CREATION**: Tạo danh sách các task cụ thể cần làm
-3. **EXECUTION**: Viết SQL query để thực hiện từng task
-4. **SYNTHESIS**: Tổng hợp kết quả, viết báo cáo cho Lãnh đạo
-
-=== PHONG CÁCH TRẢ LỜI ===
-- Bạn đang báo cáo cho Lãnh đạo cấp Bộ - dùng ngôn ngữ trang trọng, chuyên nghiệp
-- Mở đầu: "Kính thưa anh/chị," hoặc "Báo cáo anh/chị,"
-- Kết thúc: "Kính báo cáo." hoặc "Trân trọng."
-- Giải thích rõ ràng, có cấu trúc, dễ hiểu
-- Đưa ra insights và khuyến nghị nếu phù hợp
+=== NHIỆM VỤ PHASE 1 ===
+1. Phân tích yêu cầu của người dùng
+2. Lập kế hoạch các bước cần làm
+3. Viết SQL query chính xác để lấy dữ liệu
+4. KHÔNG viết câu trả lời cuối cùng - chỉ chuẩn bị SQL
 
 === RESPONSE FORMAT (BẮT BUỘC JSON) ===
 {{
     "thinking": {{
         "plan": "Mô tả ngắn gọn kế hoạch phân tích...",
         "tasks": [
-            {{"id": 1, "name": "Tên task 1", "status": "completed"}},
-            {{"id": 2, "name": "Tên task 2", "status": "completed"}}
+            {{"id": 1, "name": "Tên task mô tả ngắn", "status": "completed"}},
+            {{"id": 2, "name": "Tên task mô tả ngắn", "status": "completed"}}
         ],
-        "sql_queries": ["SELECT ...", "SELECT ..."]
+        "sql_queries": ["SELECT ..."]
     }},
-    "response": {{
-        "greeting": "Kính thưa anh/chị," hoặc "Báo cáo anh/chị,",
-        "main_answer": "Câu trả lời chính, rõ ràng, súc tích với số liệu cụ thể (dùng **bold** cho số quan trọng)",
-        "details": "Chi tiết bổ sung nếu cần (có thể null)",
-        "chart_type": "bar|pie|table|number",
-        "chart_config": {{"x_field": "tên cột", "y_field": "tên cột", "title": "Tiêu đề", "x_label": "Nhãn trục X", "y_label": "Nhãn trục Y với đơn vị", "unit": "hệ thống|GB|TB|%|người dùng"}},
-        "follow_up_suggestions": [
-            "Câu hỏi chiến lược 1 - về rủi ro/cơ hội?",
-            "Câu hỏi chiến lược 2 - về nguồn lực/ngân sách?",
-            "Câu hỏi chiến lược 3 - về lộ trình/ưu tiên?"
-        ]
-    }},
-    "sql": "SQL query chính để lấy dữ liệu hiển thị"
+    "sql": "SQL query chính để lấy dữ liệu",
+    "chart_type": "bar|pie|table|number",
+    "chart_config": {{"x_field": "tên cột", "y_field": "tên cột", "title": "Tiêu đề", "unit": "đơn vị"}}
 }}
 
-=== QUY TẮC BẮT BUỘC ===
+=== QUY TẮC SQL ===
 1. LUÔN lọc is_deleted = false khi query bảng systems
-2. Sử dụng đúng tên bảng: systems, organizations, system_architecture, system_assessment, system_operations, system_integration, system_security, system_cost, system_data_info, system_infrastructure, system_vendor
-3. LUÔN dùng table aliases: s cho systems, o cho organizations, sa cho system_assessment, etc.
-4. Join các bảng liên quan qua system_id (là primary key và foreign key của các bảng one-to-one)
-5. Chỉ trả về SELECT queries, KHÔNG BAO GIỜ viết UPDATE/DELETE/DROP/INSERT
-6. LUÔN trả về JSON hợp lệ, không có text thừa trước hoặc sau JSON
+2. Tên bảng đúng: systems, organizations, system_architecture, system_assessment, system_operations, system_integration, system_security, system_cost, system_data_info, system_infrastructure, system_vendor
+3. LUÔN dùng table aliases: s cho systems, o cho organizations, sa cho system_assessment
+4. Join qua system_id (primary key và foreign key của các bảng one-to-one)
+5. Chỉ SELECT queries, KHÔNG UPDATE/DELETE/DROP/INSERT
+6. LUÔN trả về JSON hợp lệ
 
-=== DATA TYPE RULES ===
-- performance_rating là INTEGER (1-5), KHÔNG PHẢI string! Dùng: WHERE sa.performance_rating = 5
-- user_satisfaction_rating là INTEGER (1-5)
-- recommendation là VARCHAR với giá trị: 'keep', 'upgrade', 'replace', 'merge', 'other'
-- Các trường boolean dùng true/false, không phải 1/0
+=== DATA TYPES ===
+- performance_rating: INTEGER (1-5)
+- user_satisfaction_rating: INTEGER (1-5)
+- recommendation: VARCHAR ('keep', 'upgrade', 'replace', 'merge', 'other')
+- Boolean: true/false
 
-=== CHART CONFIG ===
-- Với biểu đồ cột/thanh: x_label, y_label với đơn vị rõ ràng
-- Với biểu đồ tròn: title và unit
-- unit phổ biến: "hệ thống", "GB", "TB", "%", "người dùng", "đơn vị", "triệu đồng"
+Nếu câu hỏi không liên quan đến dữ liệu, trả về JSON với sql = null."""
 
-=== FOLLOW-UP SUGGESTIONS (QUAN TRỌNG) ===
-Đây là Trợ lý cho LÃNH ĐẠO BỘ - các câu hỏi gợi ý phải CHIẾN LƯỢC và CÓ GIÁ TRỊ:
+        # ====== PHASE 2 PROMPT: Generate Response with actual data ======
+        phase2_prompt_template = """Bạn là Trợ lý AI báo cáo cho Lãnh đạo Bộ Khoa học và Công nghệ Việt Nam.
 
-VÍ DỤ CÂU HỎI CHIẾN LƯỢC TỐT:
-- "Những hệ thống nào cần ưu tiên nâng cấp để đảm bảo an toàn thông tin?"
-- "Đơn vị nào đang có rủi ro cao về CNTT cần hỗ trợ?"
-- "Lộ trình chuyển đổi số giai đoạn tiếp theo nên tập trung vào đâu?"
-- "So sánh hiệu quả đầu tư CNTT giữa các đơn vị trực thuộc?"
-- "Những hệ thống nào chưa tuân thủ kiến trúc tổng thể?"
-- "Tình hình tích hợp dữ liệu giữa các hệ thống hiện tại?"
-- "Hệ thống nào có nguy cơ gián đoạn hoạt động cao?"
+=== DỮ LIỆU THỰC TẾ ĐÃ LẤY ===
+Câu hỏi: {question}
+Kết quả SQL (JSON):
+{data_json}
 
-KHÔNG đưa ra câu hỏi đơn giản như: "Có bao nhiêu hệ thống?", "Danh sách hệ thống", "Thống kê cơ bản"
+=== NHIỆM VỤ ===
+Viết báo cáo TỰ NHIÊN dựa trên dữ liệu THỰC TẾ ở trên. PHẢI sử dụng số liệu cụ thể từ kết quả.
 
-Nếu câu hỏi không rõ ràng hoặc không liên quan đến dữ liệu hệ thống, hãy trả về JSON với sql = null và giải thích trong response.main_answer."""
+=== PHONG CÁCH ===
+- Trang trọng, chuyên nghiệp cho Lãnh đạo cấp Bộ
+- Mở đầu: "Báo cáo anh/chị," hoặc "Kính thưa anh/chị,"
+- Dùng **bold** cho số liệu quan trọng
+- Kết thúc ngắn gọn, không cần "Kính báo cáo"
 
-        # Build initial conversation (Claude format)
+=== RESPONSE FORMAT (JSON) ===
+{{
+    "response": {{
+        "greeting": "Báo cáo anh/chị,",
+        "main_answer": "Câu trả lời với SỐ LIỆU CỤ THỂ từ data (dùng **bold** cho số)",
+        "details": "Chi tiết bổ sung nếu cần hoặc null",
+        "follow_up_suggestions": [
+            "Câu hỏi chiến lược về rủi ro/ưu tiên?",
+            "Câu hỏi chiến lược về nguồn lực?",
+            "Câu hỏi chiến lược về lộ trình?"
+        ]
+    }}
+}}
+
+=== LƯU Ý QUAN TRỌNG ===
+- main_answer PHẢI chứa số liệu thực từ data, KHÔNG ĐƯỢC dùng placeholder
+- Ví dụ tốt: "Tổng dung lượng dữ liệu là **1,234 GB**"
+- Ví dụ xấu: "Tổng dung lượng là X GB"
+- follow_up_suggestions phải CHIẾN LƯỢC (về rủi ro, ưu tiên, ngân sách, lộ trình)"""
+
+        # Build conversation for Phase 1
         conversation = [{'role': 'user', 'content': query}]
 
         try:
             import re
 
+            # ====== PHASE 1: Generate SQL + Thinking ======
             for attempt in range(MAX_RETRIES):
-                logger.info(f"AI query attempt {attempt + 1}/{MAX_RETRIES} for query: {query[:100]}...")
+                logger.info(f"Phase 1 - AI SQL generation attempt {attempt + 1}/{MAX_RETRIES}")
 
                 try:
-                    ai_content = call_ai(system_prompt, conversation)
+                    phase1_content = call_ai(phase1_prompt, conversation)
                 except Exception as api_error:
                     provider = 'Claude' if use_claude else 'OpenAI'
-                    logger.error(f"{provider} API error: {api_error}")
+                    logger.error(f"{provider} API error in Phase 1: {api_error}")
                     return Response(
                         {'error': 'AI service temporarily unavailable'},
                         status=status.HTTP_503_SERVICE_UNAVAILABLE
                     )
 
-                # Parse AI response (new multi-agent format)
+                # Parse Phase 1 response
                 try:
-                    json_match = re.search(r'\{[\s\S]*\}', ai_content)
+                    json_match = re.search(r'\{[\s\S]*\}', phase1_content)
                     if json_match:
-                        ai_data = json.loads(json_match.group())
+                        phase1_data = json.loads(json_match.group())
                     else:
-                        # Fallback for non-JSON response
-                        ai_data = {
-                            'thinking': {'plan': 'Direct response', 'tasks': [], 'sql_queries': []},
-                            'response': {
-                                'greeting': '',
-                                'main_answer': ai_content,
-                                'details': None,
-                                'chart_type': None,
-                                'chart_config': None,
-                                'follow_up_suggestions': []
-                            },
-                            'sql': None
-                        }
+                        phase1_data = {'thinking': {'plan': 'Direct response', 'tasks': [], 'sql_queries': []}, 'sql': None}
                 except json.JSONDecodeError:
-                    ai_data = {
-                        'thinking': {'plan': 'Direct response', 'tasks': [], 'sql_queries': []},
+                    phase1_data = {'thinking': {'plan': 'Parse error', 'tasks': [], 'sql_queries': []}, 'sql': None}
+
+                # Extract thinking and SQL
+                thinking = phase1_data.get('thinking', {'plan': '', 'tasks': [], 'sql_queries': []})
+                sql_query = phase1_data.get('sql')
+                chart_type = phase1_data.get('chart_type')
+                chart_config = phase1_data.get('chart_config', {})
+
+                # If no SQL, return without data
+                if not sql_query:
+                    return Response({
+                        'query': query,
+                        'thinking': thinking,
                         'response': {
-                            'greeting': '',
-                            'main_answer': ai_content,
+                            'greeting': 'Báo cáo anh/chị,',
+                            'main_answer': 'Xin lỗi, tôi không thể tạo câu truy vấn cho yêu cầu này.',
                             'details': None,
                             'chart_type': None,
                             'chart_config': None,
                             'follow_up_suggestions': []
                         },
-                        'sql': None
-                    }
-
-                # If no SQL generated, return the response (without data)
-                sql_query = ai_data.get('sql')
-                if not sql_query:
-                    return Response({
-                        'query': query,
-                        'thinking': ai_data.get('thinking', {}),
-                        'response': ai_data.get('response', {}),
                         'data': None,
                     })
 
-                # Validate and execute SQL
+                # Execute SQL
                 query_result, sql_error = validate_and_execute_sql(sql_query)
 
                 if query_result is not None:
-                    # SQL executed successfully - return new format
+                    # ====== PHASE 2: Generate Response with actual data ======
+                    logger.info("Phase 2 - Generating response with actual data")
+
+                    # Prepare data summary for Phase 2
+                    data_summary = json.dumps(query_result, ensure_ascii=False, indent=2, default=str)
+                    # Limit data size for prompt
+                    if len(data_summary) > 3000:
+                        data_summary = data_summary[:3000] + "\n... (truncated)"
+
+                    phase2_prompt = phase2_prompt_template.format(
+                        question=query,
+                        data_json=data_summary
+                    )
+
+                    try:
+                        phase2_content = call_ai(phase2_prompt, [{'role': 'user', 'content': 'Generate response'}])
+
+                        # Parse Phase 2 response
+                        json_match2 = re.search(r'\{[\s\S]*\}', phase2_content)
+                        if json_match2:
+                            phase2_data = json.loads(json_match2.group())
+                            response_content = phase2_data.get('response', {})
+                        else:
+                            response_content = {
+                                'greeting': 'Báo cáo anh/chị,',
+                                'main_answer': phase2_content,
+                                'details': None,
+                                'follow_up_suggestions': []
+                            }
+                    except Exception as phase2_error:
+                        logger.warning(f"Phase 2 error, using fallback: {phase2_error}")
+                        # Fallback: generate simple response from data
+                        if query_result.get('rows'):
+                            first_row = query_result['rows'][0]
+                            values = list(first_row.values())
+                            main_value = values[0] if values else 'N/A'
+                            response_content = {
+                                'greeting': 'Báo cáo anh/chị,',
+                                'main_answer': f'Kết quả: **{main_value}**',
+                                'details': None,
+                                'follow_up_suggestions': []
+                            }
+                        else:
+                            response_content = {
+                                'greeting': 'Báo cáo anh/chị,',
+                                'main_answer': 'Không có dữ liệu phù hợp.',
+                                'details': None,
+                                'follow_up_suggestions': []
+                            }
+
+                    # Add chart config from Phase 1
+                    response_content['chart_type'] = chart_type
+                    response_content['chart_config'] = chart_config
+
                     return Response({
                         'query': query,
-                        'thinking': ai_data.get('thinking', {}),
-                        'response': ai_data.get('response', {}),
+                        'thinking': thinking,
+                        'response': response_content,
                         'data': query_result,
                     })
 
-                # SQL failed - prepare for retry
+                # SQL failed - retry
                 logger.warning(f"SQL execution failed (attempt {attempt + 1}): {sql_error}")
 
                 if attempt < MAX_RETRIES - 1:
-                    # Add the failed attempt to conversation for context
-                    conversation.append({'role': 'assistant', 'content': ai_content})
-                    # Provide error feedback to Claude for correction
-                    error_feedback = f"""SQL query bị lỗi khi thực thi. Lỗi: {sql_error}
+                    conversation.append({'role': 'assistant', 'content': phase1_content})
+                    error_feedback = f"""SQL query bị lỗi: {sql_error}
 
-Hãy sửa lại SQL query. Lưu ý:
-- LUÔN dùng is_deleted = false khi query bảng systems
-- performance_rating là kiểu INTEGER (1-5), không phải string
-- recommendation là kiểu VARCHAR với các giá trị: keep, upgrade, replace, merge, other
-- Kiểm tra lại data types của các cột trước khi so sánh
-- Đảm bảo sử dụng đúng tên bảng (system_assessment KHÔNG PHẢI system_assessments)
-- JOIN các bảng one-to-one bằng system_id
+Sửa lại SQL. Lưu ý:
+- is_deleted = false cho bảng systems
+- performance_rating là INTEGER (1-5)
+- recommendation là VARCHAR: keep, upgrade, replace, merge, other
+- Đúng tên bảng (system_assessment không phải system_assessments)
 
-Vui lòng trả về JSON với SQL query đã sửa."""
+Trả về JSON với SQL đã sửa."""
                     conversation.append({'role': 'user', 'content': error_feedback})
                 else:
-                    # All retries exhausted - return user-friendly error
                     logger.error(f"All {MAX_RETRIES} attempts failed for query: {query}")
-                    error_response = ai_data.get('response', {})
-                    error_response['main_answer'] = FRIENDLY_ERROR_MESSAGE
                     return Response({
                         'query': query,
-                        'thinking': ai_data.get('thinking', {'plan': 'Query failed', 'tasks': [], 'sql_queries': []}),
-                        'response': error_response,
+                        'thinking': thinking,
+                        'response': {
+                            'greeting': 'Báo cáo anh/chị,',
+                            'main_answer': FRIENDLY_ERROR_MESSAGE,
+                            'details': None,
+                            'chart_type': None,
+                            'chart_config': None,
+                            'follow_up_suggestions': []
+                        },
                         'data': None,
-                        'error': sql_error,  # Technical error for debugging
+                        'error': sql_error,
                     })
 
-            # Should not reach here, but just in case
+            # Fallback
             return Response({
                 'query': query,
                 'thinking': {'plan': 'Query failed', 'tasks': [], 'sql_queries': []},
-                'response': {'main_answer': FRIENDLY_ERROR_MESSAGE, 'follow_up_suggestions': []},
+                'response': {'greeting': '', 'main_answer': FRIENDLY_ERROR_MESSAGE, 'follow_up_suggestions': []},
                 'data': None,
             })
 

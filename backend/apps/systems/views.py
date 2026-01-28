@@ -86,6 +86,10 @@ class SystemViewSet(viewsets.ModelViewSet):
         if user.role == 'admin':
             return queryset
 
+        # Lanhdaobo can see all systems (read-only for strategic dashboard)
+        if user.role == 'lanhdaobo':
+            return queryset
+
         # Org user can only see systems from their organization
         if user.role == 'org_user' and user.organization:
             return queryset.filter(org=user.organization)

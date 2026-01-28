@@ -18,6 +18,7 @@ class IsOrgUserOrAdmin(permissions.BasePermission):
     Permission to allow authenticated users
     Object-level permission to allow:
     - Admin: access to all objects
+    - Lanhdaobo: read-only access to all objects (strategic dashboard role)
     - Org User: access only to objects in their organization
     """
 
@@ -28,6 +29,13 @@ class IsOrgUserOrAdmin(permissions.BasePermission):
         # Admin can access everything
         if request.user.role == 'admin':
             return True
+
+        # Lanhdaobo can view all objects (read-only access for strategic overview)
+        if request.user.role == 'lanhdaobo':
+            # Only allow safe methods (GET, HEAD, OPTIONS)
+            if request.method in permissions.SAFE_METHODS:
+                return True
+            return False
 
         # Org user can only access objects from their organization
         # Check both 'organization' and 'org' field names

@@ -456,7 +456,6 @@ const StrategicDashboard = () => {
   // Progressive AI loading state (Claude Code style)
   const [aiProcessingPhase, setAiProcessingPhase] = useState<AIProcessingPhase>('idle');
   const [aiProgressTasks, setAiProgressTasks] = useState<AIThinkingTask[]>([]);
-  const [aiCurrentPlan, setAiCurrentPlan] = useState<string>('');
 
   // Drill-down modal state
   const [drilldownVisible, setDrilldownVisible] = useState(false);
@@ -532,7 +531,6 @@ const StrategicDashboard = () => {
 
     // Reset progress states - start with empty backlog
     setAiProcessingPhase('working');
-    setAiCurrentPlan('');
     setAiProgressTasks([]); // Start empty, will append progressively
 
     // Progressive task simulation - append tasks one by one
@@ -555,9 +553,6 @@ const StrategicDashboard = () => {
           const updated = prev.map(t => ({ ...t, status: 'completed' as const }));
           return [...updated, { id: task.id, name: task.name, status: 'in_progress' as const }];
         });
-
-        // Update current plan to show what's happening
-        setAiCurrentPlan(task.name + '...');
       }
     };
 
@@ -575,7 +570,6 @@ const StrategicDashboard = () => {
 
       // Mark all current tasks as complete
       setAiProgressTasks(prev => prev.map(t => ({ ...t, status: 'completed' as const })));
-      setAiCurrentPlan('Hoàn thành');
       setAiProcessingPhase('complete');
 
       // Small delay before showing result
@@ -1718,7 +1712,7 @@ const StrategicDashboard = () => {
 
                         {/* Tasks - append progressively */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {aiProgressTasks.map((task, index) => (
+                          {aiProgressTasks.map((task) => (
                             <motion.div
                               key={task.id}
                               initial={{ opacity: 0, x: -10 }}

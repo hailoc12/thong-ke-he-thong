@@ -1366,13 +1366,105 @@ const StrategicDashboard = () => {
                   })}
                 </Row>
 
-                {/* AI Chat Section - Enhanced Design */}
-                <Divider style={{ margin: '20px 0 16px 0' }}>
-                  <Space>
-                    <BulbOutlined style={{ color: '#722ed1' }} />
-                    <Text type="secondary">Hỏi AI về dữ liệu</Text>
-                  </Space>
-                </Divider>
+                {/* AI Chat Section - Premium Hero Design */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  style={{
+                    marginTop: 20,
+                    marginBottom: 16,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                    borderRadius: 16,
+                    padding: '16px 20px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Animated background dots */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    opacity: 0.1,
+                    backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
+                    backgroundSize: '20px 20px',
+                  }} />
+
+                  <Row align="middle" gutter={16}>
+                    <Col flex="auto">
+                      <Space direction="vertical" size={4}>
+                        <Space align="center">
+                          <motion.div
+                            animate={{
+                              scale: [1, 1.1, 1],
+                              rotate: [0, 5, -5, 0],
+                            }}
+                            transition={{
+                              duration: 2,
+                              repeat: Infinity,
+                              repeatDelay: 3,
+                            }}
+                          >
+                            <RobotOutlined style={{ fontSize: 24, color: 'white' }} />
+                          </motion.div>
+                          <Text strong style={{ color: 'white', fontSize: 16 }}>
+                            💬 Hỏi AI về dữ liệu hệ thống
+                          </Text>
+                          <Tag color="#52c41a" style={{ margin: 0, borderRadius: 12 }}>
+                            <span style={{ fontSize: 11 }}>✨ Mới</span>
+                          </Tag>
+                        </Space>
+                        <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13 }}>
+                          Nhập câu hỏi bằng tiếng Việt tự nhiên, AI sẽ phân tích dữ liệu và trả lời ngay!
+                        </Text>
+                      </Space>
+                    </Col>
+                    <Col>
+                      <motion.div
+                        animate={{ y: [0, -3, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      >
+                        <BulbOutlined style={{ fontSize: 32, color: 'rgba(255,255,255,0.7)' }} />
+                      </motion.div>
+                    </Col>
+                  </Row>
+
+                  {/* Quick suggestion chips */}
+                  <div style={{ marginTop: 12 }}>
+                    <Space wrap size={[6, 6]}>
+                      <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Thử hỏi:</Text>
+                      {[
+                        'Tổng số hệ thống?',
+                        'Đơn vị nào có nhiều nhất?',
+                        'Bao nhiêu hệ thống dùng Cloud?',
+                      ].map((q, i) => (
+                        <Tag
+                          key={i}
+                          style={{
+                            cursor: 'pointer',
+                            background: 'rgba(255,255,255,0.2)',
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            color: 'white',
+                            borderRadius: 12,
+                            fontSize: 11,
+                          }}
+                          onClick={() => {
+                            setAiQuery(q);
+                            setTimeout(() => {
+                              const submitButton = document.querySelector('.ai-submit-btn') as HTMLButtonElement;
+                              if (submitButton) submitButton.click();
+                            }, 100);
+                          }}
+                        >
+                          {q}
+                        </Tag>
+                      ))}
+                    </Space>
+                  </div>
+                </motion.div>
 
                 {/* Chat Container */}
                 <div style={{
@@ -1380,6 +1472,7 @@ const StrategicDashboard = () => {
                   borderRadius: 16,
                   padding: 20,
                   minHeight: 120,
+                  border: '2px dashed #d3adf7',
                 }}>
                   {/* Previous Q&A in Chat Style */}
                   {aiQueryResponse && !aiQueryLoading && (
@@ -1797,16 +1890,25 @@ const StrategicDashboard = () => {
                     </div>
                   )}
 
-                  {/* Input Area */}
+                  {/* Input Area - Enhanced */}
                   <div style={{
-                    background: 'white',
-                    borderRadius: 12,
-                    padding: '4px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                    border: '1px solid #e8e8e8',
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f9f0ff 100%)',
+                    borderRadius: 16,
+                    padding: '12px 16px',
+                    boxShadow: '0 4px 12px rgba(114, 46, 209, 0.15)',
+                    border: '2px solid #d3adf7',
+                    transition: 'all 0.3s ease',
                   }}>
+                    <div style={{ marginBottom: 8 }}>
+                      <Space>
+                        <RobotOutlined style={{ color: '#722ed1', fontSize: 16 }} />
+                        <Text style={{ color: '#722ed1', fontSize: 13, fontWeight: 500 }}>
+                          Nhập câu hỏi bằng tiếng Việt tự nhiên
+                        </Text>
+                      </Space>
+                    </div>
                     <Input.Search
-                      placeholder="Nhập câu hỏi về dữ liệu hệ thống..."
+                      placeholder="Ví dụ: 'Có bao nhiêu hệ thống?' hoặc 'Đơn vị nào có nhiều hệ thống nhất?'"
                       value={aiQuery}
                       onChange={(e) => setAiQuery(e.target.value)}
                       onSearch={handleAIQuery}
@@ -1815,16 +1917,19 @@ const StrategicDashboard = () => {
                           type="primary"
                           icon={<SendOutlined />}
                           loading={aiQueryLoading}
+                          className="ai-submit-btn"
                           style={{
                             background: 'linear-gradient(135deg, #722ed1 0%, #1890ff 100%)',
                             border: 'none',
-                            borderRadius: 8,
-                            height: 40,
-                            paddingLeft: 20,
-                            paddingRight: 20,
+                            borderRadius: 10,
+                            height: 44,
+                            paddingLeft: 24,
+                            paddingRight: 24,
+                            fontWeight: 500,
+                            fontSize: 14,
                           }}
                         >
-                          Gửi
+                          Hỏi AI ✨
                         </Button>
                       }
                       size="large"
@@ -1833,6 +1938,11 @@ const StrategicDashboard = () => {
                         boxShadow: 'none',
                       }}
                     />
+                    <div style={{ marginTop: 8, textAlign: 'center' }}>
+                      <Text type="secondary" style={{ fontSize: 11 }}>
+                        💡 Mẹo: Nhấn Enter để gửi nhanh
+                      </Text>
+                    </div>
                   </div>
 
                   {/* Recent Queries */}

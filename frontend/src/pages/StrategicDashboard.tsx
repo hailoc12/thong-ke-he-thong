@@ -369,6 +369,18 @@ interface AIThinking {
   sql_queries: string[];
 }
 
+// AI Processing phases for progressive UI
+type AIProcessingPhase = 'idle' | 'planning' | 'creating_tasks' | 'executing' | 'generating_response' | 'complete';
+
+// Default tasks for simulation before real response arrives
+const DEFAULT_AI_TASKS: AIThinkingTask[] = [
+  { id: 1, name: 'Phân tích yêu cầu', status: 'pending' },
+  { id: 2, name: 'Tạo truy vấn dữ liệu', status: 'pending' },
+  { id: 3, name: 'Thực thi truy vấn', status: 'pending' },
+  { id: 4, name: 'Phân tích kết quả', status: 'pending' },
+  { id: 5, name: 'Tạo báo cáo', status: 'pending' },
+];
+
 interface AIResponseContent {
   greeting?: string;
   main_answer: string;
@@ -441,6 +453,11 @@ const StrategicDashboard = () => {
   const [aiQueryResponse, setAiQueryResponse] = useState<AIQueryResponse | null>(null);
   const [aiQueryHistory, setAiQueryHistory] = useState<string[]>([]);
 
+  // Progressive AI loading state (Claude Code style)
+  const [aiProcessingPhase, setAiProcessingPhase] = useState<AIProcessingPhase>('idle');
+  const [aiProgressTasks, setAiProgressTasks] = useState<AIThinkingTask[]>([]);
+  const [aiCurrentPlan, setAiCurrentPlan] = useState<string>('');
+
   // Drill-down modal state
   const [drilldownVisible, setDrilldownVisible] = useState(false);
   const [drilldownTitle, setDrilldownTitle] = useState('');
@@ -501,23 +518,91 @@ const StrategicDashboard = () => {
     fetchTabData();
   }, [activeTab, investmentStats, integrationStats, optimizationStats, monitoringStats, insightsStats, roadmapStats]);
 
-  // AI Query handler
+  // AI Query handler with progressive loading (Claude Code style)
   const handleAIQuery = useCallback(async () => {
     if (!aiQuery.trim()) {
       message.warning('Vui lòng nhập câu hỏi');
       return;
     }
 
+    const currentQuery = aiQuery;
+    setAiQuery(''); // Clear input immediately
     setAiQueryLoading(true);
-    const currentQuery = aiQuery; // Save query before clearing
-    setAiQuery(''); // Clear input immediately for better UX
+    setAiQueryResponse(null); // Clear previous response
+
+    // Reset progress states
+    setAiProcessingPhase('planning');
+    setAiCurrentPlan('Đang phân tích yêu cầu của Lãnh đạo...');
+    setAiProgressTasks(DEFAULT_AI_TASKS.map(t => ({ ...t, status: 'pending' as const })));
+
+    // Simulate progressive task execution
+    const simulateProgress = async () => {
+      // Phase 1: Planning (after 500ms)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setAiProgressTasks(prev => prev.map((t, i) =>
+        i === 0 ? { ...t, status: 'in_progress' as const } : t
+      ));
+
+      // Phase 2: First task complete, second starting (after 800ms more)
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setAiCurrentPlan('Xây dựng truy vấn dữ liệu...');
+      setAiProcessingPhase('creating_tasks');
+      setAiProgressTasks(prev => prev.map((t, i) =>
+        i === 0 ? { ...t, status: 'completed' as const } :
+        i === 1 ? { ...t, status: 'in_progress' as const } : t
+      ));
+
+      // Phase 3: Execute (after 1000ms more)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setAiCurrentPlan('Đang thực thi truy vấn...');
+      setAiProcessingPhase('executing');
+      setAiProgressTasks(prev => prev.map((t, i) =>
+        i <= 1 ? { ...t, status: 'completed' as const } :
+        i === 2 ? { ...t, status: 'in_progress' as const } : t
+      ));
+
+      // Phase 4: Analyzing (after 1200ms more)
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      setAiCurrentPlan('Đang phân tích kết quả...');
+      setAiProgressTasks(prev => prev.map((t, i) =>
+        i <= 2 ? { ...t, status: 'completed' as const } :
+        i === 3 ? { ...t, status: 'in_progress' as const } : t
+      ));
+
+      // Phase 5: Generating response (after 800ms more)
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setAiCurrentPlan('Đang tạo báo cáo cho Lãnh đạo...');
+      setAiProcessingPhase('generating_response');
+      setAiProgressTasks(prev => prev.map((t, i) =>
+        i <= 3 ? { ...t, status: 'completed' as const } :
+        i === 4 ? { ...t, status: 'in_progress' as const } : t
+      ));
+    };
+
+    // Start simulation in parallel with actual API call
+    const simulationPromise = simulateProgress();
+
     try {
       const response = await api.post('/systems/ai_query/', { query: currentQuery });
+
+      // Wait for simulation to catch up (at least show some progress)
+      await simulationPromise;
+
+      // Mark all tasks as complete
+      setAiProgressTasks(prev => prev.map(t => ({ ...t, status: 'completed' as const })));
+      setAiProcessingPhase('complete');
+      setAiCurrentPlan('Hoàn thành');
+
+      // Small delay before showing result
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       setAiQueryResponse(response.data);
-      // Add to history
       setAiQueryHistory(prev => [currentQuery, ...prev.filter(q => q !== currentQuery)].slice(0, 10));
     } catch (error: any) {
       console.error('AI Query failed:', error);
+      // Stop simulation on error
+      setAiProcessingPhase('idle');
+      setAiProgressTasks([]);
       if (error.response?.status === 503) {
         message.error('Dịch vụ AI tạm thời không khả dụng');
       } else if (error.response?.status === 504) {
@@ -527,6 +612,10 @@ const StrategicDashboard = () => {
       }
     } finally {
       setAiQueryLoading(false);
+      // Reset phase after a delay
+      setTimeout(() => {
+        setAiProcessingPhase('idle');
+      }, 500);
     }
   }, [aiQuery]);
 
@@ -1606,11 +1695,10 @@ const StrategicDashboard = () => {
                     </div>
                   )}
 
-                  {/* Loading State */}
-                  {aiQueryLoading && (
+                  {/* Progressive Loading State - Claude Code Style */}
+                  {aiQueryLoading && aiProcessingPhase !== 'idle' && (
                     <div style={{
                       display: 'flex',
-                      alignItems: 'center',
                       gap: 12,
                       padding: '20px 0',
                     }}>
@@ -1622,19 +1710,94 @@ const StrategicDashboard = () => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        flexShrink: 0,
                       }}>
                         <RobotOutlined style={{ color: 'white', fontSize: 16 }} />
                       </div>
                       <div style={{
                         background: 'white',
                         borderRadius: 16,
-                        padding: '12px 20px',
+                        padding: '16px 20px',
                         boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                        flex: 1,
+                        maxWidth: 400,
                       }}>
-                        <Space>
+                        {/* Current Plan */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          marginBottom: 12,
+                          paddingBottom: 10,
+                          borderBottom: '1px solid #f0f0f0',
+                        }}>
                           <Spin size="small" />
-                          <Text type="secondary">AI đang phân tích dữ liệu...</Text>
-                        </Space>
+                          <Text strong style={{ color: '#722ed1', fontSize: 13 }}>
+                            {aiCurrentPlan}
+                          </Text>
+                        </div>
+
+                        {/* Todo List - Backlog */}
+                        <div style={{ marginBottom: 8 }}>
+                          <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            BACKLOG ({aiProgressTasks.filter(t => t.status === 'completed').length}/{aiProgressTasks.length})
+                          </Text>
+                        </div>
+
+                        {/* Tasks */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {aiProgressTasks.map((task) => (
+                            <div
+                              key={task.id}
+                              className="ai-chat-bubble"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                padding: '6px 0',
+                                opacity: task.status === 'pending' ? 0.5 : 1,
+                                transition: 'all 0.3s ease',
+                              }}
+                            >
+                              {task.status === 'completed' ? (
+                                <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 14 }} />
+                              ) : task.status === 'in_progress' ? (
+                                <SyncOutlined spin style={{ color: '#722ed1', fontSize: 14 }} />
+                              ) : (
+                                <div style={{
+                                  width: 14,
+                                  height: 14,
+                                  borderRadius: '50%',
+                                  border: '2px solid #d9d9d9',
+                                }} />
+                              )}
+                              <Text
+                                style={{
+                                  fontSize: 13,
+                                  textDecoration: task.status === 'completed' ? 'line-through' : 'none',
+                                  color: task.status === 'completed' ? '#8c8c8c' :
+                                         task.status === 'in_progress' ? '#262626' : '#bfbfbf',
+                                  fontWeight: task.status === 'in_progress' ? 500 : 400,
+                                }}
+                              >
+                                {task.name}
+                              </Text>
+                              {task.status === 'in_progress' && (
+                                <Tag
+                                  color="purple"
+                                  style={{
+                                    fontSize: 10,
+                                    padding: '0 6px',
+                                    borderRadius: 4,
+                                    marginLeft: 'auto',
+                                  }}
+                                >
+                                  Đang chạy
+                                </Tag>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -2816,8 +2979,8 @@ const StrategicDashboard = () => {
                       </Space>
                     </Col>
 
-                    {/* AI Response - Loading Animation */}
-                    {aiQueryLoading && (
+                    {/* AI Response - Progressive Loading (Claude Code Style) */}
+                    {aiQueryLoading && aiProcessingPhase !== 'idle' && (
                       <Col xs={24}>
                         <Card
                           size="small"
@@ -2827,31 +2990,100 @@ const StrategicDashboard = () => {
                             border: '1px solid #d3adf7',
                           }}
                         >
-                          <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                            <Space direction="vertical" align="center" size={12}>
-                              <div style={{ position: 'relative' }}>
-                                <RobotOutlined style={{ fontSize: 36, color: '#722ed1' }} />
+                          <Row gutter={[16, 16]}>
+                            {/* Left: Robot icon */}
+                            <Col xs={24} md={4} style={{ textAlign: 'center' }}>
+                              <div style={{ position: 'relative', display: 'inline-block' }}>
+                                <RobotOutlined style={{ fontSize: 48, color: '#722ed1' }} />
                                 <SyncOutlined spin style={{
-                                  fontSize: 16,
+                                  fontSize: 18,
                                   color: '#722ed1',
                                   position: 'absolute',
                                   top: -5,
                                   right: -10,
                                 }} />
                               </div>
-                              <Text style={{ color: '#722ed1', fontSize: 14 }}>
-                                <BulbOutlined style={{ marginRight: 8 }} />
-                                AI đang phân tích và lập kế hoạch...
-                              </Text>
-                              <div style={{ display: 'flex', gap: 8 }}>
-                                {['Đọc câu hỏi', 'Lập kế hoạch', 'Phân tích dữ liệu'].map((step, idx) => (
-                                  <Tag key={idx} color="purple" style={{ margin: 0 }}>
-                                    {idx === 0 ? <CheckCircleOutlined /> : <SyncOutlined spin />} {step}
-                                  </Tag>
+                            </Col>
+
+                            {/* Right: Progress tasks */}
+                            <Col xs={24} md={20}>
+                              {/* Current Plan */}
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                marginBottom: 12,
+                                paddingBottom: 10,
+                                borderBottom: '1px solid rgba(114, 46, 209, 0.2)',
+                              }}>
+                                <Spin size="small" />
+                                <Text strong style={{ color: '#722ed1', fontSize: 14 }}>
+                                  {aiCurrentPlan}
+                                </Text>
+                              </div>
+
+                              {/* Backlog Header */}
+                              <div style={{ marginBottom: 8 }}>
+                                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                  BACKLOG ({aiProgressTasks.filter(t => t.status === 'completed').length}/{aiProgressTasks.length})
+                                </Text>
+                              </div>
+
+                              {/* Task List */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                {aiProgressTasks.map((task) => (
+                                  <div
+                                    key={task.id}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 8,
+                                      padding: '4px 0',
+                                      opacity: task.status === 'pending' ? 0.5 : 1,
+                                      transition: 'all 0.3s ease',
+                                    }}
+                                  >
+                                    {task.status === 'completed' ? (
+                                      <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 14 }} />
+                                    ) : task.status === 'in_progress' ? (
+                                      <SyncOutlined spin style={{ color: '#722ed1', fontSize: 14 }} />
+                                    ) : (
+                                      <div style={{
+                                        width: 14,
+                                        height: 14,
+                                        borderRadius: '50%',
+                                        border: '2px solid #d9d9d9',
+                                      }} />
+                                    )}
+                                    <Text
+                                      style={{
+                                        fontSize: 13,
+                                        textDecoration: task.status === 'completed' ? 'line-through' : 'none',
+                                        color: task.status === 'completed' ? '#8c8c8c' :
+                                               task.status === 'in_progress' ? '#262626' : '#bfbfbf',
+                                        fontWeight: task.status === 'in_progress' ? 500 : 400,
+                                      }}
+                                    >
+                                      {task.name}
+                                    </Text>
+                                    {task.status === 'in_progress' && (
+                                      <Tag
+                                        color="purple"
+                                        style={{
+                                          fontSize: 10,
+                                          padding: '0 6px',
+                                          borderRadius: 4,
+                                          marginLeft: 'auto',
+                                        }}
+                                      >
+                                        Đang chạy
+                                      </Tag>
+                                    )}
+                                  </div>
                                 ))}
                               </div>
-                            </Space>
-                          </div>
+                            </Col>
+                          </Row>
                         </Card>
                       </Col>
                     )}

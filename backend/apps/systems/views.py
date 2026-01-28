@@ -949,14 +949,26 @@ class SystemViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Anthropic API key from settings or environment
+        # Check which AI provider to use (default: OpenAI)
         import os
-        api_key = os.environ.get('ANTHROPIC_API_KEY', getattr(settings, 'ANTHROPIC_API_KEY', None))
-        if not api_key:
-            return Response(
-                {'error': 'Anthropic API key not configured'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        use_claude = os.environ.get('USE_CLAUDE_AI', 'false').lower() == 'true'
+
+        if use_claude:
+            # Anthropic API key
+            api_key = os.environ.get('ANTHROPIC_API_KEY', getattr(settings, 'ANTHROPIC_API_KEY', None))
+            if not api_key:
+                return Response(
+                    {'error': 'Anthropic API key not configured'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        else:
+            # OpenAI API key (default)
+            api_key = os.environ.get('OPENAI_API_KEY', getattr(settings, 'OPENAI_API_KEY', None))
+            if not api_key:
+                return Response(
+                    {'error': 'OpenAI API key not configured'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         # Build comprehensive database schema context
         schema_context = """
@@ -1321,9 +1333,13 @@ LEFT JOIN systems s ON o.id = s.org_id AND s.is_deleted = false
 GROUP BY o.id, o.name;
 """
 
-        # Initialize Anthropic client
-        from anthropic import Anthropic
-        client = Anthropic(api_key=api_key)
+        # Initialize AI client based on provider
+        if use_claude:
+            from anthropic import Anthropic
+            client = Anthropic(api_key=api_key)
+        else:
+            import requests
+            openai_client = None  # Use requests for OpenAI API
 
         # Helper function to validate and execute SQL
         def validate_and_execute_sql(sql):
@@ -1360,18 +1376,43 @@ GROUP BY o.id, o.name;
             except Exception as e:
                 return None, str(e)
 
-        # Helper function to call Claude API
-        def call_claude(system_prompt, conversation_messages):
+        # Helper function to call AI API (Claude or OpenAI)
+        def call_ai(system_prompt, conversation_messages):
             """
-            Call Claude API with system prompt and conversation messages.
-            Returns the message object from Claude.
+            Call AI API with system prompt and conversation messages.
+            Returns the text response from the AI.
             """
-            return client.messages.create(
-                model='claude-3-5-sonnet-20241022',
-                max_tokens=2000,
-                system=system_prompt,
-                messages=conversation_messages,
-            )
+            if use_claude:
+                # Claude API
+                response = client.messages.create(
+                    model='claude-3-5-sonnet-20241022',
+                    max_tokens=2000,
+                    system=system_prompt,
+                    messages=conversation_messages,
+                )
+                return response.content[0].text
+            else:
+                # OpenAI API via requests
+                openai_messages = [{'role': 'system', 'content': system_prompt}]
+                for msg in conversation_messages:
+                    openai_messages.append({'role': msg['role'], 'content': msg['content']})
+
+                response = requests.post(
+                    'https://api.openai.com/v1/chat/completions',
+                    headers={
+                        'Authorization': f'Bearer {api_key}',
+                        'Content-Type': 'application/json',
+                    },
+                    json={
+                        'model': 'gpt-4-turbo-preview',
+                        'messages': openai_messages,
+                        'temperature': 0.1,
+                        'max_tokens': 2000,
+                    },
+                    timeout=60
+                )
+                response.raise_for_status()
+                return response.json()['choices'][0]['message']['content']
 
         # User-friendly error message in Vietnamese
         FRIENDLY_ERROR_MESSAGE = (
@@ -1427,10 +1468,10 @@ Nếu câu hỏi không rõ ràng hoặc không liên quan đến dữ liệu h�
                 logger.info(f"AI query attempt {attempt + 1}/{MAX_RETRIES} for query: {query[:100]}...")
 
                 try:
-                    claude_response = call_claude(system_prompt, conversation)
-                    ai_content = claude_response.content[0].text
+                    ai_content = call_ai(system_prompt, conversation)
                 except Exception as api_error:
-                    logger.error(f"Claude API error: {api_error}")
+                    provider = 'Claude' if use_claude else 'OpenAI'
+                    logger.error(f"{provider} API error: {api_error}")
                     return Response(
                         {'error': 'AI service temporarily unavailable'},
                         status=status.HTTP_503_SERVICE_UNAVAILABLE

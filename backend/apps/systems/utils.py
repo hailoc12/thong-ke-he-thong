@@ -32,9 +32,8 @@ CONDITIONAL_FIELDS_MAP: Dict[str, str] = {
 
 # Special logic for is_go_live and go_live_date fields:
 # - If is_go_live is None: Don't count either field (system not yet updated)
-# - If is_go_live is not None (True or False): Count both fields
-#   - is_go_live counts as filled (since it's not None)
-#   - go_live_date must be filled to count as filled
+# - If is_go_live is True: Count both fields (is_go_live filled, go_live_date required)
+# - If is_go_live is False: Only count is_go_live as filled (go_live_date not applicable)
 GO_LIVE_FIELDS_LOGIC = True  # Flag to enable special handling
 
 
@@ -157,18 +156,22 @@ def calculate_system_completion_percentage(system_instance: Any) -> float:
 
     # Special handling for is_go_live and go_live_date
     # - If is_go_live is None: Don't count either field
-    # - If is_go_live is not None: Count both fields (is_go_live filled, check go_live_date)
+    # - If is_go_live is True: Count both fields (is_go_live filled, go_live_date required)
+    # - If is_go_live is False: Only count is_go_live (go_live_date not applicable)
     try:
         is_go_live_value = getattr(system_instance, 'is_go_live', None)
         if is_go_live_value is not None:
-            # is_go_live has been set (True or False), count both fields
-            total_required_fields += 2  # is_go_live and go_live_date
+            # is_go_live has been set
+            total_required_fields += 1  # is_go_live
             filled_fields += 1  # is_go_live is filled (not None)
 
-            # Check if go_live_date is filled
-            go_live_date_value = getattr(system_instance, 'go_live_date', None)
-            if is_field_filled(go_live_date_value):
-                filled_fields += 1
+            if is_go_live_value is True:
+                # System has gone live, go_live_date is required
+                total_required_fields += 1  # go_live_date
+                go_live_date_value = getattr(system_instance, 'go_live_date', None)
+                if is_field_filled(go_live_date_value):
+                    filled_fields += 1
+            # If is_go_live is False, don't count go_live_date (not applicable)
     except AttributeError:
         pass
 
@@ -257,14 +260,16 @@ def get_incomplete_fields(system_instance: Any) -> List[str]:
 
     # Special handling for is_go_live and go_live_date
     # - If is_go_live is None: Don't report either field as incomplete
-    # - If is_go_live is not None: go_live_date is required
+    # - If is_go_live is True: go_live_date is required
+    # - If is_go_live is False: go_live_date is not required (not applicable)
     try:
         is_go_live_value = getattr(system_instance, 'is_go_live', None)
-        if is_go_live_value is not None:
-            # is_go_live has been set, check if go_live_date is filled
+        if is_go_live_value is True:
+            # System has gone live, go_live_date is required
             go_live_date_value = getattr(system_instance, 'go_live_date', None)
             if not is_field_filled(go_live_date_value):
                 incomplete.append('go_live_date')
+        # If is_go_live is None or False, don't report go_live_date as incomplete
     except AttributeError:
         pass
 
@@ -334,14 +339,17 @@ def get_tab_completion_status(system_instance: Any) -> Dict[str, Dict[str, Any]]
             try:
                 is_go_live_value = getattr(system_instance, 'is_go_live', None)
                 if is_go_live_value is not None:
-                    # is_go_live has been set, count both fields
-                    total_required += 2  # is_go_live and go_live_date
+                    # is_go_live has been set
+                    total_required += 1  # is_go_live
                     filled_count += 1  # is_go_live is filled (not None)
 
-                    # Check if go_live_date is filled
-                    go_live_date_value = getattr(system_instance, 'go_live_date', None)
-                    if is_field_filled(go_live_date_value):
-                        filled_count += 1
+                    if is_go_live_value is True:
+                        # System has gone live, go_live_date is required
+                        total_required += 1  # go_live_date
+                        go_live_date_value = getattr(system_instance, 'go_live_date', None)
+                        if is_field_filled(go_live_date_value):
+                            filled_count += 1
+                    # If is_go_live is False, don't count go_live_date
             except AttributeError:
                 pass
 

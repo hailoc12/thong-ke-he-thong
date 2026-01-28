@@ -1437,9 +1437,9 @@ const StrategicDashboard = () => {
                     <Space wrap size={[6, 6]}>
                       <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Thử hỏi:</Text>
                       {[
-                        'Tổng số hệ thống?',
-                        'Đơn vị nào có nhiều nhất?',
-                        'Bao nhiêu hệ thống dùng Cloud?',
+                        'Có bao nhiêu hệ thống?',
+                        'Hệ thống nào cần nâng cấp?',
+                        'Tổng dung lượng CSDL?',
                       ].map((q, i) => (
                         <Tag
                           key={i}
@@ -3206,8 +3206,41 @@ const StrategicDashboard = () => {
                             />
                           ) : (
                             <Space direction="vertical" style={{ width: '100%' }} size={16}>
-                              {/* Thinking Block - Collapsible */}
-                              {aiQueryResponse.thinking && (
+                              {/* AI Planning Tasks - Always visible */}
+                              {aiQueryResponse.thinking?.tasks && aiQueryResponse.thinking.tasks.length > 0 && (
+                                <div style={{
+                                  padding: '12px 16px',
+                                  background: 'linear-gradient(135deg, #f6ffed 0%, #e6fffb 50%, #f0f5ff 100%)',
+                                  borderRadius: 10,
+                                  border: '1px solid #b7eb8f',
+                                }}>
+                                  <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 16 }} />
+                                    <Text strong style={{ fontSize: 13, color: '#389e0d' }}>
+                                      AI đã phân tích qua {aiQueryResponse.thinking.tasks.length} bước:
+                                    </Text>
+                                  </div>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                    {aiQueryResponse.thinking.tasks.map((task, idx) => (
+                                      <Tag
+                                        key={task.id}
+                                        color="green"
+                                        style={{
+                                          borderRadius: 12,
+                                          padding: '4px 10px',
+                                          fontSize: 12,
+                                        }}
+                                      >
+                                        <CheckCircleOutlined style={{ marginRight: 4 }} />
+                                        {idx + 1}. {task.name}
+                                      </Tag>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Thinking Details - Collapsible */}
+                              {aiQueryResponse.thinking && (aiQueryResponse.thinking.plan || (aiQueryResponse.thinking.sql_queries && aiQueryResponse.thinking.sql_queries.length > 0)) && (
                                 <Collapse
                                   size="small"
                                   ghost
@@ -3220,12 +3253,7 @@ const StrategicDashboard = () => {
                                     header={
                                       <Space>
                                         <BulbOutlined style={{ color: '#faad14' }} />
-                                        <Text type="secondary">AI đang suy nghĩ...</Text>
-                                        {aiQueryResponse.thinking.tasks && (
-                                          <Tag color="green" style={{ marginLeft: 8 }}>
-                                            {aiQueryResponse.thinking.tasks.filter(t => t.status === 'completed').length}/{aiQueryResponse.thinking.tasks.length} hoàn thành
-                                          </Tag>
-                                        )}
+                                        <Text type="secondary">Chi tiết phân tích (kế hoạch & SQL)</Text>
                                       </Space>
                                     }
                                     key="thinking"
@@ -3236,35 +3264,6 @@ const StrategicDashboard = () => {
                                         <div style={{ padding: '8px 12px', background: '#fff7e6', borderRadius: 6 }}>
                                           <Text type="secondary" style={{ fontSize: 12 }}>Kế hoạch: </Text>
                                           <Text style={{ fontSize: 13 }}>{aiQueryResponse.thinking.plan}</Text>
-                                        </div>
-                                      )}
-
-                                      {/* Task Checklist with strikethrough */}
-                                      {aiQueryResponse.thinking.tasks && aiQueryResponse.thinking.tasks.length > 0 && (
-                                        <div style={{ padding: '10px 12px', background: '#f6ffed', borderRadius: 6, border: '1px solid #d9f7be' }}>
-                                          <Text strong style={{ fontSize: 12, marginBottom: 10, display: 'block', color: '#389e0d' }}>
-                                            ✓ Các bước đã thực hiện:
-                                          </Text>
-                                          {aiQueryResponse.thinking.tasks.map((task) => (
-                                            <div key={task.id} style={{ display: 'flex', alignItems: 'center', marginBottom: 6, paddingLeft: 4 }}>
-                                              {task.status === 'completed' ? (
-                                                <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8, fontSize: 14 }} />
-                                              ) : task.status === 'in_progress' ? (
-                                                <SyncOutlined spin style={{ color: '#1890ff', marginRight: 8, fontSize: 14 }} />
-                                              ) : (
-                                                <ClockCircleOutlined style={{ color: '#d9d9d9', marginRight: 8, fontSize: 14 }} />
-                                              )}
-                                              <Text
-                                                style={{
-                                                  fontSize: 13,
-                                                  textDecoration: task.status === 'completed' ? 'line-through' : 'none',
-                                                  color: task.status === 'completed' ? '#8c8c8c' : '#262626',
-                                                }}
-                                              >
-                                                {task.name}
-                                              </Text>
-                                            </div>
-                                          ))}
                                         </div>
                                       )}
 

@@ -541,12 +541,7 @@ const StrategicDashboard = () => {
         });
       }
 
-      if (data.recommendation_distribution.replace > 0) {
-        newAlerts.push({
-          type: 'critical',
-          message: `${data.recommendation_distribution.replace} hệ thống cần thay thế`,
-        });
-      }
+      // Removed: "hệ thống cần thay thế" alert - not needed in AI section
 
       if (data.recommendation_distribution.unknown > 50) {
         newAlerts.push({

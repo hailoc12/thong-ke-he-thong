@@ -1480,6 +1480,8 @@ KHÔNG dùng: "Phân tích yêu cầu", "Xây dựng SQL", "Tổng hợp kết q
 4. Join qua system_id (primary key và foreign key của các bảng one-to-one)
 5. Chỉ SELECT queries, KHÔNG UPDATE/DELETE/DROP/INSERT
 6. LUÔN trả về JSON hợp lệ
+7. **QUAN TRỌNG**: Khi query liệt kê hệ thống, LUÔN bao gồm s.system_name (tên hệ thống) trong SELECT, KHÔNG chỉ trả về id
+8. Khi query liên quan đến đơn vị, LUÔN bao gồm o.name (tên đơn vị) thay vì chỉ org_id
 
 === DATA TYPES ===
 - performance_rating: INTEGER (1-5)

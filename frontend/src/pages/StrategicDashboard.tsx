@@ -376,7 +376,7 @@ type AIProcessingPhase = 'idle' | 'working' | 'complete';
 // Tasks to be added progressively (with delays between each)
 const PROGRESSIVE_TASKS = [
   { id: 1, name: 'Phân tích yêu cầu', delay: 0 },
-  { id: 2, name: 'Xây dựng truy vấn SQL', delay: 800 },
+  { id: 2, name: 'Xây dựng truy vấn', delay: 800 },
   { id: 3, name: 'Thực thi truy vấn', delay: 1200 },
   { id: 4, name: 'Phân tích kết quả', delay: 1000 },
   { id: 5, name: 'Tổng hợp báo cáo', delay: 800 },
@@ -453,6 +453,9 @@ const StrategicDashboard = () => {
   const [aiQueryLoading, setAiQueryLoading] = useState(false);
   const [aiQueryResponse, setAiQueryResponse] = useState<AIQueryResponse | null>(null);
   const [aiQueryHistory, setAiQueryHistory] = useState<string[]>([]);
+  const [dataModalVisible, setDataModalVisible] = useState(false);
+  const [dataCurrentPage, setDataCurrentPage] = useState(1);
+  const DATA_PAGE_SIZE = 10;
 
   // Progressive AI loading state (Claude Code style)
   const [aiProcessingPhase, setAiProcessingPhase] = useState<AIProcessingPhase>('idle');
@@ -1551,42 +1554,42 @@ const StrategicDashboard = () => {
                             />
                           ) : (
                             <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                              {/* Thinking Block - Compact for chat bubble */}
-                              {/* Thinking Block - Task Checklist */}
-                              {aiQueryResponse.thinking && aiQueryResponse.thinking.tasks && aiQueryResponse.thinking.tasks.length > 0 && (
+                              {/* AI Planning Tasks - Green Tags Style */}
+                              {aiQueryResponse.thinking?.tasks && aiQueryResponse.thinking.tasks.length > 0 && (
                                 <div style={{
-                                  background: '#fafafa',
-                                  borderRadius: 8,
                                   padding: '10px 12px',
+                                  background: 'linear-gradient(135deg, #f6ffed 0%, #e6fffb 50%, #f0f5ff 100%)',
+                                  borderRadius: 8,
+                                  border: '1px solid #b7eb8f',
                                   marginBottom: 8,
-                                  border: '1px solid #f0f0f0',
                                 }}>
-                                  <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 6 }}>
-                                    <BulbOutlined style={{ marginRight: 4, color: '#faad14' }} />
-                                    AI đã thực hiện:
-                                  </Text>
-                                  {aiQueryResponse.thinking.tasks.map((task, idx) => (
-                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', marginBottom: 3 }}>
-                                      {task.status === 'completed' ? (
-                                        <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 6, fontSize: 12 }} />
-                                      ) : (
-                                        <ClockCircleOutlined style={{ color: '#faad14', marginRight: 6, fontSize: 12 }} />
-                                      )}
-                                      <Text
+                                  <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 14 }} />
+                                    <Text strong style={{ fontSize: 12, color: '#389e0d' }}>
+                                      AI đã phân tích qua {aiQueryResponse.thinking.tasks.length} bước:
+                                    </Text>
+                                  </div>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                    {aiQueryResponse.thinking.tasks.map((task, idx) => (
+                                      <Tag
+                                        key={task.id}
+                                        color="green"
                                         style={{
-                                          fontSize: 12,
-                                          textDecoration: task.status === 'completed' ? 'line-through' : 'none',
-                                          color: task.status === 'completed' ? '#8c8c8c' : '#262626',
+                                          borderRadius: 10,
+                                          padding: '2px 8px',
+                                          fontSize: 11,
+                                          margin: 0,
                                         }}
                                       >
-                                        {task.name}
-                                      </Text>
-                                    </div>
-                                  ))}
+                                        <CheckCircleOutlined style={{ marginRight: 3, fontSize: 10 }} />
+                                        {idx + 1}. {task.name}
+                                      </Tag>
+                                    ))}
+                                  </div>
                                 </div>
                               )}
 
-                              {/* Main Answer - Highlighted */}
+                              {/* Main Answer - Highlighted with Markdown */}
                               <div style={{
                                 background: 'linear-gradient(135deg, #f6ffed 0%, #e6fffb 100%)',
                                 borderRadius: 10,
@@ -1599,14 +1602,29 @@ const StrategicDashboard = () => {
                                     {aiQueryResponse.response.greeting}
                                   </Text>
                                 )}
-                                <Text style={{ fontSize: 15, lineHeight: 1.6 }}>
-                                  {aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả'}
-                                </Text>
+                                {/* Main Answer with Markdown rendering */}
+                                <div style={{ fontSize: 15, lineHeight: 1.8 }} className="ai-markdown-content">
+                                  <ReactMarkdown
+                                    components={{
+                                      strong: ({ children }) => (
+                                        <Text strong style={{ color: '#1890ff', fontSize: 'inherit' }}>{children}</Text>
+                                      ),
+                                      em: ({ children }) => (
+                                        <Text italic style={{ fontSize: 'inherit' }}>{children}</Text>
+                                      ),
+                                      p: ({ children }) => (
+                                        <p style={{ margin: '4px 0' }}>{children}</p>
+                                      ),
+                                    }}
+                                  >
+                                    {aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả'}
+                                  </ReactMarkdown>
+                                </div>
                                 {/* Details */}
                                 {aiQueryResponse.response?.details && (
-                                  <Text type="secondary" style={{ fontSize: 13, display: 'block', marginTop: 8 }}>
-                                    {aiQueryResponse.response.details}
-                                  </Text>
+                                  <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
+                                    <Text type="secondary" style={{ fontSize: 13 }}>{aiQueryResponse.response.details}</Text>
+                                  </div>
                                 )}
                               </div>
 
@@ -1647,30 +1665,65 @@ const StrategicDashboard = () => {
                                         const chartConfig = aiQueryResponse.response?.chart_config;
                                         const columns = aiQueryResponse.data!.columns;
 
-                                        // Smart label detection: use x_field from config, or first string column, or first column
+                                        // Smart label detection: prioritize name columns over IDs
                                         let label = '';
                                         if (chartConfig?.x_field && row[chartConfig.x_field] !== undefined) {
                                           label = String(row[chartConfig.x_field]);
                                         } else {
-                                          // Find first string column for label
-                                          const stringCol = columns.find(col => typeof row[col] === 'string');
-                                          const nameCol = columns.find(col => col.toLowerCase().includes('name') || col.toLowerCase().includes('ten'));
-                                          label = row[nameCol || stringCol || columns[0]] || `Dòng ${idx + 1}`;
+                                          // Priority order for label columns (most specific to least)
+                                          const labelPriority = [
+                                            'system_name', 'tên hệ thống', 'ten_he_thong',
+                                            'name', 'tên', 'ten',
+                                            'org_name', 'tên đơn vị', 'ten_don_vi',
+                                            'title', 'tiêu đề'
+                                          ];
+
+                                          // Find best matching column for label
+                                          let labelCol = columns.find(col =>
+                                            labelPriority.some(p => col.toLowerCase().includes(p))
+                                          );
+
+                                          // If no name column, find first string column (but not 'id' columns)
+                                          if (!labelCol) {
+                                            labelCol = columns.find(col =>
+                                              typeof row[col] === 'string' &&
+                                              !col.toLowerCase().includes('id') &&
+                                              !col.toLowerCase().includes('code')
+                                            );
+                                          }
+
+                                          // Fall back to first column if nothing else works
+                                          if (!labelCol) {
+                                            labelCol = columns[0];
+                                          }
+
+                                          label = row[labelCol] || `Dòng ${idx + 1}`;
                                         }
 
-                                        // Smart value detection: use y_field from config, or first numeric column
+                                        // Smart value detection: use y_field from config, or first numeric column (but not 'id')
                                         let numericValue: number | undefined;
                                         if (chartConfig?.y_field && typeof row[chartConfig.y_field] === 'number') {
                                           numericValue = row[chartConfig.y_field];
                                         } else {
-                                          // Find first numeric column
-                                          const numCol = columns.find(col => typeof row[col] === 'number');
+                                          // Find first numeric column that's not an ID
+                                          const numCol = columns.find(col =>
+                                            typeof row[col] === 'number' &&
+                                            !col.toLowerCase().includes('id')
+                                          );
                                           numericValue = numCol ? row[numCol] : undefined;
                                         }
 
+                                        // Calculate max value excluding ID columns
                                         const maxVal = Math.max(...aiQueryResponse.data!.rows.slice(0, 5).map((r: any) => {
                                           if (chartConfig?.y_field) return r[chartConfig.y_field] || 0;
-                                          return Math.max(...Object.values(r).filter((v): v is number => typeof v === 'number'), 0);
+                                          // Get numeric values except from ID columns
+                                          const numericValues = Object.entries(r)
+                                            .filter(([key, val]) =>
+                                              typeof val === 'number' &&
+                                              !key.toLowerCase().includes('id')
+                                            )
+                                            .map(([, val]) => val as number);
+                                          return numericValues.length > 0 ? Math.max(...numericValues) : 0;
                                         }), 1);
                                         const unit = chartConfig?.unit || '';
 
@@ -1724,12 +1777,16 @@ const StrategicDashboard = () => {
 
                                       {aiQueryResponse.data.rows.length > 5 && (
                                         <Button
-                                          type="link"
+                                          type="primary"
                                           size="small"
-                                          onClick={() => setActiveTab('insights')}
-                                          style={{ padding: 0, marginTop: 8 }}
+                                          onClick={() => {
+                                            setDataCurrentPage(1);
+                                            setDataModalVisible(true);
+                                          }}
+                                          style={{ marginTop: 8, borderRadius: 16 }}
+                                          icon={<EyeOutlined />}
                                         >
-                                          Xem đầy đủ {aiQueryResponse.data.total_rows} kết quả →
+                                          Xem đầy đủ {aiQueryResponse.data.total_rows} kết quả
                                         </Button>
                                       )}
                                     </>
@@ -3693,6 +3750,86 @@ const StrategicDashboard = () => {
           rowKey="id"
           scroll={{ x: 800 }}
         />
+      </Modal>
+
+      {/* AI Data Full View Modal */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <DatabaseOutlined style={{ color: '#722ed1' }} />
+            <span>Kết quả truy vấn AI ({aiQueryResponse?.data?.total_rows || 0} kết quả)</span>
+          </div>
+        }
+        open={dataModalVisible}
+        onCancel={() => setDataModalVisible(false)}
+        width={900}
+        footer={[
+          <Button key="close" onClick={() => setDataModalVisible(false)}>
+            Đóng
+          </Button>,
+        ]}
+      >
+        {aiQueryResponse?.data && (
+          <>
+            {/* Data Table with Pagination */}
+            <Table
+              dataSource={aiQueryResponse.data.rows.map((row, idx) => ({
+                key: idx,
+                ...row,
+              }))}
+              columns={aiQueryResponse.data.columns.map(col => {
+                // Check if this column is a system name column
+                const isSystemNameCol = ['name', 'system_name', 'tên hệ thống', 'ten_he_thong', 'hệ thống'].includes(col.toLowerCase());
+                const hasIdColumn = aiQueryResponse.data?.columns.some(c =>
+                  ['id', 'system_id', 'ma_he_thong'].includes(c.toLowerCase())
+                );
+
+                return {
+                  title: col,
+                  dataIndex: col,
+                  key: col,
+                  ellipsis: true,
+                  render: (text: any, record: any) => {
+                    // Make system names clickable
+                    if (isSystemNameCol && text && hasIdColumn) {
+                      const idCol = aiQueryResponse.data?.columns.find(c =>
+                        ['id', 'system_id', 'ma_he_thong'].includes(c.toLowerCase())
+                      );
+                      const systemId = idCol ? record[idCol] : null;
+                      if (systemId) {
+                        return (
+                          <a
+                            href={`/systems/${systemId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: '#1890ff' }}
+                          >
+                            {text}
+                          </a>
+                        );
+                      }
+                    }
+                    // Format numbers
+                    if (typeof text === 'number') {
+                      return text.toLocaleString();
+                    }
+                    return text ?? '-';
+                  },
+                };
+              })}
+              pagination={{
+                current: dataCurrentPage,
+                pageSize: DATA_PAGE_SIZE,
+                total: aiQueryResponse.data.rows.length,
+                onChange: (page) => setDataCurrentPage(page),
+                showSizeChanger: false,
+                showTotal: (total, range) => `${range[0]}-${range[1]} / ${total} kết quả`,
+              }}
+              size="small"
+              scroll={{ x: 800 }}
+            />
+          </>
+        )}
       </Modal>
     </div>
   );

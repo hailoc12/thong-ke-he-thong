@@ -1455,8 +1455,8 @@ GROUP BY o.id, o.name;
     "thinking": {{
         "plan": "Mô tả ngắn gọn kế hoạch phân tích...",
         "tasks": [
-            {{"id": 1, "name": "Tên task mô tả ngắn", "status": "completed"}},
-            {{"id": 2, "name": "Tên task mô tả ngắn", "status": "completed"}}
+            {{"id": 1, "name": "Task cụ thể liên quan đến câu hỏi", "status": "completed"}},
+            {{"id": 2, "name": "Task cụ thể khác", "status": "completed"}}
         ],
         "sql_queries": ["SELECT ..."]
     }},
@@ -1464,6 +1464,14 @@ GROUP BY o.id, o.name;
     "chart_type": "bar|pie|table|number",
     "chart_config": {{"x_field": "tên cột", "y_field": "tên cột", "title": "Tiêu đề", "unit": "đơn vị"}}
 }}
+
+=== QUY TẮC TẠO TASKS (QUAN TRỌNG) ===
+Tasks phải CỤ THỂ và LIÊN QUAN TRỰC TIẾP đến câu hỏi. KHÔNG dùng tasks chung chung.
+Ví dụ:
+- Câu hỏi "Có bao nhiêu hệ thống?" → Tasks: "Đếm tổng số hệ thống", "Loại bỏ hệ thống đã xóa"
+- Câu hỏi "Dung lượng CSDL?" → Tasks: "Lấy thông tin database", "Tính tổng dung lượng GB"
+- Câu hỏi "Đơn vị nào có nhiều hệ thống?" → Tasks: "Group by đơn vị", "Sắp xếp theo số lượng"
+KHÔNG dùng: "Phân tích yêu cầu", "Xây dựng SQL", "Tổng hợp kết quả" (quá chung chung)
 
 === QUY TẮC SQL ===
 1. LUÔN lọc is_deleted = false khi query bảng systems

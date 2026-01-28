@@ -80,6 +80,7 @@ import {
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
 import * as XLSX from 'xlsx';
+import ReactMarkdown from 'react-markdown';
 import api from '../config/api';
 import { shadows, borderRadius, spacing } from '../theme/tokens';
 
@@ -568,8 +569,17 @@ const StrategicDashboard = () => {
       // Wait a bit for simulation to settle
       await simulationPromise;
 
-      // Mark all current tasks as complete
-      setAiProgressTasks(prev => prev.map(t => ({ ...t, status: 'completed' as const })));
+      // Replace simulated tasks with actual AI planning tasks if available
+      if (response.data.thinking?.tasks && response.data.thinking.tasks.length > 0) {
+        // Use actual AI tasks - mark all as completed
+        setAiProgressTasks(response.data.thinking.tasks.map((t: AIThinkingTask) => ({
+          ...t,
+          status: 'completed' as const
+        })));
+      } else {
+        // Fallback: mark simulated tasks as complete
+        setAiProgressTasks(prev => prev.map(t => ({ ...t, status: 'completed' as const })));
+      }
       setAiProcessingPhase('complete');
 
       // Small delay before showing result
@@ -1634,11 +1644,11 @@ const StrategicDashboard = () => {
                                 </div>
                               )}
 
-                              {/* Follow-up Suggestions - Dynamic from AI or default */}
+                              {/* Follow-up Suggestions - Truncated & Auto-send */}
                               <div>
                                 <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
                                   <QuestionCircleOutlined style={{ marginRight: 6, color: '#722ed1' }} />
-                                  Câu hỏi gợi ý:
+                                  Câu hỏi gợi ý (nhấn để hỏi):
                                 </Text>
                                 <Space wrap size={[6, 6]}>
                                   {(aiQueryResponse.response?.follow_up_suggestions && aiQueryResponse.response.follow_up_suggestions.length > 0
@@ -1648,22 +1658,40 @@ const StrategicDashboard = () => {
                                         'Đơn vị nào có rủi ro CNTT cao?',
                                         'Hiệu quả đầu tư CNTT của các đơn vị?',
                                       ]
-                                  ).map((suggestion, idx) => (
-                                    <Tag
-                                      key={idx}
-                                      style={{
-                                        cursor: 'pointer',
-                                        borderRadius: 12,
-                                        padding: '4px 12px',
-                                        background: '#f9f0ff',
-                                        borderColor: '#d3adf7',
-                                        color: '#722ed1',
-                                      }}
-                                      onClick={() => setAiQuery(suggestion)}
-                                    >
-                                      {suggestion}
-                                    </Tag>
-                                  ))}
+                                  ).map((suggestion, idx) => {
+                                    // Truncate long suggestions (max 40 chars)
+                                    const truncated = suggestion.length > 40
+                                      ? suggestion.substring(0, 40) + '...'
+                                      : suggestion;
+                                    return (
+                                      <Tag
+                                        key={idx}
+                                        title={suggestion} // Full text on hover
+                                        style={{
+                                          cursor: 'pointer',
+                                          borderRadius: 12,
+                                          padding: '4px 12px',
+                                          background: '#f9f0ff',
+                                          borderColor: '#d3adf7',
+                                          color: '#722ed1',
+                                          maxWidth: 200,
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                        }}
+                                        onClick={() => {
+                                          // Auto-send on click
+                                          setAiQuery(suggestion);
+                                          setTimeout(() => {
+                                            const submitButton = document.querySelector('.ai-submit-btn') as HTMLButtonElement;
+                                            if (submitButton) submitButton.click();
+                                          }, 100);
+                                        }}
+                                      >
+                                        {truncated}
+                                      </Tag>
+                                    );
+                                  })}
                                 </Space>
                               </div>
                             </Space>
@@ -2925,6 +2953,7 @@ const StrategicDashboard = () => {
                           icon={<SendOutlined />}
                           loading={aiQueryLoading}
                           onClick={handleAIQuery}
+                          className="ai-submit-btn"
                           style={{ background: '#722ed1', borderColor: '#722ed1' }}
                         >
                           Hỏi AI
@@ -3129,22 +3158,50 @@ const StrategicDashboard = () => {
                                         </div>
                                       )}
 
-                                      {/* SQL Queries */}
+                                      {/* SQL Queries - Collapsed by default with better explanation */}
                                       {aiQueryResponse.thinking.sql_queries && aiQueryResponse.thinking.sql_queries.length > 0 && (
-                                        <Collapse size="small" ghost>
-                                          <Panel header={<Text type="secondary" style={{ fontSize: 12 }}>SQL Queries ({aiQueryResponse.thinking.sql_queries.length})</Text>} key="sql">
-                                            {aiQueryResponse.thinking.sql_queries.map((sql, idx) => (
-                                              <pre key={idx} style={{
-                                                background: '#282c34',
-                                                color: '#abb2bf',
-                                                padding: '8px',
-                                                borderRadius: '6px',
-                                                overflow: 'auto',
-                                                fontSize: '11px',
-                                                marginBottom: 8,
-                                              }}>
-                                                {sql}
-                                              </pre>
+                                        <Collapse
+                                          size="small"
+                                          ghost
+                                          defaultActiveKey={[]} // Collapsed by default
+                                        >
+                                          <Panel
+                                            header={
+                                              <Space>
+                                                <CodeOutlined style={{ color: '#1890ff' }} />
+                                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                                  Xem truy vấn SQL đã sử dụng ({aiQueryResponse.thinking.sql_queries.length})
+                                                </Text>
+                                              </Space>
+                                            }
+                                            key="sql"
+                                          >
+                                            <div style={{ marginBottom: 8 }}>
+                                              <Text type="secondary" style={{ fontSize: 11, fontStyle: 'italic' }}>
+                                                💡 AI đã tạo và thực thi truy vấn SQL dưới đây để lấy dữ liệu từ CSDL hệ thống.
+                                              </Text>
+                                            </div>
+                                            {aiQueryResponse.thinking?.sql_queries?.map((sql, idx) => (
+                                              <div key={idx}>
+                                                {(aiQueryResponse.thinking?.sql_queries?.length ?? 0) > 1 && (
+                                                  <Text strong style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>
+                                                    Query #{idx + 1}:
+                                                  </Text>
+                                                )}
+                                                <pre style={{
+                                                  background: '#282c34',
+                                                  color: '#abb2bf',
+                                                  padding: '10px',
+                                                  borderRadius: '6px',
+                                                  overflow: 'auto',
+                                                  fontSize: '11px',
+                                                  marginBottom: 8,
+                                                  whiteSpace: 'pre-wrap',
+                                                  wordBreak: 'break-word',
+                                                }}>
+                                                  {sql}
+                                                </pre>
+                                              </div>
                                             ))}
                                           </Panel>
                                         </Collapse>
@@ -3168,10 +3225,24 @@ const StrategicDashboard = () => {
                                   </Text>
                                 )}
 
-                                {/* Main Answer */}
-                                <Text style={{ fontSize: 15, lineHeight: 1.8, display: 'block' }}>
-                                  {aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả'}
-                                </Text>
+                                {/* Main Answer with Markdown rendering */}
+                                <div style={{ fontSize: 15, lineHeight: 1.8 }} className="ai-markdown-content">
+                                  <ReactMarkdown
+                                    components={{
+                                      strong: ({ children }) => (
+                                        <Text strong style={{ color: '#1890ff', fontSize: 'inherit' }}>{children}</Text>
+                                      ),
+                                      em: ({ children }) => (
+                                        <Text italic style={{ fontSize: 'inherit' }}>{children}</Text>
+                                      ),
+                                      p: ({ children }) => (
+                                        <p style={{ margin: '4px 0' }}>{children}</p>
+                                      ),
+                                    }}
+                                  >
+                                    {aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả'}
+                                  </ReactMarkdown>
+                                </div>
 
                                 {/* Details */}
                                 {aiQueryResponse.response?.details && (
@@ -3181,19 +3252,56 @@ const StrategicDashboard = () => {
                                 )}
                               </div>
 
-                              {/* Data Table with better styling */}
+                              {/* Data Table with clickable system names */}
                               {aiQueryResponse.data && aiQueryResponse.data.rows.length > 0 && (
                                 <Table
                                   dataSource={aiQueryResponse.data.rows.map((row, idx) => ({
                                     key: idx,
                                     ...row,
                                   }))}
-                                  columns={aiQueryResponse.data.columns.map(col => ({
-                                    title: col,
-                                    dataIndex: col,
-                                    key: col,
-                                    ellipsis: true,
-                                  }))}
+                                  columns={aiQueryResponse.data.columns.map(col => {
+                                    // Check if this column is a system name column
+                                    const isSystemNameCol = ['name', 'system_name', 'tên hệ thống', 'ten_he_thong', 'hệ thống'].includes(col.toLowerCase());
+                                    // Check if data has ID column for linking
+                                    const hasIdColumn = aiQueryResponse.data?.columns.some(c =>
+                                      ['id', 'system_id', 'ma_he_thong'].includes(c.toLowerCase())
+                                    );
+
+                                    if (isSystemNameCol && hasIdColumn) {
+                                      return {
+                                        title: col,
+                                        dataIndex: col,
+                                        key: col,
+                                        ellipsis: true,
+                                        render: (text: string, record: Record<string, any>) => {
+                                          // Find ID from record
+                                          const systemId = record.id || record.system_id || record.ma_he_thong;
+                                          if (systemId) {
+                                            return (
+                                              <a
+                                                href={`/systems/${systemId}`}
+                                                style={{ color: '#1890ff' }}
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  window.open(`/systems/${systemId}`, '_blank');
+                                                }}
+                                              >
+                                                {text}
+                                              </a>
+                                            );
+                                          }
+                                          return text;
+                                        },
+                                      };
+                                    }
+
+                                    return {
+                                      title: col,
+                                      dataIndex: col,
+                                      key: col,
+                                      ellipsis: true,
+                                    };
+                                  })}
                                   pagination={{ pageSize: 5 }}
                                   size="small"
                                   scroll={{ x: 'max-content' }}
@@ -3208,7 +3316,7 @@ const StrategicDashboard = () => {
                                 </Text>
                               )}
 
-                              {/* Follow-up Suggestions */}
+                              {/* Follow-up Suggestions - Truncated & Auto-send */}
                               {aiQueryResponse.response?.follow_up_suggestions && aiQueryResponse.response.follow_up_suggestions.length > 0 && (
                                 <div style={{
                                   padding: '12px',
@@ -3218,27 +3326,44 @@ const StrategicDashboard = () => {
                                 }}>
                                   <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
                                     <QuestionCircleOutlined style={{ marginRight: 6 }} />
-                                    Câu hỏi gợi ý:
+                                    Câu hỏi gợi ý (nhấn để hỏi):
                                   </Text>
-                                  <Space wrap>
-                                    {aiQueryResponse.response.follow_up_suggestions.map((suggestion, idx) => (
-                                      <Button
-                                        key={idx}
-                                        size="small"
-                                        type="dashed"
-                                        style={{
-                                          borderRadius: 16,
-                                          fontSize: 12,
-                                          color: '#722ed1',
-                                          borderColor: '#d3adf7',
-                                        }}
-                                        onClick={() => {
-                                          setAiQuery(suggestion);
-                                        }}
-                                      >
-                                        {suggestion}
-                                      </Button>
-                                    ))}
+                                  <Space wrap size={[6, 6]}>
+                                    {aiQueryResponse.response.follow_up_suggestions.map((suggestion, idx) => {
+                                      // Truncate long suggestions (max 40 chars)
+                                      const truncated = suggestion.length > 40
+                                        ? suggestion.substring(0, 40) + '...'
+                                        : suggestion;
+                                      return (
+                                        <Button
+                                          key={idx}
+                                          size="small"
+                                          type="dashed"
+                                          title={suggestion} // Full text on hover
+                                          style={{
+                                            borderRadius: 16,
+                                            fontSize: 12,
+                                            color: '#722ed1',
+                                            borderColor: '#d3adf7',
+                                            maxWidth: 200,
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                          }}
+                                          onClick={() => {
+                                            // Auto-send: set query and trigger immediately
+                                            setAiQuery(suggestion);
+                                            // Use setTimeout to ensure state is updated
+                                            setTimeout(() => {
+                                              const submitButton = document.querySelector('.ai-submit-btn') as HTMLButtonElement;
+                                              if (submitButton) submitButton.click();
+                                            }, 100);
+                                          }}
+                                        >
+                                          {truncated}
+                                        </Button>
+                                      );
+                                    })}
                                   </Space>
                                 </div>
                               )}

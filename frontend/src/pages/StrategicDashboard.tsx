@@ -85,6 +85,85 @@ import { shadows, borderRadius, spacing } from '../theme/tokens';
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
 
+// CSS Animations for AI Card
+const aiCardStyles = `
+@keyframes gradientAnimation {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(114, 46, 209, 0.4), 0 0 40px rgba(114, 46, 209, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(114, 46, 209, 0.6), 0 0 60px rgba(114, 46, 209, 0.3);
+  }
+}
+
+@keyframes floatAnimation {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.ai-card-animated-bg {
+  background: linear-gradient(-45deg, #667eea, #764ba2, #6B8DD6, #8E37D7);
+  background-size: 400% 400%;
+  animation: gradientAnimation 15s ease infinite;
+}
+
+.ai-avatar-glow {
+  animation: glowPulse 2s ease-in-out infinite, floatAnimation 3s ease-in-out infinite;
+}
+
+.ai-status-dot {
+  animation: dotPulse 1.5s ease-in-out infinite;
+}
+
+.ai-recommendation-card {
+  animation: slideInUp 0.4s ease-out forwards;
+}
+
+.ai-count-badge {
+  animation: countUp 0.5s ease-out forwards;
+}
+
+.ai-chat-bubble {
+  animation: slideInUp 0.3s ease-out forwards;
+}
+
+.impact-bar {
+  transition: width 0.8s ease-out;
+}
+`;
+
+// Inject styles into document
+if (typeof document !== 'undefined') {
+  const styleId = 'ai-card-styles';
+  if (!document.getElementById(styleId)) {
+    const styleSheet = document.createElement('style');
+    styleSheet.id = styleId;
+    styleSheet.textContent = aiCardStyles;
+    document.head.appendChild(styleSheet);
+  }
+}
+
 // Color schemes
 const COLORS = ['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#13c2c2', '#eb2f96'];
 const STATUS_COLORS: Record<string, string> = {
@@ -873,7 +952,7 @@ const StrategicDashboard = () => {
         </motion.div>
       )}
 
-      {/* AI Assistant Card */}
+      {/* AI Assistant Card - Hero Design */}
       {aiRecommendations.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -884,259 +963,635 @@ const StrategicDashboard = () => {
           <Card
             style={{
               borderRadius: borderRadius.lg,
-              boxShadow: shadows.md,
-              background: 'linear-gradient(135deg, #f6f8fc 0%, #eef2f7 100%)',
-              border: '1px solid #e6f4ff',
+              boxShadow: '0 10px 40px rgba(114, 46, 209, 0.15)',
+              background: 'linear-gradient(135deg, #fafbff 0%, #f0f4ff 100%)',
+              border: 'none',
+              overflow: 'hidden',
             }}
           >
-            <Row justify="space-between" align="middle" style={{ marginBottom: aiAssistantExpanded ? 16 : 0 }}>
-              <Col>
-                <Space>
-                  <div style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #1890ff 0%, #722ed1 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <RobotOutlined style={{ fontSize: 20, color: 'white' }} />
-                  </div>
-                  <div>
-                    <Title level={4} style={{ margin: 0 }}>
-                      Trợ lý ảo CDS
-                    </Title>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      <SyncOutlined spin style={{ marginRight: 4 }} />
-                      Phân tích dữ liệu và đề xuất hành động
-                    </Text>
-                  </div>
-                </Space>
-              </Col>
-              <Col>
-                <Button
-                  type="text"
-                  onClick={() => setAiAssistantExpanded(!aiAssistantExpanded)}
-                >
-                  {aiAssistantExpanded ? 'Thu gọn' : `Xem ${aiRecommendations.length} đề xuất`}
-                </Button>
-              </Col>
-            </Row>
+            {/* Hero Header with Animated Gradient */}
+            <div
+              className="ai-card-animated-bg"
+              style={{
+                margin: '-24px -24px 0 -24px',
+                padding: '20px 24px',
+                borderRadius: `${borderRadius.lg} ${borderRadius.lg} 0 0`,
+                position: 'relative',
+              }}
+            >
+              {/* Glassmorphism overlay */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(10px)',
+              }} />
+
+              <Row justify="space-between" align="middle" style={{ position: 'relative', zIndex: 1 }}>
+                <Col>
+                  <Space size={16}>
+                    {/* Floating AI Avatar with Glow */}
+                    <div
+                      className="ai-avatar-glow"
+                      style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: '50%',
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '3px solid rgba(255, 255, 255, 0.5)',
+                      }}
+                    >
+                      <RobotOutlined style={{ fontSize: 28, color: '#722ed1' }} />
+                    </div>
+                    <div>
+                      <Title level={4} style={{ margin: 0, color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+                        Trợ lý ảo CDS
+                      </Title>
+                      <Space size={8} style={{ marginTop: 4 }}>
+                        <span className="ai-status-dot" style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          background: '#52c41a',
+                          display: 'inline-block',
+                        }} />
+                        <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>
+                          AI đang hoạt động
+                        </Text>
+                        <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+                          • {aiRecommendations.length} đề xuất hành động
+                        </Text>
+                      </Space>
+                    </div>
+                  </Space>
+                </Col>
+                <Col>
+                  <Button
+                    type="default"
+                    onClick={() => setAiAssistantExpanded(!aiAssistantExpanded)}
+                    style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      borderColor: 'rgba(255,255,255,0.3)',
+                      color: 'white',
+                      fontWeight: 500,
+                    }}
+                  >
+                    {aiAssistantExpanded ? '▲ Thu gọn' : '▼ Xem chi tiết'}
+                  </Button>
+                </Col>
+              </Row>
+
+              {/* Priority Summary Badges (always visible) */}
+              <Row gutter={12} style={{ marginTop: 16, position: 'relative', zIndex: 1 }}>
+                {(() => {
+                  const criticalCount = aiRecommendations.filter(r => r.type === 'critical').length;
+                  const warningCount = aiRecommendations.filter(r => r.type === 'warning').length;
+                  const optimizationCount = aiRecommendations.filter(r => r.type === 'optimization').length;
+                  const insightCount = aiRecommendations.filter(r => r.type === 'insight').length;
+
+                  return (
+                    <>
+                      {criticalCount > 0 && (
+                        <Col>
+                          <div className="ai-count-badge" style={{
+                            background: 'rgba(245, 34, 45, 0.9)',
+                            borderRadius: 8,
+                            padding: '8px 16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}>
+                            <span style={{ fontSize: 20, fontWeight: 700, color: 'white' }}>{criticalCount}</span>
+                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>Nghiêm trọng</span>
+                          </div>
+                        </Col>
+                      )}
+                      {warningCount > 0 && (
+                        <Col>
+                          <div className="ai-count-badge" style={{
+                            background: 'rgba(250, 140, 22, 0.9)',
+                            borderRadius: 8,
+                            padding: '8px 16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}>
+                            <span style={{ fontSize: 20, fontWeight: 700, color: 'white' }}>{warningCount}</span>
+                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>Cảnh báo</span>
+                          </div>
+                        </Col>
+                      )}
+                      {optimizationCount > 0 && (
+                        <Col>
+                          <div className="ai-count-badge" style={{
+                            background: 'rgba(24, 144, 255, 0.9)',
+                            borderRadius: 8,
+                            padding: '8px 16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}>
+                            <span style={{ fontSize: 20, fontWeight: 700, color: 'white' }}>{optimizationCount}</span>
+                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>Tối ưu</span>
+                          </div>
+                        </Col>
+                      )}
+                      {insightCount > 0 && (
+                        <Col>
+                          <div className="ai-count-badge" style={{
+                            background: 'rgba(82, 196, 26, 0.9)',
+                            borderRadius: 8,
+                            padding: '8px 16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}>
+                            <span style={{ fontSize: 20, fontWeight: 700, color: 'white' }}>{insightCount}</span>
+                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>Gợi ý</span>
+                          </div>
+                        </Col>
+                      )}
+                    </>
+                  );
+                })()}
+              </Row>
+            </div>
+
+            {/* Content Area - Padding adjustment */}
+            <div style={{ paddingTop: 20 }}>
 
             {aiAssistantExpanded && (
               <div>
-                <Divider style={{ margin: '0 0 16px 0' }} />
+                {/* Enhanced Recommendation Cards */}
                 <Row gutter={[16, 16]}>
-                  {aiRecommendations.map((rec) => (
-                    <Col xs={24} lg={12} key={rec.id}>
-                      <Card
-                        size="small"
-                        hoverable={!!rec.drilldown}
-                        onClick={() => {
-                          if (rec.drilldown) {
-                            handleDrilldown(rec.drilldown.filterType, rec.drilldown.filterValue, rec.drilldown.title);
-                          }
-                        }}
-                        style={{
-                          borderRadius: borderRadius.base,
-                          borderLeft: `4px solid ${
-                            rec.type === 'critical' ? '#f5222d' :
-                            rec.type === 'warning' ? '#fa8c16' :
-                            rec.type === 'optimization' ? '#1890ff' : '#52c41a'
-                          }`,
-                          background: rec.type === 'critical' ? '#fff2f0' :
-                            rec.type === 'warning' ? '#fffbe6' :
-                            rec.type === 'optimization' ? '#e6f7ff' : '#f6ffed',
-                          cursor: rec.drilldown ? 'pointer' : 'default',
-                        }}
-                      >
-                        <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                          <Space>
-                            {rec.icon}
-                            <Text strong style={{ fontSize: 14 }}>
-                              {rec.title}
-                            </Text>
-                            <Tag color={
-                              rec.type === 'critical' ? 'red' :
-                              rec.type === 'warning' ? 'orange' :
-                              rec.type === 'optimization' ? 'blue' : 'green'
-                            } style={{ marginLeft: 'auto' }}>
-                              {rec.type === 'critical' ? 'Nghiêm trọng' :
-                               rec.type === 'warning' ? 'Cảnh báo' :
-                               rec.type === 'optimization' ? 'Tối ưu' : 'Gợi ý'}
-                            </Tag>
-                          </Space>
-                          <Text type="secondary" style={{ fontSize: 13 }}>
-                            {rec.description}
-                          </Text>
-                          <div style={{
-                            padding: '8px 12px',
-                            background: 'white',
-                            borderRadius: borderRadius.sm,
-                            border: '1px dashed #d9d9d9',
-                          }}>
-                            <Text style={{ fontSize: 13 }}>
-                              <BulbOutlined style={{ marginRight: 8, color: '#faad14' }} />
-                              <strong>Đề xuất:</strong> {rec.action}
-                            </Text>
-                          </div>
-                          {rec.drilldown && (
-                            <div style={{ marginTop: 8, textAlign: 'right' }}>
-                              <Text type="secondary" style={{ fontSize: 12 }}>
-                                <EyeOutlined style={{ marginRight: 4 }} />
-                                Click để xem danh sách hệ thống
-                              </Text>
+                  {aiRecommendations.map((rec, index) => {
+                    const typeColor = rec.type === 'critical' ? '#f5222d' :
+                      rec.type === 'warning' ? '#fa8c16' :
+                      rec.type === 'optimization' ? '#1890ff' : '#52c41a';
+                    const bgColor = rec.type === 'critical' ? '#fff2f0' :
+                      rec.type === 'warning' ? '#fffbe6' :
+                      rec.type === 'optimization' ? '#e6f7ff' : '#f6ffed';
+                    const impactScore = rec.type === 'critical' ? 9 :
+                      rec.type === 'warning' ? 7 :
+                      rec.type === 'optimization' ? 5 : 4;
+
+                    return (
+                      <Col xs={24} lg={12} key={rec.id}>
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.1 }}
+                        >
+                          <Card
+                            size="small"
+                            hoverable={!!rec.drilldown}
+                            onClick={() => {
+                              if (rec.drilldown) {
+                                handleDrilldown(rec.drilldown.filterType, rec.drilldown.filterValue, rec.drilldown.title);
+                              }
+                            }}
+                            style={{
+                              borderRadius: 12,
+                              border: 'none',
+                              background: 'white',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                              cursor: rec.drilldown ? 'pointer' : 'default',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {/* Card Header with Priority Badge */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 12,
+                              marginBottom: 12,
+                            }}>
+                              {/* Priority Number Badge */}
+                              <div style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 8,
+                                background: typeColor,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}>
+                                <span style={{ color: 'white', fontWeight: 700, fontSize: 16 }}>
+                                  {rec.priority}
+                                </span>
+                              </div>
+
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                  {rec.icon}
+                                  <Text strong style={{ fontSize: 14, flex: 1 }}>
+                                    {rec.title}
+                                  </Text>
+                                </div>
+                              </div>
                             </div>
-                          )}
-                        </Space>
-                      </Card>
-                    </Col>
-                  ))}
+
+                            {/* Description */}
+                            <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 12 }}>
+                              {rec.description}
+                            </Text>
+
+                            {/* Impact Score Bar */}
+                            <div style={{
+                              background: '#f5f5f5',
+                              borderRadius: 8,
+                              padding: '10px 12px',
+                              marginBottom: 12,
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                <Text style={{ fontSize: 12, color: '#8c8c8c' }}>Mức độ ảnh hưởng</Text>
+                                <Text strong style={{ fontSize: 13, color: typeColor }}>{impactScore}/10</Text>
+                              </div>
+                              <div style={{
+                                height: 6,
+                                background: '#e8e8e8',
+                                borderRadius: 3,
+                                overflow: 'hidden',
+                              }}>
+                                <div
+                                  className="impact-bar"
+                                  style={{
+                                    height: '100%',
+                                    width: `${impactScore * 10}%`,
+                                    background: `linear-gradient(90deg, ${typeColor}88, ${typeColor})`,
+                                    borderRadius: 3,
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Action Box */}
+                            <div style={{
+                              padding: '10px 12px',
+                              background: bgColor,
+                              borderRadius: 8,
+                              border: `1px solid ${typeColor}22`,
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                                <RocketOutlined style={{ color: typeColor, marginTop: 2 }} />
+                                <div style={{ flex: 1 }}>
+                                  <Text style={{ fontSize: 12, color: '#8c8c8c', display: 'block' }}>Đề xuất hành động</Text>
+                                  <Text style={{ fontSize: 13 }}>{rec.action}</Text>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            {rec.drilldown && (
+                              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                                <Button
+                                  type="primary"
+                                  size="small"
+                                  icon={<EyeOutlined />}
+                                  style={{
+                                    background: typeColor,
+                                    borderColor: typeColor,
+                                    borderRadius: 6,
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (rec.drilldown) {
+                                      handleDrilldown(rec.drilldown.filterType, rec.drilldown.filterValue, rec.drilldown.title);
+                                    }
+                                  }}
+                                >
+                                  Xem danh sách
+                                </Button>
+                              </div>
+                            )}
+                          </Card>
+                        </motion.div>
+                      </Col>
+                    );
+                  })}
                 </Row>
 
-                {/* AI Chat Input - Direct in AI Assistant Section */}
-                <Divider style={{ margin: '16px 0' }} />
-                <Card
-                  size="small"
-                  style={{
-                    background: 'linear-gradient(135deg, #f0f5ff 0%, #e6f7ff 100%)',
-                    borderRadius: borderRadius.md,
-                    border: '1px dashed #91d5ff',
-                  }}
-                >
-                  <Row gutter={[12, 12]} align="middle">
-                    <Col xs={24}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        <BulbOutlined style={{ marginRight: 4, color: '#1890ff' }} />
-                        Hỏi AI về dữ liệu hệ thống - Ví dụ: "Có bao nhiêu hệ thống dùng Java?", "Đơn vị nào có nhiều hệ thống nhất?"
-                      </Text>
-                    </Col>
-                    <Col flex="auto">
-                      <Input.Search
-                        placeholder="Nhập câu hỏi của bạn..."
-                        value={aiQuery}
-                        onChange={(e) => setAiQuery(e.target.value)}
-                        onSearch={handleAIQuery}
-                        enterButton={
-                          <Button
-                            type="primary"
-                            icon={<SendOutlined />}
-                            loading={aiQueryLoading}
-                            style={{ background: '#722ed1', borderColor: '#722ed1' }}
-                          >
-                            Hỏi AI
-                          </Button>
-                        }
-                        size="large"
-                        style={{ fontSize: 14 }}
-                      />
-                    </Col>
-                    {aiQueryHistory.length > 0 && (
-                      <Col xs={24}>
-                        <Space wrap size={[4, 4]}>
-                          <HistoryOutlined style={{ color: '#8c8c8c' }} />
-                          <Text type="secondary" style={{ fontSize: 12 }}>Gần đây:</Text>
-                          {aiQueryHistory.slice(0, 3).map((q, idx) => (
-                            <Tag
-                              key={idx}
-                              style={{ cursor: 'pointer', fontSize: 11 }}
-                              onClick={() => setAiQuery(q)}
-                            >
-                              {q.length > 25 ? q.substring(0, 25) + '...' : q}
-                            </Tag>
-                          ))}
-                        </Space>
-                      </Col>
-                    )}
-                  </Row>
+                {/* AI Chat Section - Enhanced Design */}
+                <Divider style={{ margin: '20px 0 16px 0' }}>
+                  <Space>
+                    <BulbOutlined style={{ color: '#722ed1' }} />
+                    <Text type="secondary">Hỏi AI về dữ liệu</Text>
+                  </Space>
+                </Divider>
 
-                  {/* AI Response inline */}
-                  {aiQueryLoading && (
-                    <div style={{ textAlign: 'center', marginTop: 16, padding: '20px' }}>
-                      <Spin tip="AI đang phân tích dữ liệu..." />
-                    </div>
-                  )}
-
+                {/* Chat Container */}
+                <div style={{
+                  background: '#f8f9fc',
+                  borderRadius: 16,
+                  padding: 20,
+                  minHeight: 120,
+                }}>
+                  {/* Previous Q&A in Chat Style */}
                   {aiQueryResponse && !aiQueryLoading && (
-                    <div style={{ marginTop: 16 }}>
-                      <Card
-                        size="small"
-                        title={
-                          <Space>
-                            <RobotOutlined style={{ color: '#722ed1' }} />
-                            <span>Kết quả từ Trợ lý AI</span>
-                          </Space>
-                        }
-                        style={{ borderRadius: borderRadius.sm }}
-                      >
-                        {aiQueryResponse.ai_response.error ? (
-                          <Alert
-                            type="error"
-                            message={aiQueryResponse.ai_response.error}
-                            showIcon
-                          />
-                        ) : (
-                          <Space direction="vertical" style={{ width: '100%' }}>
-                            {/* Explanation */}
-                            <div style={{ padding: '12px', background: '#f6ffed', borderRadius: 8 }}>
-                              <Text>{aiQueryResponse.ai_response.explanation}</Text>
-                            </div>
+                    <div style={{ marginBottom: 20 }}>
+                      {/* User Question Bubble */}
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        marginBottom: 12,
+                      }}>
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          style={{
+                            maxWidth: '80%',
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            borderRadius: '16px 16px 4px 16px',
+                            padding: '12px 16px',
+                            color: 'white',
+                          }}
+                        >
+                          <Text style={{ color: 'white', fontSize: 14 }}>
+                            {aiQueryHistory[0] || 'Câu hỏi của bạn'}
+                          </Text>
+                        </motion.div>
+                        <div style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          background: '#e6f7ff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginLeft: 8,
+                          flexShrink: 0,
+                        }}>
+                          <TeamOutlined style={{ color: '#1890ff', fontSize: 14 }} />
+                        </div>
+                      </div>
 
-                            {/* Data Table (compact) */}
-                            {aiQueryResponse.data && aiQueryResponse.data.rows.length > 0 && (
-                              <Table
-                                dataSource={aiQueryResponse.data.rows.slice(0, 5).map((row, idx) => ({
-                                  key: idx,
-                                  ...row,
-                                }))}
-                                columns={aiQueryResponse.data.columns.map(col => ({
-                                  title: col,
-                                  dataIndex: col,
-                                  key: col,
-                                  ellipsis: true,
-                                }))}
-                                pagination={false}
-                                size="small"
-                                scroll={{ x: 'max-content' }}
-                              />
-                            )}
+                      {/* AI Response Bubble */}
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'flex-start',
+                      }}>
+                        <div style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #722ed1 0%, #1890ff 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 8,
+                          flexShrink: 0,
+                        }}>
+                          <RobotOutlined style={{ color: 'white', fontSize: 16 }} />
+                        </div>
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          style={{
+                            maxWidth: '85%',
+                            background: 'white',
+                            borderRadius: '16px 16px 16px 4px',
+                            padding: '16px 20px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                          }}
+                        >
+                          {aiQueryResponse.ai_response.error ? (
+                            <Alert
+                              type="error"
+                              message={aiQueryResponse.ai_response.error}
+                              showIcon
+                              style={{ border: 'none', background: 'transparent', padding: 0 }}
+                            />
+                          ) : (
+                            <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                              {/* Main Answer - Highlighted */}
+                              <div style={{
+                                background: 'linear-gradient(135deg, #f6ffed 0%, #e6fffb 100%)',
+                                borderRadius: 10,
+                                padding: '12px 16px',
+                                borderLeft: '4px solid #52c41a',
+                              }}>
+                                <Text style={{ fontSize: 15, lineHeight: 1.6 }}>
+                                  {aiQueryResponse.ai_response.explanation}
+                                </Text>
+                              </div>
 
-                            {/* More results link */}
-                            {aiQueryResponse.data && aiQueryResponse.data.rows.length > 5 && (
-                              <Button
-                                type="link"
-                                onClick={() => setActiveTab('insights')}
-                                style={{ padding: 0 }}
-                              >
-                                Xem đầy đủ {aiQueryResponse.data.total_rows} kết quả tại Tab "Phân tích" →
-                              </Button>
-                            )}
+                              {/* Visual Data Display */}
+                              {aiQueryResponse.data && aiQueryResponse.data.rows.length > 0 && (
+                                <div style={{
+                                  background: '#fafafa',
+                                  borderRadius: 10,
+                                  padding: '12px 16px',
+                                }}>
+                                  <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
+                                    <LineChartOutlined style={{ marginRight: 6 }} />
+                                    Chi tiết dữ liệu ({Math.min(aiQueryResponse.data.rows.length, 5)} / {aiQueryResponse.data.total_rows} kết quả)
+                                  </Text>
 
-                            {/* SQL Query (collapsed by default) */}
-                            {aiQueryResponse.ai_response.sql && (
-                              <Collapse size="small" ghost>
-                                <Panel header={<Text type="secondary" style={{ fontSize: 11 }}>Xem SQL Query</Text>} key="sql">
-                                  <pre style={{
-                                    background: '#282c34',
-                                    color: '#abb2bf',
-                                    padding: '8px',
-                                    borderRadius: '4px',
-                                    overflow: 'auto',
-                                    fontSize: '10px',
-                                    margin: 0,
-                                  }}>
-                                    {aiQueryResponse.ai_response.sql}
-                                  </pre>
-                                </Panel>
-                              </Collapse>
-                            )}
-                          </Space>
-                        )}
-                      </Card>
+                                  {/* Simple Visual Bars for numeric data */}
+                                  {aiQueryResponse.data.rows.slice(0, 5).map((row: any, idx: number) => {
+                                    const values = Object.values(row);
+                                    const label = String(values[0] || `Item ${idx + 1}`);
+                                    const numericValue = values.find(v => typeof v === 'number') as number | undefined;
+                                    const maxVal = Math.max(...aiQueryResponse.data!.rows.slice(0, 5).map((r: any) =>
+                                      Math.max(...Object.values(r).filter((v): v is number => typeof v === 'number'))
+                                    ));
+
+                                    return (
+                                      <div key={idx} style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 12,
+                                        marginBottom: idx < 4 ? 8 : 0,
+                                        padding: '6px 0',
+                                      }}>
+                                        <Text style={{ minWidth: 120, fontSize: 13, flex: '0 0 auto' }} ellipsis>
+                                          {label}
+                                        </Text>
+                                        <div style={{
+                                          flex: 1,
+                                          height: 20,
+                                          background: '#e8e8e8',
+                                          borderRadius: 4,
+                                          overflow: 'hidden',
+                                        }}>
+                                          {numericValue !== undefined && (
+                                            <motion.div
+                                              initial={{ width: 0 }}
+                                              animate={{ width: `${Math.max((numericValue / maxVal) * 100, 5)}%` }}
+                                              transition={{ duration: 0.5, delay: idx * 0.1 }}
+                                              style={{
+                                                height: '100%',
+                                                background: `linear-gradient(90deg, ${COLORS[idx % COLORS.length]}88, ${COLORS[idx % COLORS.length]})`,
+                                                borderRadius: 4,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'flex-end',
+                                                paddingRight: 8,
+                                              }}
+                                            >
+                                              <Text style={{ fontSize: 11, color: 'white', fontWeight: 600 }}>
+                                                {numericValue.toLocaleString()}
+                                              </Text>
+                                            </motion.div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+
+                                  {aiQueryResponse.data.rows.length > 5 && (
+                                    <Button
+                                      type="link"
+                                      size="small"
+                                      onClick={() => setActiveTab('insights')}
+                                      style={{ padding: 0, marginTop: 8 }}
+                                    >
+                                      Xem đầy đủ {aiQueryResponse.data.total_rows} kết quả →
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Follow-up Suggestions */}
+                              <div>
+                                <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+                                  <BulbOutlined style={{ marginRight: 6, color: '#faad14' }} />
+                                  Gợi ý hỏi thêm:
+                                </Text>
+                                <Space wrap size={[6, 6]}>
+                                  {[
+                                    'So sánh giữa các đơn vị',
+                                    'Xu hướng theo thời gian',
+                                    'Hệ thống quan trọng nhất',
+                                    'Chi phí đầu tư'
+                                  ].map((suggestion, idx) => (
+                                    <Tag
+                                      key={idx}
+                                      style={{
+                                        cursor: 'pointer',
+                                        borderRadius: 12,
+                                        padding: '4px 12px',
+                                        background: '#f0f5ff',
+                                        borderColor: '#d6e4ff',
+                                        color: '#1890ff',
+                                      }}
+                                      onClick={() => setAiQuery(suggestion)}
+                                    >
+                                      {suggestion}
+                                    </Tag>
+                                  ))}
+                                </Space>
+                              </div>
+                            </Space>
+                          )}
+                        </motion.div>
+                      </div>
                     </div>
                   )}
-                </Card>
+
+                  {/* Loading State */}
+                  {aiQueryLoading && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '20px 0',
+                    }}>
+                      <div style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #722ed1 0%, #1890ff 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <RobotOutlined style={{ color: 'white', fontSize: 16 }} />
+                      </div>
+                      <div style={{
+                        background: 'white',
+                        borderRadius: 16,
+                        padding: '12px 20px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                      }}>
+                        <Space>
+                          <Spin size="small" />
+                          <Text type="secondary">AI đang phân tích dữ liệu...</Text>
+                        </Space>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Input Area */}
+                  <div style={{
+                    background: 'white',
+                    borderRadius: 12,
+                    padding: '4px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    border: '1px solid #e8e8e8',
+                  }}>
+                    <Input.Search
+                      placeholder="Nhập câu hỏi về dữ liệu hệ thống..."
+                      value={aiQuery}
+                      onChange={(e) => setAiQuery(e.target.value)}
+                      onSearch={handleAIQuery}
+                      enterButton={
+                        <Button
+                          type="primary"
+                          icon={<SendOutlined />}
+                          loading={aiQueryLoading}
+                          style={{
+                            background: 'linear-gradient(135deg, #722ed1 0%, #1890ff 100%)',
+                            border: 'none',
+                            borderRadius: 8,
+                            height: 40,
+                            paddingLeft: 20,
+                            paddingRight: 20,
+                          }}
+                        >
+                          Gửi
+                        </Button>
+                      }
+                      size="large"
+                      style={{
+                        border: 'none',
+                        boxShadow: 'none',
+                      }}
+                    />
+                  </div>
+
+                  {/* Recent Queries */}
+                  {aiQueryHistory.length > 0 && !aiQueryResponse && (
+                    <div style={{ marginTop: 12 }}>
+                      <Space wrap size={[6, 6]}>
+                        <HistoryOutlined style={{ color: '#8c8c8c' }} />
+                        <Text type="secondary" style={{ fontSize: 12 }}>Gần đây:</Text>
+                        {aiQueryHistory.slice(0, 4).map((q, idx) => (
+                          <Tag
+                            key={idx}
+                            style={{
+                              cursor: 'pointer',
+                              fontSize: 12,
+                              borderRadius: 8,
+                              background: 'white',
+                              border: '1px solid #d9d9d9',
+                            }}
+                            onClick={() => setAiQuery(q)}
+                          >
+                            {q.length > 30 ? q.substring(0, 30) + '...' : q}
+                          </Tag>
+                        ))}
+                      </Space>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </Card>

@@ -1486,6 +1486,10 @@ KHÔNG dùng: "Phân tích yêu cầu", "Xây dựng SQL", "Tổng hợp kết q
 6. LUÔN trả về JSON hợp lệ
 7. **QUAN TRỌNG**: Khi query liệt kê hệ thống, LUÔN bao gồm s.system_name (tên hệ thống) trong SELECT, KHÔNG chỉ trả về id
 8. Khi query liên quan đến đơn vị, LUÔN bao gồm o.name (tên đơn vị) thay vì chỉ org_id
+9. **BẮT BUỘC VỚI CÂU HỎI VỀ SỐ LƯỢNG**: Khi câu hỏi hỏi về số lượng hệ thống (VD: "có bao nhiêu hệ thống...", "số lượng hệ thống...", "danh sách hệ thống..."), SQL PHẢI:
+   - Trả về DANH SÁCH các hệ thống đó, KHÔNG chỉ COUNT(*)
+   - LUÔN bao gồm: s.id, s.system_name, o.name (để frontend tạo link)
+   - Ví dụ: SELECT s.id, s.system_name, o.name FROM systems s JOIN organizations o ON s.org_id = o.id WHERE ... AND s.is_deleted = false
 
 === DATA TYPES ===
 - performance_rating: INTEGER (1-5)
@@ -1518,6 +1522,7 @@ Viết báo cáo TỰ NHIÊN dựa trên dữ liệu THỰC TẾ ở trên. PH�
         "greeting": "Báo cáo anh/chị,",
         "main_answer": "Câu trả lời với SỐ LIỆU CỤ THỂ từ data (dùng **bold** cho số)",
         "details": "Chi tiết bổ sung nếu cần hoặc null",
+        "system_list_markdown": "Nếu data chứa danh sách hệ thống, tạo markdown table với header | STT | Tên hệ thống | Đơn vị | và liệt kê tất cả. Nếu không có danh sách hệ thống thì để null",
         "follow_up_suggestions": [
             "Câu hỏi chiến lược về rủi ro/ưu tiên?",
             "Câu hỏi chiến lược về nguồn lực?",
@@ -1530,7 +1535,12 @@ Viết báo cáo TỰ NHIÊN dựa trên dữ liệu THỰC TẾ ở trên. PH�
 - main_answer PHẢI chứa số liệu thực từ data, KHÔNG ĐƯỢC dùng placeholder
 - Ví dụ tốt: "Tổng dung lượng dữ liệu là **1,234 GB**"
 - Ví dụ xấu: "Tổng dung lượng là X GB"
-- follow_up_suggestions phải CHIẾN LƯỢC (về rủi ro, ưu tiên, ngân sách, lộ trình)"""
+- follow_up_suggestions phải CHIẾN LƯỢC (về rủi ro, ưu tiên, ngân sách, lộ trình)
+- **BẮT BUỘC**: Khi data chứa danh sách các hệ thống (rows với system_name), PHẢI tạo system_list_markdown với format:
+  | STT | Tên hệ thống | Đơn vị |
+  |-----|--------------|--------|
+  | 1 | Tên hệ thống A | Tên đơn vị |
+  | 2 | Tên hệ thống B | Tên đơn vị |"""
 
         # Build conversation for Phase 1
         conversation = [{'role': 'user', 'content': query}]

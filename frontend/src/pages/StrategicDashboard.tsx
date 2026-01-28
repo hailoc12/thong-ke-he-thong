@@ -58,6 +58,8 @@ import {
   LineChartOutlined,
   SyncOutlined,
   QuestionCircleOutlined,
+  LinkOutlined,
+  UnorderedListOutlined,
 } from '@ant-design/icons';
 import {
   PieChart,
@@ -1626,6 +1628,69 @@ const StrategicDashboard = () => {
                                     <Text type="secondary" style={{ fontSize: 13 }}>{aiQueryResponse.response.details}</Text>
                                   </div>
                                 )}
+                                {/* System List Table with Clickable Links */}
+                                {aiQueryResponse.data && aiQueryResponse.data.rows.length > 0 &&
+                                 aiQueryResponse.data.columns.some((col: string) =>
+                                   ['system_name', 'tên hệ thống', 'ten_he_thong'].includes(col.toLowerCase())
+                                 ) && (
+                                  <div style={{ marginTop: 12 }} className="ai-system-list-table">
+                                    <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
+                                      <UnorderedListOutlined style={{ marginRight: 6 }} />
+                                      Danh sách {aiQueryResponse.data.rows.length} hệ thống:
+                                    </Text>
+                                    <table style={{
+                                      width: '100%',
+                                      borderCollapse: 'collapse',
+                                      fontSize: 13,
+                                      background: '#fff',
+                                      borderRadius: 8,
+                                      overflow: 'hidden',
+                                    }}>
+                                      <thead style={{ background: '#e6f7ff' }}>
+                                        <tr>
+                                          <th style={{ padding: '8px 12px', borderBottom: '2px solid #91caff', textAlign: 'center', fontWeight: 600, color: '#1677ff', width: 50 }}>STT</th>
+                                          <th style={{ padding: '8px 12px', borderBottom: '2px solid #91caff', textAlign: 'left', fontWeight: 600, color: '#1677ff' }}>Tên hệ thống</th>
+                                          {aiQueryResponse.data.columns.some((col: string) => ['name', 'org_name', 'tên đơn vị'].includes(col.toLowerCase())) && (
+                                            <th style={{ padding: '8px 12px', borderBottom: '2px solid #91caff', textAlign: 'left', fontWeight: 600, color: '#1677ff' }}>Đơn vị</th>
+                                          )}
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {aiQueryResponse.data.rows.map((row: any, idx: number) => {
+                                          const systemId = row.id || row.system_id;
+                                          const systemName = row.system_name || row['tên hệ thống'] || row.ten_he_thong || '';
+                                          const orgName = row.name || row.org_name || row['tên đơn vị'] || '';
+                                          const hasOrgColumn = aiQueryResponse.data!.columns.some((col: string) => ['name', 'org_name', 'tên đơn vị'].includes(col.toLowerCase()));
+
+                                          return (
+                                            <tr key={idx} style={{ background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                              <td style={{ padding: '6px 12px', borderBottom: '1px solid #f0f0f0', textAlign: 'center', color: '#8c8c8c' }}>{idx + 1}</td>
+                                              <td style={{ padding: '6px 12px', borderBottom: '1px solid #f0f0f0' }}>
+                                                {systemId ? (
+                                                  <a
+                                                    href={`/systems/${systemId}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{ color: '#1677ff', textDecoration: 'none' }}
+                                                    onClick={(e) => {
+                                                      e.preventDefault();
+                                                      window.open(`/systems/${systemId}`, '_blank');
+                                                    }}
+                                                  >
+                                                    {systemName} <LinkOutlined style={{ fontSize: 11, marginLeft: 4 }} />
+                                                  </a>
+                                                ) : systemName}
+                                              </td>
+                                              {hasOrgColumn && (
+                                                <td style={{ padding: '6px 12px', borderBottom: '1px solid #f0f0f0', color: '#595959' }}>{orgName}</td>
+                                              )}
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
                               </div>
 
                               {/* Visual Data Display */}
@@ -1808,26 +1873,22 @@ const StrategicDashboard = () => {
                                         'Đơn vị nào có rủi ro CNTT cao?',
                                         'Hiệu quả đầu tư CNTT của các đơn vị?',
                                       ]
-                                  ).map((suggestion, idx) => {
-                                    // Truncate long suggestions (max 40 chars)
-                                    const truncated = suggestion.length > 40
-                                      ? suggestion.substring(0, 40) + '...'
-                                      : suggestion;
-                                    return (
+                                  ).map((suggestion, idx) => (
                                       <Tag
                                         key={idx}
-                                        title={suggestion} // Full text on hover
+                                        title={suggestion}
                                         style={{
                                           cursor: 'pointer',
-                                          borderRadius: 12,
-                                          padding: '4px 12px',
-                                          background: '#f9f0ff',
+                                          borderRadius: 16,
+                                          padding: '6px 14px',
+                                          background: 'linear-gradient(135deg, #f9f0ff 0%, #efdbff 100%)',
                                           borderColor: '#d3adf7',
-                                          color: '#722ed1',
-                                          maxWidth: 200,
-                                          overflow: 'hidden',
-                                          textOverflow: 'ellipsis',
-                                          whiteSpace: 'nowrap',
+                                          color: '#531dab',
+                                          fontSize: 13,
+                                          lineHeight: 1.4,
+                                          whiteSpace: 'normal',
+                                          display: 'inline-block',
+                                          maxWidth: '100%',
                                         }}
                                         onClick={() => {
                                           // Auto-send on click
@@ -1838,10 +1899,9 @@ const StrategicDashboard = () => {
                                           }, 100);
                                         }}
                                       >
-                                        {truncated}
+                                        💡 {suggestion}
                                       </Tag>
-                                    );
-                                  })}
+                                    ))}
                                 </Space>
                               </div>
                             </Space>
@@ -3495,41 +3555,35 @@ const StrategicDashboard = () => {
                                     Câu hỏi gợi ý (nhấn để hỏi):
                                   </Text>
                                   <Space wrap size={[6, 6]}>
-                                    {aiQueryResponse.response.follow_up_suggestions.map((suggestion, idx) => {
-                                      // Truncate long suggestions (max 40 chars)
-                                      const truncated = suggestion.length > 40
-                                        ? suggestion.substring(0, 40) + '...'
-                                        : suggestion;
-                                      return (
-                                        <Button
+                                    {aiQueryResponse.response.follow_up_suggestions.map((suggestion, idx) => (
+                                        <Tag
                                           key={idx}
-                                          size="small"
-                                          type="dashed"
-                                          title={suggestion} // Full text on hover
+                                          title={suggestion}
                                           style={{
+                                            cursor: 'pointer',
                                             borderRadius: 16,
-                                            fontSize: 12,
-                                            color: '#722ed1',
+                                            padding: '6px 14px',
+                                            background: 'linear-gradient(135deg, #f9f0ff 0%, #efdbff 100%)',
                                             borderColor: '#d3adf7',
-                                            maxWidth: 200,
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap',
+                                            color: '#531dab',
+                                            fontSize: 13,
+                                            lineHeight: 1.4,
+                                            whiteSpace: 'normal',
+                                            display: 'inline-block',
+                                            maxWidth: '100%',
                                           }}
                                           onClick={() => {
                                             // Auto-send: set query and trigger immediately
                                             setAiQuery(suggestion);
-                                            // Use setTimeout to ensure state is updated
                                             setTimeout(() => {
                                               const submitButton = document.querySelector('.ai-submit-btn') as HTMLButtonElement;
                                               if (submitButton) submitButton.click();
                                             }, 100);
                                           }}
                                         >
-                                          {truncated}
-                                        </Button>
-                                      );
-                                    })}
+                                          💡 {suggestion}
+                                        </Tag>
+                                      ))}
                                   </Space>
                                 </div>
                               )}

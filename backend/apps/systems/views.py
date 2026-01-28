@@ -1475,9 +1475,9 @@ Bạn sẽ làm việc theo 4 bước như một đội ngũ chuyên gia:
         "chart_type": "bar|pie|table|number",
         "chart_config": {{"x_field": "tên cột", "y_field": "tên cột", "title": "Tiêu đề", "x_label": "Nhãn trục X", "y_label": "Nhãn trục Y với đơn vị", "unit": "hệ thống|GB|TB|%|người dùng"}},
         "follow_up_suggestions": [
-            "Câu hỏi gợi ý 1 liên quan đến kết quả?",
-            "Câu hỏi gợi ý 2 để đào sâu hơn?",
-            "Câu hỏi gợi ý 3 về khía cạnh khác?"
+            "Câu hỏi chiến lược 1 - về rủi ro/cơ hội?",
+            "Câu hỏi chiến lược 2 - về nguồn lực/ngân sách?",
+            "Câu hỏi chiến lược 3 - về lộ trình/ưu tiên?"
         ]
     }},
     "sql": "SQL query chính để lấy dữ liệu hiển thị"
@@ -1501,6 +1501,20 @@ Bạn sẽ làm việc theo 4 bước như một đội ngũ chuyên gia:
 - Với biểu đồ cột/thanh: x_label, y_label với đơn vị rõ ràng
 - Với biểu đồ tròn: title và unit
 - unit phổ biến: "hệ thống", "GB", "TB", "%", "người dùng", "đơn vị", "triệu đồng"
+
+=== FOLLOW-UP SUGGESTIONS (QUAN TRỌNG) ===
+Đây là Trợ lý cho LÃNH ĐẠO BỘ - các câu hỏi gợi ý phải CHIẾN LƯỢC và CÓ GIÁ TRỊ:
+
+VÍ DỤ CÂU HỎI CHIẾN LƯỢC TỐT:
+- "Những hệ thống nào cần ưu tiên nâng cấp để đảm bảo an toàn thông tin?"
+- "Đơn vị nào đang có rủi ro cao về CNTT cần hỗ trợ?"
+- "Lộ trình chuyển đổi số giai đoạn tiếp theo nên tập trung vào đâu?"
+- "So sánh hiệu quả đầu tư CNTT giữa các đơn vị trực thuộc?"
+- "Những hệ thống nào chưa tuân thủ kiến trúc tổng thể?"
+- "Tình hình tích hợp dữ liệu giữa các hệ thống hiện tại?"
+- "Hệ thống nào có nguy cơ gián đoạn hoạt động cao?"
+
+KHÔNG đưa ra câu hỏi đơn giản như: "Có bao nhiêu hệ thống?", "Danh sách hệ thống", "Thống kê cơ bản"
 
 Nếu câu hỏi không rõ ràng hoặc không liên quan đến dữ liệu hệ thống, hãy trả về JSON với sql = null và giải thích trong response.main_answer."""
 

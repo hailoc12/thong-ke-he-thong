@@ -509,11 +509,13 @@ const StrategicDashboard = () => {
     }
 
     setAiQueryLoading(true);
+    const currentQuery = aiQuery; // Save query before clearing
+    setAiQuery(''); // Clear input immediately for better UX
     try {
-      const response = await api.post('/systems/ai_query/', { query: aiQuery });
+      const response = await api.post('/systems/ai_query/', { query: currentQuery });
       setAiQueryResponse(response.data);
       // Add to history
-      setAiQueryHistory(prev => [aiQuery, ...prev.filter(q => q !== aiQuery)].slice(0, 10));
+      setAiQueryHistory(prev => [currentQuery, ...prev.filter(q => q !== currentQuery)].slice(0, 10));
     } catch (error: any) {
       console.error('AI Query failed:', error);
       if (error.response?.status === 503) {
@@ -1385,17 +1387,37 @@ const StrategicDashboard = () => {
                           ) : (
                             <Space direction="vertical" size={12} style={{ width: '100%' }}>
                               {/* Thinking Block - Compact for chat bubble */}
+                              {/* Thinking Block - Task Checklist */}
                               {aiQueryResponse.thinking && aiQueryResponse.thinking.tasks && aiQueryResponse.thinking.tasks.length > 0 && (
                                 <div style={{
                                   background: '#fafafa',
                                   borderRadius: 8,
-                                  padding: '8px 12px',
-                                  marginBottom: 4,
+                                  padding: '10px 12px',
+                                  marginBottom: 8,
+                                  border: '1px solid #f0f0f0',
                                 }}>
-                                  <Text type="secondary" style={{ fontSize: 11 }}>
-                                    <BulbOutlined style={{ marginRight: 4 }} />
-                                    {aiQueryResponse.thinking.tasks.filter(t => t.status === 'completed').length}/{aiQueryResponse.thinking.tasks.length} bước hoàn thành
+                                  <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 6 }}>
+                                    <BulbOutlined style={{ marginRight: 4, color: '#faad14' }} />
+                                    AI đã thực hiện:
                                   </Text>
+                                  {aiQueryResponse.thinking.tasks.map((task, idx) => (
+                                    <div key={idx} style={{ display: 'flex', alignItems: 'center', marginBottom: 3 }}>
+                                      {task.status === 'completed' ? (
+                                        <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 6, fontSize: 12 }} />
+                                      ) : (
+                                        <ClockCircleOutlined style={{ color: '#faad14', marginRight: 6, fontSize: 12 }} />
+                                      )}
+                                      <Text
+                                        style={{
+                                          fontSize: 12,
+                                          textDecoration: task.status === 'completed' ? 'line-through' : 'none',
+                                          color: task.status === 'completed' ? '#8c8c8c' : '#262626',
+                                        }}
+                                      >
+                                        {task.name}
+                                      </Text>
+                                    </div>
+                                  ))}
                                 </div>
                               )}
 
@@ -1430,78 +1452,122 @@ const StrategicDashboard = () => {
                                   borderRadius: 10,
                                   padding: '12px 16px',
                                 }}>
-                                  <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
-                                    <LineChartOutlined style={{ marginRight: 6 }} />
-                                    Chi tiết dữ liệu ({Math.min(aiQueryResponse.data.rows.length, 5)} / {aiQueryResponse.data.total_rows} kết quả)
-                                    {aiQueryResponse.response?.chart_config?.unit && (
-                                      <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>
-                                        Đơn vị: {aiQueryResponse.response.chart_config.unit}
-                                      </Tag>
-                                    )}
-                                  </Text>
+                                  {/* Single number display (e.g., COUNT result) */}
+                                  {aiQueryResponse.data.rows.length === 1 && aiQueryResponse.data.columns.length === 1 && (
+                                    <div style={{ textAlign: 'center', padding: '12px 0' }}>
+                                      <Text style={{ fontSize: 32, fontWeight: 700, color: '#722ed1' }}>
+                                        {Object.values(aiQueryResponse.data.rows[0])[0]?.toLocaleString() || '0'}
+                                      </Text>
+                                      <Text type="secondary" style={{ display: 'block', fontSize: 13, marginTop: 4 }}>
+                                        {aiQueryResponse.response?.chart_config?.unit || aiQueryResponse.data.columns[0]}
+                                      </Text>
+                                    </div>
+                                  )}
 
-                                  {/* Simple Visual Bars for numeric data */}
-                                  {aiQueryResponse.data.rows.slice(0, 5).map((row: any, idx: number) => {
-                                    const values = Object.values(row);
-                                    const label = String(values[0] || `Item ${idx + 1}`);
-                                    const numericValue = values.find(v => typeof v === 'number') as number | undefined;
-                                    const maxVal = Math.max(...aiQueryResponse.data!.rows.slice(0, 5).map((r: any) =>
-                                      Math.max(...Object.values(r).filter((v): v is number => typeof v === 'number'))
-                                    ));
-                                    const unit = aiQueryResponse.response?.chart_config?.unit || '';
+                                  {/* Multi-row data display */}
+                                  {(aiQueryResponse.data.rows.length > 1 || aiQueryResponse.data.columns.length > 1) && (
+                                    <>
+                                      <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
+                                        <LineChartOutlined style={{ marginRight: 6 }} />
+                                        Chi tiết dữ liệu ({Math.min(aiQueryResponse.data.rows.length, 5)} / {aiQueryResponse.data.total_rows} kết quả)
+                                        {aiQueryResponse.response?.chart_config?.unit && (
+                                          <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>
+                                            Đơn vị: {aiQueryResponse.response.chart_config.unit}
+                                          </Tag>
+                                        )}
+                                      </Text>
 
-                                    return (
-                                      <div key={idx} style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 12,
-                                        marginBottom: idx < 4 ? 8 : 0,
-                                        padding: '6px 0',
-                                      }}>
-                                        <Text style={{ minWidth: 120, fontSize: 13, flex: '0 0 auto' }} ellipsis>
-                                          {label}
-                                        </Text>
-                                        <div style={{
-                                          flex: 1,
-                                          height: 20,
-                                          background: '#e8e8e8',
-                                          borderRadius: 4,
-                                          overflow: 'hidden',
-                                        }}>
-                                          {numericValue !== undefined && (
-                                            <motion.div
-                                              initial={{ width: 0 }}
-                                              animate={{ width: `${Math.max((numericValue / maxVal) * 100, 5)}%` }}
-                                              transition={{ duration: 0.5, delay: idx * 0.1 }}
-                                              style={{
-                                                height: '100%',
-                                                background: `linear-gradient(90deg, ${COLORS[idx % COLORS.length]}88, ${COLORS[idx % COLORS.length]})`,
-                                                borderRadius: 4,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'flex-end',
-                                                paddingRight: 8,
-                                              }}
-                                            >
-                                              <Text style={{ fontSize: 11, color: 'white', fontWeight: 600 }}>
-                                                {numericValue.toLocaleString()}{unit ? ` ${unit}` : ''}
-                                              </Text>
-                                            </motion.div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
+                                      {/* Simple Visual Bars for numeric data */}
+                                      {aiQueryResponse.data.rows.slice(0, 5).map((row: any, idx: number) => {
+                                        const chartConfig = aiQueryResponse.response?.chart_config;
+                                        const columns = aiQueryResponse.data!.columns;
 
-                                  {aiQueryResponse.data.rows.length > 5 && (
-                                    <Button
-                                      type="link"
-                                      size="small"
-                                      onClick={() => setActiveTab('insights')}
-                                      style={{ padding: 0, marginTop: 8 }}
-                                    >
-                                      Xem đầy đủ {aiQueryResponse.data.total_rows} kết quả →
-                                    </Button>
+                                        // Smart label detection: use x_field from config, or first string column, or first column
+                                        let label = '';
+                                        if (chartConfig?.x_field && row[chartConfig.x_field] !== undefined) {
+                                          label = String(row[chartConfig.x_field]);
+                                        } else {
+                                          // Find first string column for label
+                                          const stringCol = columns.find(col => typeof row[col] === 'string');
+                                          const nameCol = columns.find(col => col.toLowerCase().includes('name') || col.toLowerCase().includes('ten'));
+                                          label = row[nameCol || stringCol || columns[0]] || `Dòng ${idx + 1}`;
+                                        }
+
+                                        // Smart value detection: use y_field from config, or first numeric column
+                                        let numericValue: number | undefined;
+                                        if (chartConfig?.y_field && typeof row[chartConfig.y_field] === 'number') {
+                                          numericValue = row[chartConfig.y_field];
+                                        } else {
+                                          // Find first numeric column
+                                          const numCol = columns.find(col => typeof row[col] === 'number');
+                                          numericValue = numCol ? row[numCol] : undefined;
+                                        }
+
+                                        const maxVal = Math.max(...aiQueryResponse.data!.rows.slice(0, 5).map((r: any) => {
+                                          if (chartConfig?.y_field) return r[chartConfig.y_field] || 0;
+                                          return Math.max(...Object.values(r).filter((v): v is number => typeof v === 'number'), 0);
+                                        }), 1);
+                                        const unit = chartConfig?.unit || '';
+
+                                        return (
+                                          <div key={idx} style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 12,
+                                            marginBottom: idx < 4 ? 8 : 0,
+                                            padding: '6px 0',
+                                          }}>
+                                            <Text style={{ minWidth: 150, fontSize: 13, flex: '0 0 auto' }} ellipsis title={label}>
+                                              {label}
+                                            </Text>
+                                            <div style={{
+                                              flex: 1,
+                                              height: 24,
+                                              background: '#e8e8e8',
+                                              borderRadius: 4,
+                                              overflow: 'hidden',
+                                            }}>
+                                              {numericValue !== undefined && numericValue > 0 && (
+                                                <motion.div
+                                                  initial={{ width: 0 }}
+                                                  animate={{ width: `${Math.max((numericValue / maxVal) * 100, 8)}%` }}
+                                                  transition={{ duration: 0.5, delay: idx * 0.1 }}
+                                                  style={{
+                                                    height: '100%',
+                                                    background: `linear-gradient(90deg, ${COLORS[idx % COLORS.length]}88, ${COLORS[idx % COLORS.length]})`,
+                                                    borderRadius: 4,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'flex-end',
+                                                    paddingRight: 8,
+                                                  }}
+                                                >
+                                                  <Text style={{ fontSize: 12, color: 'white', fontWeight: 600 }}>
+                                                    {numericValue.toLocaleString()}{unit ? ` ${unit}` : ''}
+                                                  </Text>
+                                                </motion.div>
+                                              )}
+                                              {(numericValue === undefined || numericValue === 0) && (
+                                                <div style={{ padding: '4px 8px' }}>
+                                                  <Text style={{ fontSize: 12, color: '#999' }}>0{unit ? ` ${unit}` : ''}</Text>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+
+                                      {aiQueryResponse.data.rows.length > 5 && (
+                                        <Button
+                                          type="link"
+                                          size="small"
+                                          onClick={() => setActiveTab('insights')}
+                                          style={{ padding: 0, marginTop: 8 }}
+                                        >
+                                          Xem đầy đủ {aiQueryResponse.data.total_rows} kết quả →
+                                        </Button>
+                                      )}
+                                    </>
                                   )}
                                 </div>
                               )}
@@ -1516,10 +1582,9 @@ const StrategicDashboard = () => {
                                   {(aiQueryResponse.response?.follow_up_suggestions && aiQueryResponse.response.follow_up_suggestions.length > 0
                                     ? aiQueryResponse.response.follow_up_suggestions
                                     : [
-                                        'So sánh giữa các đơn vị',
-                                        'Xu hướng theo thời gian',
-                                        'Hệ thống quan trọng nhất',
-                                        'Chi phí đầu tư'
+                                        'Hệ thống nào cần ưu tiên nâng cấp?',
+                                        'Đơn vị nào có rủi ro CNTT cao?',
+                                        'Hiệu quả đầu tư CNTT của các đơn vị?',
                                       ]
                                   ).map((suggestion, idx) => (
                                     <Tag
@@ -2852,20 +2917,30 @@ const StrategicDashboard = () => {
                                         </div>
                                       )}
 
-                                      {/* Task Checklist */}
+                                      {/* Task Checklist with strikethrough */}
                                       {aiQueryResponse.thinking.tasks && aiQueryResponse.thinking.tasks.length > 0 && (
-                                        <div style={{ padding: '8px 12px', background: '#f6ffed', borderRadius: 6 }}>
-                                          <Text strong style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>Các bước thực hiện:</Text>
+                                        <div style={{ padding: '10px 12px', background: '#f6ffed', borderRadius: 6, border: '1px solid #d9f7be' }}>
+                                          <Text strong style={{ fontSize: 12, marginBottom: 10, display: 'block', color: '#389e0d' }}>
+                                            ✓ Các bước đã thực hiện:
+                                          </Text>
                                           {aiQueryResponse.thinking.tasks.map((task) => (
-                                            <div key={task.id} style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+                                            <div key={task.id} style={{ display: 'flex', alignItems: 'center', marginBottom: 6, paddingLeft: 4 }}>
                                               {task.status === 'completed' ? (
-                                                <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                                                <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8, fontSize: 14 }} />
                                               ) : task.status === 'in_progress' ? (
-                                                <SyncOutlined spin style={{ color: '#1890ff', marginRight: 8 }} />
+                                                <SyncOutlined spin style={{ color: '#1890ff', marginRight: 8, fontSize: 14 }} />
                                               ) : (
-                                                <ClockCircleOutlined style={{ color: '#d9d9d9', marginRight: 8 }} />
+                                                <ClockCircleOutlined style={{ color: '#d9d9d9', marginRight: 8, fontSize: 14 }} />
                                               )}
-                                              <Text style={{ fontSize: 13 }}>{task.name}</Text>
+                                              <Text
+                                                style={{
+                                                  fontSize: 13,
+                                                  textDecoration: task.status === 'completed' ? 'line-through' : 'none',
+                                                  color: task.status === 'completed' ? '#8c8c8c' : '#262626',
+                                                }}
+                                              >
+                                                {task.name}
+                                              </Text>
                                             </div>
                                           ))}
                                         </div>

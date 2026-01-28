@@ -27,7 +27,15 @@ CONDITIONAL_FIELDS_MAP: Dict[str, str] = {
     'layered_architecture_details': 'has_layered_architecture',  # Required if has_layered_architecture = True
     'data_catalog_notes': 'has_data_catalog',  # Required if has_data_catalog = True
     'mdm_notes': 'has_mdm',  # Required if has_mdm = True
+    # Note: is_go_live/go_live_date handled specially - see GO_LIVE_FIELDS_LOGIC
 }
+
+# Special logic for is_go_live and go_live_date fields:
+# - If is_go_live is None: Don't count either field (system not yet updated)
+# - If is_go_live is not None (True or False): Count both fields
+#   - is_go_live counts as filled (since it's not None)
+#   - go_live_date must be filled to count as filled
+GO_LIVE_FIELDS_LOGIC = True  # Flag to enable special handling
 
 
 def is_field_filled(value: Any) -> bool:
@@ -147,6 +155,23 @@ def calculate_system_completion_percentage(system_instance: Any) -> float:
             # Field doesn't exist, skip it
             continue
 
+    # Special handling for is_go_live and go_live_date
+    # - If is_go_live is None: Don't count either field
+    # - If is_go_live is not None: Count both fields (is_go_live filled, check go_live_date)
+    try:
+        is_go_live_value = getattr(system_instance, 'is_go_live', None)
+        if is_go_live_value is not None:
+            # is_go_live has been set (True or False), count both fields
+            total_required_fields += 2  # is_go_live and go_live_date
+            filled_fields += 1  # is_go_live is filled (not None)
+
+            # Check if go_live_date is filled
+            go_live_date_value = getattr(system_instance, 'go_live_date', None)
+            if is_field_filled(go_live_date_value):
+                filled_fields += 1
+    except AttributeError:
+        pass
+
     # Avoid division by zero
     if total_required_fields == 0:
         return 100.0  # If no required fields, consider it 100% complete
@@ -230,6 +255,19 @@ def get_incomplete_fields(system_instance: Any) -> List[str]:
         except AttributeError:
             continue
 
+    # Special handling for is_go_live and go_live_date
+    # - If is_go_live is None: Don't report either field as incomplete
+    # - If is_go_live is not None: go_live_date is required
+    try:
+        is_go_live_value = getattr(system_instance, 'is_go_live', None)
+        if is_go_live_value is not None:
+            # is_go_live has been set, check if go_live_date is filled
+            go_live_date_value = getattr(system_instance, 'go_live_date', None)
+            if not is_field_filled(go_live_date_value):
+                incomplete.append('go_live_date')
+    except AttributeError:
+        pass
+
     return incomplete
 
 
@@ -290,6 +328,22 @@ def get_tab_completion_status(system_instance: Any) -> Dict[str, Dict[str, Any]]
                     filled_count += 1
             except AttributeError:
                 continue
+
+        # Special handling for tab1: is_go_live and go_live_date
+        if tab_key == 'tab1':
+            try:
+                is_go_live_value = getattr(system_instance, 'is_go_live', None)
+                if is_go_live_value is not None:
+                    # is_go_live has been set, count both fields
+                    total_required += 2  # is_go_live and go_live_date
+                    filled_count += 1  # is_go_live is filled (not None)
+
+                    # Check if go_live_date is filled
+                    go_live_date_value = getattr(system_instance, 'go_live_date', None)
+                    if is_field_filled(go_live_date_value):
+                        filled_count += 1
+            except AttributeError:
+                pass
 
         # Calculate percentage for this tab
         if total_required == 0:

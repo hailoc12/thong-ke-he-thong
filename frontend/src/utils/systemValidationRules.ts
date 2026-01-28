@@ -54,8 +54,12 @@ export const Tab1ValidationRules = {
   requirement_type: [createRequiredRule('Vui lòng chọn loại nhu cầu')],
   target_completion_date: [createRequiredRule('Vui lòng chọn thời gian mong muốn hoàn thành')],
   system_group: [createRequiredRule('Vui lòng chọn nhóm hệ thống')],
-  go_live_date: [createRequiredRule('Vui lòng chọn ngày đưa vào vận hành')],
   current_version: [createRequiredRule('Vui lòng nhập phiên bản hiện tại')],
+
+  // Conditional required: is_go_live checkbox controls go_live_date requirement
+  // Validation handled dynamically in SystemCreate/SystemEdit components
+  is_go_live: [],  // Boolean - no validation needed (default True)
+  go_live_date: [],  // Conditional required - handled in form component based on is_go_live
 
   // Additional notes - Optional (no validation)
   additional_notes_tab1: [],

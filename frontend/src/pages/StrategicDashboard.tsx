@@ -994,6 +994,149 @@ const StrategicDashboard = () => {
                     </Col>
                   ))}
                 </Row>
+
+                {/* AI Chat Input - Direct in AI Assistant Section */}
+                <Divider style={{ margin: '16px 0' }} />
+                <Card
+                  size="small"
+                  style={{
+                    background: 'linear-gradient(135deg, #f0f5ff 0%, #e6f7ff 100%)',
+                    borderRadius: borderRadius.md,
+                    border: '1px dashed #91d5ff',
+                  }}
+                >
+                  <Row gutter={[12, 12]} align="middle">
+                    <Col xs={24}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        <BulbOutlined style={{ marginRight: 4, color: '#1890ff' }} />
+                        Hỏi AI về dữ liệu hệ thống - Ví dụ: "Có bao nhiêu hệ thống dùng Java?", "Đơn vị nào có nhiều hệ thống nhất?"
+                      </Text>
+                    </Col>
+                    <Col flex="auto">
+                      <Input.Search
+                        placeholder="Nhập câu hỏi của bạn..."
+                        value={aiQuery}
+                        onChange={(e) => setAiQuery(e.target.value)}
+                        onSearch={handleAIQuery}
+                        enterButton={
+                          <Button
+                            type="primary"
+                            icon={<SendOutlined />}
+                            loading={aiQueryLoading}
+                            style={{ background: '#722ed1', borderColor: '#722ed1' }}
+                          >
+                            Hỏi AI
+                          </Button>
+                        }
+                        size="large"
+                        style={{ fontSize: 14 }}
+                      />
+                    </Col>
+                    {aiQueryHistory.length > 0 && (
+                      <Col xs={24}>
+                        <Space wrap size={[4, 4]}>
+                          <HistoryOutlined style={{ color: '#8c8c8c' }} />
+                          <Text type="secondary" style={{ fontSize: 12 }}>Gần đây:</Text>
+                          {aiQueryHistory.slice(0, 3).map((q, idx) => (
+                            <Tag
+                              key={idx}
+                              style={{ cursor: 'pointer', fontSize: 11 }}
+                              onClick={() => setAiQuery(q)}
+                            >
+                              {q.length > 25 ? q.substring(0, 25) + '...' : q}
+                            </Tag>
+                          ))}
+                        </Space>
+                      </Col>
+                    )}
+                  </Row>
+
+                  {/* AI Response inline */}
+                  {aiQueryLoading && (
+                    <div style={{ textAlign: 'center', marginTop: 16, padding: '20px' }}>
+                      <Spin tip="AI đang phân tích dữ liệu..." />
+                    </div>
+                  )}
+
+                  {aiQueryResponse && !aiQueryLoading && (
+                    <div style={{ marginTop: 16 }}>
+                      <Card
+                        size="small"
+                        title={
+                          <Space>
+                            <RobotOutlined style={{ color: '#722ed1' }} />
+                            <span>Kết quả từ Trợ lý AI</span>
+                          </Space>
+                        }
+                        style={{ borderRadius: borderRadius.sm }}
+                      >
+                        {aiQueryResponse.ai_response.error ? (
+                          <Alert
+                            type="error"
+                            message={aiQueryResponse.ai_response.error}
+                            showIcon
+                          />
+                        ) : (
+                          <Space direction="vertical" style={{ width: '100%' }}>
+                            {/* Explanation */}
+                            <div style={{ padding: '12px', background: '#f6ffed', borderRadius: 8 }}>
+                              <Text>{aiQueryResponse.ai_response.explanation}</Text>
+                            </div>
+
+                            {/* Data Table (compact) */}
+                            {aiQueryResponse.data && aiQueryResponse.data.rows.length > 0 && (
+                              <Table
+                                dataSource={aiQueryResponse.data.rows.slice(0, 5).map((row, idx) => ({
+                                  key: idx,
+                                  ...row,
+                                }))}
+                                columns={aiQueryResponse.data.columns.map(col => ({
+                                  title: col,
+                                  dataIndex: col,
+                                  key: col,
+                                  ellipsis: true,
+                                }))}
+                                pagination={false}
+                                size="small"
+                                scroll={{ x: 'max-content' }}
+                              />
+                            )}
+
+                            {/* More results link */}
+                            {aiQueryResponse.data && aiQueryResponse.data.rows.length > 5 && (
+                              <Button
+                                type="link"
+                                onClick={() => setActiveTab('insights')}
+                                style={{ padding: 0 }}
+                              >
+                                Xem đầy đủ {aiQueryResponse.data.total_rows} kết quả tại Tab "Phân tích" →
+                              </Button>
+                            )}
+
+                            {/* SQL Query (collapsed by default) */}
+                            {aiQueryResponse.ai_response.sql && (
+                              <Collapse size="small" ghost>
+                                <Panel header={<Text type="secondary" style={{ fontSize: 11 }}>Xem SQL Query</Text>} key="sql">
+                                  <pre style={{
+                                    background: '#282c34',
+                                    color: '#abb2bf',
+                                    padding: '8px',
+                                    borderRadius: '4px',
+                                    overflow: 'auto',
+                                    fontSize: '10px',
+                                    margin: 0,
+                                  }}>
+                                    {aiQueryResponse.ai_response.sql}
+                                  </pre>
+                                </Panel>
+                              </Collapse>
+                            )}
+                          </Space>
+                        )}
+                      </Card>
+                    </div>
+                  )}
+                </Card>
               </div>
             )}
           </Card>

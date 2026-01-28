@@ -43,11 +43,7 @@ const DEV_TYPE_LABELS: Record<string, string> = {
   other: 'Khác',
 };
 
-const VENDOR_TYPE_LABELS: Record<string, string> = {
-  domestic: 'Trong nước',
-  foreign: 'Nước ngoài',
-  joint_venture: 'Liên doanh',
-};
+// VENDOR_TYPE_LABELS - Reserved for future use
 
 const WARRANTY_LABELS: Record<string, string> = {
   active: 'Còn bảo hành',
@@ -93,11 +89,7 @@ const DATA_CLASS_LABELS: Record<string, string> = {
   secret: 'Tối mật',
 };
 
-const RISK_LABELS: Record<string, string> = {
-  high: 'Cao',
-  medium: 'Trung bình',
-  low: 'Thấp',
-};
+// RISK_LABELS - Reserved for future use
 
 const RECOMMENDATION_LABELS: Record<string, string> = {
   keep: 'Giữ nguyên',
@@ -178,20 +170,14 @@ function formatDate(value: string | undefined | null): string {
   return dayjs(value).format('DD/MM/YYYY');
 }
 
-function formatCurrency(value: number | undefined | null): string {
-  if (value === undefined || value === null) return '';
-  return new Intl.NumberFormat('vi-VN').format(value);
-}
+// formatCurrency - Reserved for future use
 
 function formatNumber(value: number | undefined | null): string {
   if (value === undefined || value === null) return '';
   return new Intl.NumberFormat('vi-VN').format(value);
 }
 
-function formatRating(value: number | undefined | null): string {
-  if (!value) return '';
-  return `${value}/5`;
-}
+// formatRating - Reserved for future use
 
 function getLabel(map: Record<string, string>, value: string | undefined | null): string {
   if (!value) return '';
@@ -612,151 +598,6 @@ function generateAssessmentSheet(systems: SystemDetail[]): any[][] {
   return [headers, ...rows];
 }
 
-/**
- * Sheet 10: Chi phí L2 (Cost - Level 2 only)
- */
-function generateCostSheet(systems: SystemDetail[]): any[][] {
-  const headers = [
-    'STT', 'Mã hệ thống', 'Tên hệ thống', 'Đầu tư ban đầu',
-    'Chi phí phát triển', 'License/năm', 'Bảo trì/năm',
-    'Hạ tầng/năm', 'Nhân sự/năm', 'TCO', 'Nguồn tài trợ', 'Ghi chú'
-  ];
-
-  const rows = systems
-    .filter(sys => sys.form_level === 2)
-    .map((sys, idx) => {
-      const cost = sys.cost || {};
-      return escapeRow([
-        idx + 1,
-        sys.system_code || '',
-        sys.system_name || '',
-        formatCurrency(cost.initial_investment),
-        formatCurrency(cost.development_cost),
-        formatCurrency(cost.annual_license_cost),
-        formatCurrency(cost.annual_maintenance_cost),
-        formatCurrency(cost.annual_infrastructure_cost),
-        formatCurrency(cost.annual_personnel_cost),
-        formatCurrency(cost.total_cost_of_ownership),
-        cost.funding_source || '',
-        cost.cost_notes || '',
-      ]);
-    });
-
-  return [headers, ...rows];
-}
-
-/**
- * Sheet 11: Nhà cung cấp L2 (Vendor - Level 2 only)
- */
-function generateVendorSheet(systems: SystemDetail[]): any[][] {
-  const headers = [
-    'STT', 'Mã hệ thống', 'Tên hệ thống', 'Tên NCC', 'Loại NCC',
-    'Người liên hệ', 'SĐT', 'Email', 'Số hợp đồng',
-    'Bắt đầu HĐ', 'Kết thúc HĐ', 'Đánh giá NCC', 'Rủi ro vendor lock-in'
-  ];
-
-  const rows = systems
-    .filter(sys => sys.form_level === 2)
-    .map((sys, idx) => {
-      const vendor = sys.vendor || {};
-      return escapeRow([
-        idx + 1,
-        sys.system_code || '',
-        sys.system_name || '',
-        vendor.vendor_name || '',
-        getLabel(VENDOR_TYPE_LABELS, vendor.vendor_type),
-        vendor.vendor_contact_person || '',
-        vendor.vendor_phone || '',
-        vendor.vendor_email || '',
-        vendor.contract_number || '',
-        formatDate(vendor.contract_start_date),
-        formatDate(vendor.contract_end_date),
-        formatRating(vendor.vendor_performance_rating),
-        getLabel(RISK_LABELS, vendor.vendor_lock_in_risk),
-      ]);
-    });
-
-  return [headers, ...rows];
-}
-
-/**
- * Sheet 12: Hạ tầng chi tiết L2 (Infrastructure Detail - Level 2 only)
- */
-function generateInfrastructureDetailSheet(systems: SystemDetail[]): any[][] {
-  const headers = [
-    'STT', 'Mã hệ thống', 'Tên hệ thống', 'Số server', 'Specs server',
-    'Tổng CPU cores', 'Tổng RAM (GB)', 'Tổng Storage (TB)',
-    'Bandwidth (Mbps)', 'Có CDN', 'Có Load Balancer',
-    'Tần suất backup', 'Retention days', 'Có DR', 'RTO (hours)', 'RPO (hours)'
-  ];
-
-  const rows = systems
-    .filter(sys => sys.form_level === 2)
-    .map((sys, idx) => {
-      const infra = sys.infrastructure || {};
-      return escapeRow([
-        idx + 1,
-        sys.system_code || '',
-        sys.system_name || '',
-        formatNumber(infra.num_servers),
-        infra.server_specs || '',
-        formatNumber(infra.total_cpu_cores),
-        formatNumber(infra.total_ram_gb),
-        formatNumber(infra.total_storage_tb),
-        formatNumber(infra.bandwidth_mbps),
-        formatBoolean(infra.has_cdn),
-        formatBoolean(infra.has_load_balancer),
-        infra.backup_frequency || '',
-        formatNumber(infra.backup_retention_days),
-        formatBoolean(infra.has_disaster_recovery),
-        formatNumber(infra.rto_hours),
-        formatNumber(infra.rpo_hours),
-      ]);
-    });
-
-  return [headers, ...rows];
-}
-
-/**
- * Sheet 13: Bảo mật chi tiết L2 (Security Detail - Level 2 only)
- */
-function generateSecurityDetailSheet(systems: SystemDetail[]): any[][] {
-  const headers = [
-    'STT', 'Mã hệ thống', 'Tên hệ thống', 'Phương thức xác thực',
-    'Có MFA', 'Có RBAC', 'Mã hóa at rest', 'Mã hóa in transit',
-    'Có Firewall', 'Có WAF', 'Có IDS/IPS', 'Có Antivirus',
-    'Ngày audit cuối', 'Ngày pentest cuối', 'Có quét lỗ hổng',
-    'Số sự cố/năm', 'Ghi chú bảo mật'
-  ];
-
-  const rows = systems
-    .filter(sys => sys.form_level === 2)
-    .map((sys, idx) => {
-      const sec = sys.security || {};
-      return escapeRow([
-        idx + 1,
-        sys.system_code || '',
-        sys.system_name || '',
-        sec.auth_method || '',
-        formatBoolean(sec.has_mfa),
-        formatBoolean(sec.has_rbac),
-        formatBoolean(sec.has_data_encryption_at_rest),
-        formatBoolean(sec.has_data_encryption_in_transit),
-        formatBoolean(sec.has_firewall),
-        formatBoolean(sec.has_waf),
-        formatBoolean(sec.has_ids_ips),
-        formatBoolean(sec.has_antivirus),
-        formatDate(sec.last_security_audit_date),
-        formatDate(sec.last_penetration_test_date),
-        formatBoolean(sec.has_vulnerability_scanning),
-        formatNumber(sec.security_incidents_last_year),
-        sec.security_notes || '',
-      ]);
-    });
-
-  return [headers, ...rows];
-}
-
 // ===== STYLING FUNCTIONS =====
 
 function setColumnWidths(ws: XLSX.WorkSheet, widths: number[]): void {
@@ -823,35 +664,6 @@ export async function exportSystemsDetailToExcel(systems: SystemDetail[]): Promi
     fixFormulaLikeCells(sheet9);
     setColumnWidths(sheet9, [5, 15, 30, 18, 40, 15]);
     XLSX.utils.book_append_sheet(wb, sheet9, '9. Đánh giá');
-
-    // Level 2 sheets (only if there are L2 systems)
-    const hasLevel2 = systems.some(s => s.form_level === 2);
-
-    if (hasLevel2) {
-      // Sheet 10: Chi phí L2
-      const sheet10 = XLSX.utils.aoa_to_sheet(generateCostSheet(systems));
-      fixFormulaLikeCells(sheet10);
-      setColumnWidths(sheet10, [5, 15, 30, 18, 18, 15, 15, 15, 15, 18, 22, 30]);
-      XLSX.utils.book_append_sheet(wb, sheet10, '10. Chi phí L2');
-
-      // Sheet 11: Nhà cung cấp L2
-      const sheet11 = XLSX.utils.aoa_to_sheet(generateVendorSheet(systems));
-      fixFormulaLikeCells(sheet11);
-      setColumnWidths(sheet11, [5, 15, 30, 25, 15, 22, 15, 25, 18, 12, 12, 12, 15]);
-      XLSX.utils.book_append_sheet(wb, sheet11, '11. NCC L2');
-
-      // Sheet 12: Hạ tầng chi tiết L2
-      const sheet12 = XLSX.utils.aoa_to_sheet(generateInfrastructureDetailSheet(systems));
-      fixFormulaLikeCells(sheet12);
-      setColumnWidths(sheet12, [5, 15, 30, 10, 30, 12, 12, 15, 12, 10, 12, 15, 12, 10, 12, 12]);
-      XLSX.utils.book_append_sheet(wb, sheet12, '12. Hạ tầng L2');
-
-      // Sheet 13: Bảo mật chi tiết L2
-      const sheet13 = XLSX.utils.aoa_to_sheet(generateSecurityDetailSheet(systems));
-      fixFormulaLikeCells(sheet13);
-      setColumnWidths(sheet13, [5, 15, 30, 20, 10, 10, 12, 12, 10, 10, 10, 12, 12, 12, 12, 12, 35]);
-      XLSX.utils.book_append_sheet(wb, sheet13, '13. Bảo mật L2');
-    }
 
     // Generate file name
     const fileName = `Danh-sach-He-thong-${dayjs().format('YYYY-MM-DD')}.xlsx`;

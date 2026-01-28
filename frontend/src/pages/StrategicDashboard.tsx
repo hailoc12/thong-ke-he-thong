@@ -370,15 +370,15 @@ interface AIThinking {
 }
 
 // AI Processing phases for progressive UI
-type AIProcessingPhase = 'idle' | 'planning' | 'creating_tasks' | 'executing' | 'generating_response' | 'complete';
+type AIProcessingPhase = 'idle' | 'working' | 'complete';
 
-// Default tasks for simulation before real response arrives
-const DEFAULT_AI_TASKS: AIThinkingTask[] = [
-  { id: 1, name: 'Phân tích yêu cầu', status: 'pending' },
-  { id: 2, name: 'Tạo truy vấn dữ liệu', status: 'pending' },
-  { id: 3, name: 'Thực thi truy vấn', status: 'pending' },
-  { id: 4, name: 'Phân tích kết quả', status: 'pending' },
-  { id: 5, name: 'Tạo báo cáo', status: 'pending' },
+// Tasks to be added progressively (with delays between each)
+const PROGRESSIVE_TASKS = [
+  { id: 1, name: 'Phân tích yêu cầu', delay: 0 },
+  { id: 2, name: 'Xây dựng truy vấn SQL', delay: 800 },
+  { id: 3, name: 'Thực thi truy vấn', delay: 1200 },
+  { id: 4, name: 'Phân tích kết quả', delay: 1000 },
+  { id: 5, name: 'Tổng hợp báo cáo', delay: 800 },
 ];
 
 interface AIResponseContent {
@@ -530,53 +530,35 @@ const StrategicDashboard = () => {
     setAiQueryLoading(true);
     setAiQueryResponse(null); // Clear previous response
 
-    // Reset progress states
-    setAiProcessingPhase('planning');
-    setAiCurrentPlan('Đang phân tích yêu cầu của Lãnh đạo...');
-    setAiProgressTasks(DEFAULT_AI_TASKS.map(t => ({ ...t, status: 'pending' as const })));
+    // Reset progress states - start with empty backlog
+    setAiProcessingPhase('working');
+    setAiCurrentPlan('');
+    setAiProgressTasks([]); // Start empty, will append progressively
 
-    // Simulate progressive task execution
+    // Progressive task simulation - append tasks one by one
+    let simulationComplete = false;
     const simulateProgress = async () => {
-      // Phase 1: Planning (after 500ms)
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setAiProgressTasks(prev => prev.map((t, i) =>
-        i === 0 ? { ...t, status: 'in_progress' as const } : t
-      ));
+      for (let i = 0; i < PROGRESSIVE_TASKS.length; i++) {
+        if (simulationComplete) break;
 
-      // Phase 2: First task complete, second starting (after 800ms more)
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setAiCurrentPlan('Xây dựng truy vấn dữ liệu...');
-      setAiProcessingPhase('creating_tasks');
-      setAiProgressTasks(prev => prev.map((t, i) =>
-        i === 0 ? { ...t, status: 'completed' as const } :
-        i === 1 ? { ...t, status: 'in_progress' as const } : t
-      ));
+        const task = PROGRESSIVE_TASKS[i];
 
-      // Phase 3: Execute (after 1000ms more)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setAiCurrentPlan('Đang thực thi truy vấn...');
-      setAiProcessingPhase('executing');
-      setAiProgressTasks(prev => prev.map((t, i) =>
-        i <= 1 ? { ...t, status: 'completed' as const } :
-        i === 2 ? { ...t, status: 'in_progress' as const } : t
-      ));
+        // Wait before adding this task (except first one)
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, task.delay));
+        }
 
-      // Phase 4: Analyzing (after 1200ms more)
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      setAiCurrentPlan('Đang phân tích kết quả...');
-      setAiProgressTasks(prev => prev.map((t, i) =>
-        i <= 2 ? { ...t, status: 'completed' as const } :
-        i === 3 ? { ...t, status: 'in_progress' as const } : t
-      ));
+        if (simulationComplete) break;
 
-      // Phase 5: Generating response (after 800ms more)
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setAiCurrentPlan('Đang tạo báo cáo cho Lãnh đạo...');
-      setAiProcessingPhase('generating_response');
-      setAiProgressTasks(prev => prev.map((t, i) =>
-        i <= 3 ? { ...t, status: 'completed' as const } :
-        i === 4 ? { ...t, status: 'in_progress' as const } : t
-      ));
+        // Add new task as in_progress, mark previous as completed
+        setAiProgressTasks(prev => {
+          const updated = prev.map(t => ({ ...t, status: 'completed' as const }));
+          return [...updated, { id: task.id, name: task.name, status: 'in_progress' as const }];
+        });
+
+        // Update current plan to show what's happening
+        setAiCurrentPlan(task.name + '...');
+      }
     };
 
     // Start simulation in parallel with actual API call
@@ -585,22 +567,25 @@ const StrategicDashboard = () => {
     try {
       const response = await api.post('/systems/ai_query/', { query: currentQuery });
 
-      // Wait for simulation to catch up (at least show some progress)
+      // Signal simulation to stop
+      simulationComplete = true;
+
+      // Wait a bit for simulation to settle
       await simulationPromise;
 
-      // Mark all tasks as complete
+      // Mark all current tasks as complete
       setAiProgressTasks(prev => prev.map(t => ({ ...t, status: 'completed' as const })));
-      setAiProcessingPhase('complete');
       setAiCurrentPlan('Hoàn thành');
+      setAiProcessingPhase('complete');
 
       // Small delay before showing result
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 400));
 
       setAiQueryResponse(response.data);
       setAiQueryHistory(prev => [currentQuery, ...prev.filter(q => q !== currentQuery)].slice(0, 10));
     } catch (error: any) {
       console.error('AI Query failed:', error);
-      // Stop simulation on error
+      simulationComplete = true;
       setAiProcessingPhase('idle');
       setAiProgressTasks([]);
       if (error.response?.status === 503) {
@@ -612,7 +597,6 @@ const StrategicDashboard = () => {
       }
     } finally {
       setAiQueryLoading(false);
-      // Reset phase after a delay
       setTimeout(() => {
         setAiProcessingPhase('idle');
       }, 500);
@@ -1720,83 +1704,72 @@ const StrategicDashboard = () => {
                         padding: '16px 20px',
                         boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                         flex: 1,
-                        maxWidth: 400,
+                        maxWidth: 420,
+                        minHeight: 80,
                       }}>
-                        {/* Current Plan */}
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          marginBottom: 12,
-                          paddingBottom: 10,
-                          borderBottom: '1px solid #f0f0f0',
-                        }}>
-                          <Spin size="small" />
-                          <Text strong style={{ color: '#722ed1', fontSize: 13 }}>
-                            {aiCurrentPlan}
-                          </Text>
-                        </div>
+                        {/* Backlog Header with counter */}
+                        {aiProgressTasks.length > 0 && (
+                          <div style={{ marginBottom: 10 }}>
+                            <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                              TIẾN ĐỘ ({aiProgressTasks.filter(t => t.status === 'completed').length}/{aiProgressTasks.length})
+                            </Text>
+                          </div>
+                        )}
 
-                        {/* Todo List - Backlog */}
-                        <div style={{ marginBottom: 8 }}>
-                          <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                            BACKLOG ({aiProgressTasks.filter(t => t.status === 'completed').length}/{aiProgressTasks.length})
-                          </Text>
-                        </div>
-
-                        {/* Tasks */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {aiProgressTasks.map((task) => (
-                            <div
+                        {/* Tasks - append progressively */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {aiProgressTasks.map((task, index) => (
+                            <motion.div
                               key={task.id}
-                              className="ai-chat-bubble"
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.2 }}
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: 8,
-                                padding: '6px 0',
-                                opacity: task.status === 'pending' ? 0.5 : 1,
-                                transition: 'all 0.3s ease',
+                                gap: 10,
+                                padding: '8px 12px',
+                                background: task.status === 'in_progress' ? '#f6f0ff' : 'transparent',
+                                borderRadius: 8,
+                                transition: 'background 0.2s ease',
                               }}
                             >
                               {task.status === 'completed' ? (
-                                <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 14 }} />
-                              ) : task.status === 'in_progress' ? (
-                                <SyncOutlined spin style={{ color: '#722ed1', fontSize: 14 }} />
+                                <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 16 }} />
                               ) : (
-                                <div style={{
-                                  width: 14,
-                                  height: 14,
-                                  borderRadius: '50%',
-                                  border: '2px solid #d9d9d9',
-                                }} />
+                                <SyncOutlined spin style={{ color: '#722ed1', fontSize: 16 }} />
                               )}
                               <Text
                                 style={{
                                   fontSize: 13,
+                                  flex: 1,
                                   textDecoration: task.status === 'completed' ? 'line-through' : 'none',
-                                  color: task.status === 'completed' ? '#8c8c8c' :
-                                         task.status === 'in_progress' ? '#262626' : '#bfbfbf',
+                                  color: task.status === 'completed' ? '#8c8c8c' : '#262626',
                                   fontWeight: task.status === 'in_progress' ? 500 : 400,
                                 }}
                               >
                                 {task.name}
                               </Text>
                               {task.status === 'in_progress' && (
-                                <Tag
-                                  color="purple"
-                                  style={{
-                                    fontSize: 10,
-                                    padding: '0 6px',
-                                    borderRadius: 4,
-                                    marginLeft: 'auto',
-                                  }}
-                                >
-                                  Đang chạy
-                                </Tag>
+                                <Spin size="small" />
                               )}
-                            </div>
+                            </motion.div>
                           ))}
+
+                          {/* Show initial loading if no tasks yet */}
+                          {aiProgressTasks.length === 0 && (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 10,
+                              padding: '8px 12px',
+                            }}>
+                              <Spin size="small" />
+                              <Text style={{ color: '#722ed1', fontSize: 13 }}>
+                                Đang khởi tạo...
+                              </Text>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -2990,97 +2963,86 @@ const StrategicDashboard = () => {
                             border: '1px solid #d3adf7',
                           }}
                         >
-                          <Row gutter={[16, 16]}>
+                          <Row gutter={[16, 16]} align="middle">
                             {/* Left: Robot icon */}
-                            <Col xs={24} md={4} style={{ textAlign: 'center' }}>
+                            <Col xs={24} md={3} style={{ textAlign: 'center' }}>
                               <div style={{ position: 'relative', display: 'inline-block' }}>
-                                <RobotOutlined style={{ fontSize: 48, color: '#722ed1' }} />
+                                <RobotOutlined style={{ fontSize: 40, color: '#722ed1' }} />
                                 <SyncOutlined spin style={{
-                                  fontSize: 18,
+                                  fontSize: 14,
                                   color: '#722ed1',
                                   position: 'absolute',
-                                  top: -5,
-                                  right: -10,
+                                  top: -3,
+                                  right: -8,
                                 }} />
                               </div>
                             </Col>
 
                             {/* Right: Progress tasks */}
-                            <Col xs={24} md={20}>
-                              {/* Current Plan */}
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                marginBottom: 12,
-                                paddingBottom: 10,
-                                borderBottom: '1px solid rgba(114, 46, 209, 0.2)',
-                              }}>
-                                <Spin size="small" />
-                                <Text strong style={{ color: '#722ed1', fontSize: 14 }}>
-                                  {aiCurrentPlan}
-                                </Text>
-                              </div>
-
+                            <Col xs={24} md={21}>
                               {/* Backlog Header */}
-                              <div style={{ marginBottom: 8 }}>
-                                <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                  BACKLOG ({aiProgressTasks.filter(t => t.status === 'completed').length}/{aiProgressTasks.length})
-                                </Text>
-                              </div>
+                              {aiProgressTasks.length > 0 && (
+                                <div style={{ marginBottom: 10 }}>
+                                  <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    TIẾN ĐỘ ({aiProgressTasks.filter(t => t.status === 'completed').length}/{aiProgressTasks.length})
+                                  </Text>
+                                </div>
+                              )}
 
-                              {/* Task List */}
+                              {/* Task List - append progressively */}
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                 {aiProgressTasks.map((task) => (
-                                  <div
+                                  <motion.div
                                     key={task.id}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ duration: 0.2 }}
                                     style={{
                                       display: 'flex',
                                       alignItems: 'center',
-                                      gap: 8,
-                                      padding: '4px 0',
-                                      opacity: task.status === 'pending' ? 0.5 : 1,
-                                      transition: 'all 0.3s ease',
+                                      gap: 10,
+                                      padding: '6px 10px',
+                                      background: task.status === 'in_progress' ? 'rgba(114, 46, 209, 0.1)' : 'transparent',
+                                      borderRadius: 6,
+                                      transition: 'background 0.2s ease',
                                     }}
                                   >
                                     {task.status === 'completed' ? (
-                                      <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 14 }} />
-                                    ) : task.status === 'in_progress' ? (
-                                      <SyncOutlined spin style={{ color: '#722ed1', fontSize: 14 }} />
+                                      <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 15 }} />
                                     ) : (
-                                      <div style={{
-                                        width: 14,
-                                        height: 14,
-                                        borderRadius: '50%',
-                                        border: '2px solid #d9d9d9',
-                                      }} />
+                                      <SyncOutlined spin style={{ color: '#722ed1', fontSize: 15 }} />
                                     )}
                                     <Text
                                       style={{
                                         fontSize: 13,
+                                        flex: 1,
                                         textDecoration: task.status === 'completed' ? 'line-through' : 'none',
-                                        color: task.status === 'completed' ? '#8c8c8c' :
-                                               task.status === 'in_progress' ? '#262626' : '#bfbfbf',
+                                        color: task.status === 'completed' ? '#8c8c8c' : '#262626',
                                         fontWeight: task.status === 'in_progress' ? 500 : 400,
                                       }}
                                     >
                                       {task.name}
                                     </Text>
                                     {task.status === 'in_progress' && (
-                                      <Tag
-                                        color="purple"
-                                        style={{
-                                          fontSize: 10,
-                                          padding: '0 6px',
-                                          borderRadius: 4,
-                                          marginLeft: 'auto',
-                                        }}
-                                      >
-                                        Đang chạy
-                                      </Tag>
+                                      <Spin size="small" />
                                     )}
-                                  </div>
+                                  </motion.div>
                                 ))}
+
+                                {/* Show initial loading if no tasks yet */}
+                                {aiProgressTasks.length === 0 && (
+                                  <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    padding: '6px 10px',
+                                  }}>
+                                    <Spin size="small" />
+                                    <Text style={{ color: '#722ed1', fontSize: 13 }}>
+                                      Đang khởi tạo...
+                                    </Text>
+                                  </div>
+                                )}
                               </div>
                             </Col>
                           </Row>

@@ -231,6 +231,10 @@ function fixFormulaLikeCells(ws: XLSX.WorkSheet): void {
           textValue = formulaText;
         }
 
+        // Add space prefix to prevent Excel from interpreting as formula
+        // The space will be visible but is the safest way to escape
+        textValue = ' ' + textValue;
+
         // Convert to pure text cell
         cell.t = 's'; // Force type to string
         cell.v = textValue; // Set the text value
@@ -238,12 +242,11 @@ function fixFormulaLikeCells(ws: XLSX.WorkSheet): void {
         delete cell.f; // Remove formula property completely
       }
 
-      // Also handle string cells that start with +, -, @
+      // Also handle string cells that start with =, +, -, @
       if (cell && cell.t === 's' && typeof cell.v === 'string') {
         const firstChar = cell.v.charAt(0);
-        if (firstChar === '+' || firstChar === '@') {
+        if (firstChar === '=' || firstChar === '+' || firstChar === '@') {
           // Prefix with space to prevent formula interpretation
-          // Using space instead of ' because Excel may still interpret '+ as formula
           cell.v = ' ' + cell.v;
           cell.w = cell.v;
         }

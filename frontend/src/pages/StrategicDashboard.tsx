@@ -538,20 +538,6 @@ const StrategicDashboard = () => {
       drilldown?: { filterType: string; filterValue: string; title: string };
     }> = [];
 
-    // Critical: Systems needing replacement
-    if (stats.recommendation_distribution.replace > 0) {
-      recommendations.push({
-        id: 'replace-systems',
-        type: 'critical',
-        icon: <AlertOutlined style={{ color: '#f5222d' }} />,
-        title: `${stats.recommendation_distribution.replace} hệ thống cần thay thế gấp`,
-        description: 'Các hệ thống này đã lỗi thời, tiềm ẩn rủi ro bảo mật và hiệu suất. Việc trì hoãn thay thế có thể dẫn đến gián đoạn dịch vụ và tăng chi phí khắc phục.',
-        action: 'Lập kế hoạch thay thế trong Q1-Q2/2026',
-        priority: 1,
-        drilldown: { filterType: 'recommendation', filterValue: 'replace', title: 'Hệ thống cần thay thế' },
-      });
-    }
-
     // Warning: Low integration rate
     if (stats.integration.without_integration > stats.integration.with_integration) {
       const isolatedPercent = Math.round((stats.integration.without_integration / stats.overview.total_systems) * 100);

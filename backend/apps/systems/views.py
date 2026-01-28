@@ -926,6 +926,10 @@ class SystemViewSet(viewsets.ModelViewSet):
         Uses OpenAI to interpret natural language queries about system data.
         Only accessible by lanhdaobo role.
 
+        Features:
+        - Retry mechanism (up to 3 attempts) with error feedback to OpenAI
+        - User-friendly error messages in Vietnamese when all retries fail
+
         Request body:
         {
             "query": "Có bao nhiêu hệ thống đang dùng Java?"
@@ -980,19 +984,23 @@ class SystemViewSet(viewsets.ModelViewSet):
         - name: varchar - tên đơn vị
 
         Related tables (one-to-one with systems via system_id):
-        - system_architecture: has_design_document, has_architecture_diagram, architecture_type
-        - system_operations: has_ci_cd, has_monitoring, has_logging
-        - system_integration: has_api_gateway, integration_pattern
-        - system_security: has_data_encryption_at_rest, has_ssl_tls
-        - system_assessment: recommendation (keep, upgrade, replace, merge), performance_rating
-        - system_cost: initial_investment, annual_maintenance_cost
+        - system_architecture: has_design_document (boolean), has_architecture_diagram (boolean), architecture_type (varchar)
+        - system_operations: has_ci_cd (boolean), has_monitoring (boolean), has_logging (boolean)
+        - system_integration: has_api_gateway (boolean), integration_pattern (varchar)
+        - system_security: has_data_encryption_at_rest (boolean), has_ssl_tls (boolean)
+        - system_assessment: recommendation (varchar: keep, upgrade, replace, merge), performance_rating (integer: 1-5)
+        - system_cost: initial_investment (decimal), annual_maintenance_cost (decimal)
+
+        IMPORTANT DATA TYPES:
+        - performance_rating is INTEGER (1-5), NOT a string
+        - recommendation is VARCHAR (keep, upgrade, replace, merge)
+        - Boolean fields: has_design_document, has_architecture_diagram, has_ci_cd, has_monitoring, has_logging, has_api_gateway, has_data_encryption_at_rest, has_ssl_tls
         """
 
-        # Call OpenAI API
-        try:
+        # Helper function to call OpenAI API
+        def call_openai(messages):
             import requests
-
-            openai_response = requests.post(
+            return requests.post(
                 'https://api.openai.com/v1/chat/completions',
                 headers={
                     'Authorization': f'Bearer {api_key}',
@@ -1000,10 +1008,59 @@ class SystemViewSet(viewsets.ModelViewSet):
                 },
                 json={
                     'model': 'gpt-4o-mini',
-                    'messages': [
-                        {
-                            'role': 'system',
-                            'content': f"""Bạn là trợ lý AI phân tích dữ liệu hệ thống CNTT cho Bộ Khoa học và Công nghệ.
+                    'messages': messages,
+                    'temperature': 0.3,
+                    'max_tokens': 1000,
+                },
+                timeout=30,
+            )
+
+        # Helper function to validate and execute SQL
+        def validate_and_execute_sql(sql):
+            """
+            Validate SQL safety and execute it.
+            Returns (query_result, error_message) tuple.
+            """
+            sql = sql.strip().rstrip(';')  # Remove trailing semicolon
+            # Basic safety check
+            sql_upper = sql.upper()
+            # Allow SELECT and WITH (for CTEs)
+            is_safe_start = sql_upper.startswith('SELECT') or sql_upper.startswith('WITH')
+            # Check for dangerous keywords
+            dangerous_keywords = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'TRUNCATE', 'CREATE', '--']
+            has_dangerous = any(keyword in sql_upper for keyword in dangerous_keywords)
+            # Check for multiple statements (semicolon in middle of query)
+            has_multiple_statements = ';' in sql
+
+            if not is_safe_start or has_dangerous or has_multiple_statements:
+                return None, 'Query không an toàn, chỉ cho phép SELECT'
+
+            try:
+                from django.db import connection
+                with connection.cursor() as cursor:
+                    cursor.execute(sql)
+                    columns = [col[0] for col in cursor.description]
+                    rows = cursor.fetchall()
+                    query_result = {
+                        'columns': columns,
+                        'rows': [dict(zip(columns, row)) for row in rows[:100]],  # Limit 100 rows
+                        'total_rows': len(rows),
+                    }
+                    return query_result, None
+            except Exception as e:
+                return None, str(e)
+
+        # User-friendly error message in Vietnamese
+        FRIENDLY_ERROR_MESSAGE = (
+            "Xin lỗi, tôi không thể trả lời câu hỏi này do thiếu thông tin cần thiết "
+            "hoặc câu hỏi quá phức tạp. Vui lòng thử hỏi theo cách khác hoặc đặt câu hỏi đơn giản hơn."
+        )
+
+        # Maximum retry attempts
+        MAX_RETRIES = 3
+
+        # Build initial messages
+        system_prompt = f"""Bạn là trợ lý AI phân tích dữ liệu hệ thống CNTT cho Bộ Khoa học và Công nghệ.
 
 {schema_context}
 
@@ -1027,78 +1084,97 @@ Rules:
 - Return only safe SELECT queries, never UPDATE/DELETE/DROP
 - If query is unclear, ask for clarification
 - Always output valid JSON format
-- Respond in Vietnamese"""
-                        },
-                        {
-                            'role': 'user',
-                            'content': query
-                        }
-                    ],
-                    'temperature': 0.3,
-                    'max_tokens': 1000,
-                },
-                timeout=30,
-            )
+- Respond in Vietnamese
+- CRITICAL: performance_rating is INTEGER (1-5), not a string. Do not compare it with string values like 'upgrade'.
+- CRITICAL: recommendation is VARCHAR with values: keep, upgrade, replace, merge. This is different from performance_rating."""
 
-            if openai_response.status_code != 200:
-                logger.error(f"OpenAI API error: {openai_response.text}")
-                return Response(
-                    {'error': 'AI service temporarily unavailable'},
-                    status=status.HTTP_503_SERVICE_UNAVAILABLE
-                )
+        messages = [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': query}
+        ]
 
-            ai_result = openai_response.json()
-            ai_content = ai_result['choices'][0]['message']['content']
+        try:
+            import requests
+            import re
 
-            # Parse AI response
-            try:
-                # Try to extract JSON from the response
-                import re
-                json_match = re.search(r'\{[\s\S]*\}', ai_content)
-                if json_match:
-                    ai_data = json.loads(json_match.group())
-                else:
+            for attempt in range(MAX_RETRIES):
+                logger.info(f"AI query attempt {attempt + 1}/{MAX_RETRIES} for query: {query[:100]}...")
+
+                openai_response = call_openai(messages)
+
+                if openai_response.status_code != 200:
+                    logger.error(f"OpenAI API error: {openai_response.text}")
+                    return Response(
+                        {'error': 'AI service temporarily unavailable'},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE
+                    )
+
+                ai_result = openai_response.json()
+                ai_content = ai_result['choices'][0]['message']['content']
+
+                # Parse AI response
+                try:
+                    json_match = re.search(r'\{[\s\S]*\}', ai_content)
+                    if json_match:
+                        ai_data = json.loads(json_match.group())
+                    else:
+                        ai_data = {'explanation': ai_content, 'sql': None}
+                except json.JSONDecodeError:
                     ai_data = {'explanation': ai_content, 'sql': None}
-            except json.JSONDecodeError:
-                ai_data = {'explanation': ai_content, 'sql': None}
 
-            # Execute SQL if provided and safe
-            query_result = None
-            if ai_data.get('sql'):
-                sql = ai_data['sql'].strip().rstrip(';')  # Remove trailing semicolon
-                # Basic safety check
-                sql_upper = sql.upper()
-                # Allow SELECT and WITH (for CTEs)
-                is_safe_start = sql_upper.startswith('SELECT') or sql_upper.startswith('WITH')
-                # Check for dangerous keywords
-                dangerous_keywords = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'TRUNCATE', 'CREATE', '--']
-                has_dangerous = any(keyword in sql_upper for keyword in dangerous_keywords)
-                # Check for multiple statements (semicolon in middle of query)
-                has_multiple_statements = ';' in sql
+                # If no SQL generated, return the explanation
+                if not ai_data.get('sql'):
+                    return Response({
+                        'query': query,
+                        'ai_response': ai_data,
+                        'data': None,
+                    })
 
-                if not is_safe_start or has_dangerous or has_multiple_statements:
-                    ai_data['sql'] = None
-                    ai_data['error'] = 'Query không an toàn, chỉ cho phép SELECT'
+                # Validate and execute SQL
+                query_result, sql_error = validate_and_execute_sql(ai_data['sql'])
+
+                if query_result is not None:
+                    # SQL executed successfully
+                    return Response({
+                        'query': query,
+                        'ai_response': ai_data,
+                        'data': query_result,
+                    })
+
+                # SQL failed - prepare for retry
+                logger.warning(f"SQL execution failed (attempt {attempt + 1}): {sql_error}")
+
+                if attempt < MAX_RETRIES - 1:
+                    # Add the failed attempt to conversation for context
+                    messages.append({'role': 'assistant', 'content': ai_content})
+                    # Provide error feedback to OpenAI for correction
+                    error_feedback = f"""SQL query bị lỗi khi thực thi. Lỗi: {sql_error}
+
+Hãy sửa lại SQL query. Lưu ý:
+- performance_rating là kiểu INTEGER (1-5), không phải string
+- recommendation là kiểu VARCHAR với các giá trị: keep, upgrade, replace, merge
+- Kiểm tra lại data types của các cột trước khi so sánh
+- Đảm bảo sử dụng đúng tên bảng và JOIN đúng cách
+
+Vui lòng trả về JSON với SQL query đã sửa."""
+                    messages.append({'role': 'user', 'content': error_feedback})
                 else:
-                    try:
-                        from django.db import connection
-                        with connection.cursor() as cursor:
-                            cursor.execute(sql)
-                            columns = [col[0] for col in cursor.description]
-                            rows = cursor.fetchall()
-                            query_result = {
-                                'columns': columns,
-                                'rows': [dict(zip(columns, row)) for row in rows[:100]],  # Limit 100 rows
-                                'total_rows': len(rows),
-                            }
-                    except Exception as e:
-                        logger.error(f"SQL execution error: {e}")
-                        ai_data['error'] = f'Lỗi thực thi SQL: {str(e)}'
+                    # All retries exhausted - return user-friendly error
+                    logger.error(f"All {MAX_RETRIES} attempts failed for query: {query}")
+                    ai_data['error'] = FRIENDLY_ERROR_MESSAGE
+                    ai_data['technical_error'] = sql_error  # Keep technical error for debugging
+                    return Response({
+                        'query': query,
+                        'ai_response': ai_data,
+                        'data': None,
+                    })
 
+            # Should not reach here, but just in case
+            ai_data['error'] = FRIENDLY_ERROR_MESSAGE
             return Response({
                 'query': query,
                 'ai_response': ai_data,
-                'data': query_result,
+                'data': None,
             })
 
         except requests.exceptions.Timeout:

@@ -911,12 +911,6 @@ const StrategicDashboard = () => {
                 >
                   Xuất Excel
                 </Button>
-                <Badge count={alerts.filter(a => a.type === 'critical').length} color="red">
-                  <Tag color="red" icon={<WarningOutlined />}>Nghiêm trọng</Tag>
-                </Badge>
-                <Badge count={alerts.filter(a => a.type === 'warning').length} color="orange">
-                  <Tag color="orange" icon={<ExclamationCircleOutlined />}>Cảnh báo</Tag>
-                </Badge>
               </Space>
             </Col>
           </Row>

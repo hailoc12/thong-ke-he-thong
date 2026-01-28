@@ -56,6 +56,8 @@ import {
   FlagOutlined,
   RocketOutlined,
   LineChartOutlined,
+  SyncOutlined,
+  QuestionCircleOutlined,
 } from '@ant-design/icons';
 import {
   PieChart,
@@ -354,10 +356,41 @@ interface RoadmapStats {
   };
 }
 
-// AI Query interfaces
+// AI Query interfaces - Multi-agent thinking mode
+interface AIThinkingTask {
+  id: number;
+  name: string;
+  status: 'pending' | 'in_progress' | 'completed';
+}
+
+interface AIThinking {
+  plan: string;
+  tasks: AIThinkingTask[];
+  sql_queries: string[];
+}
+
+interface AIResponseContent {
+  greeting?: string;
+  main_answer: string;
+  details?: string | null;
+  chart_type?: 'bar' | 'pie' | 'table' | 'number';
+  chart_config?: {
+    x_field?: string;
+    y_field?: string;
+    title?: string;
+    x_label?: string;
+    y_label?: string;
+    unit?: string;
+  };
+  follow_up_suggestions?: string[];
+}
+
 interface AIQueryResponse {
   query: string;
-  ai_response: {
+  thinking?: AIThinking;
+  response?: AIResponseContent;
+  // Legacy format support
+  ai_response?: {
     sql?: string;
     explanation?: string;
     chart_type?: 'bar' | 'pie' | 'table' | 'number';
@@ -373,6 +406,7 @@ interface AIQueryResponse {
     rows: Array<Record<string, any>>;
     total_rows: number;
   };
+  error?: string;
 }
 
 interface DrilldownSystem {
@@ -1341,15 +1375,30 @@ const StrategicDashboard = () => {
                             boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                           }}
                         >
-                          {aiQueryResponse.ai_response.error ? (
+                          {(aiQueryResponse.error || aiQueryResponse.ai_response?.error) ? (
                             <Alert
                               type="error"
-                              message={aiQueryResponse.ai_response.error}
+                              message={aiQueryResponse.error || aiQueryResponse.ai_response?.error}
                               showIcon
                               style={{ border: 'none', background: 'transparent', padding: 0 }}
                             />
                           ) : (
                             <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                              {/* Thinking Block - Compact for chat bubble */}
+                              {aiQueryResponse.thinking && aiQueryResponse.thinking.tasks && aiQueryResponse.thinking.tasks.length > 0 && (
+                                <div style={{
+                                  background: '#fafafa',
+                                  borderRadius: 8,
+                                  padding: '8px 12px',
+                                  marginBottom: 4,
+                                }}>
+                                  <Text type="secondary" style={{ fontSize: 11 }}>
+                                    <BulbOutlined style={{ marginRight: 4 }} />
+                                    {aiQueryResponse.thinking.tasks.filter(t => t.status === 'completed').length}/{aiQueryResponse.thinking.tasks.length} bước hoàn thành
+                                  </Text>
+                                </div>
+                              )}
+
                               {/* Main Answer - Highlighted */}
                               <div style={{
                                 background: 'linear-gradient(135deg, #f6ffed 0%, #e6fffb 100%)',
@@ -1357,9 +1406,21 @@ const StrategicDashboard = () => {
                                 padding: '12px 16px',
                                 borderLeft: '4px solid #52c41a',
                               }}>
+                                {/* Greeting */}
+                                {aiQueryResponse.response?.greeting && (
+                                  <Text type="secondary" style={{ fontSize: 12, fontStyle: 'italic', display: 'block', marginBottom: 6 }}>
+                                    {aiQueryResponse.response.greeting}
+                                  </Text>
+                                )}
                                 <Text style={{ fontSize: 15, lineHeight: 1.6 }}>
-                                  {aiQueryResponse.ai_response.explanation}
+                                  {aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả'}
                                 </Text>
+                                {/* Details */}
+                                {aiQueryResponse.response?.details && (
+                                  <Text type="secondary" style={{ fontSize: 13, display: 'block', marginTop: 8 }}>
+                                    {aiQueryResponse.response.details}
+                                  </Text>
+                                )}
                               </div>
 
                               {/* Visual Data Display */}
@@ -1372,6 +1433,11 @@ const StrategicDashboard = () => {
                                   <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
                                     <LineChartOutlined style={{ marginRight: 6 }} />
                                     Chi tiết dữ liệu ({Math.min(aiQueryResponse.data.rows.length, 5)} / {aiQueryResponse.data.total_rows} kết quả)
+                                    {aiQueryResponse.response?.chart_config?.unit && (
+                                      <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>
+                                        Đơn vị: {aiQueryResponse.response.chart_config.unit}
+                                      </Tag>
+                                    )}
                                   </Text>
 
                                   {/* Simple Visual Bars for numeric data */}
@@ -1382,6 +1448,7 @@ const StrategicDashboard = () => {
                                     const maxVal = Math.max(...aiQueryResponse.data!.rows.slice(0, 5).map((r: any) =>
                                       Math.max(...Object.values(r).filter((v): v is number => typeof v === 'number'))
                                     ));
+                                    const unit = aiQueryResponse.response?.chart_config?.unit || '';
 
                                     return (
                                       <div key={idx} style={{
@@ -1417,7 +1484,7 @@ const StrategicDashboard = () => {
                                               }}
                                             >
                                               <Text style={{ fontSize: 11, color: 'white', fontWeight: 600 }}>
-                                                {numericValue.toLocaleString()}
+                                                {numericValue.toLocaleString()}{unit ? ` ${unit}` : ''}
                                               </Text>
                                             </motion.div>
                                           )}
@@ -1439,28 +1506,31 @@ const StrategicDashboard = () => {
                                 </div>
                               )}
 
-                              {/* Follow-up Suggestions */}
+                              {/* Follow-up Suggestions - Dynamic from AI or default */}
                               <div>
                                 <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
-                                  <BulbOutlined style={{ marginRight: 6, color: '#faad14' }} />
-                                  Gợi ý hỏi thêm:
+                                  <QuestionCircleOutlined style={{ marginRight: 6, color: '#722ed1' }} />
+                                  Câu hỏi gợi ý:
                                 </Text>
                                 <Space wrap size={[6, 6]}>
-                                  {[
-                                    'So sánh giữa các đơn vị',
-                                    'Xu hướng theo thời gian',
-                                    'Hệ thống quan trọng nhất',
-                                    'Chi phí đầu tư'
-                                  ].map((suggestion, idx) => (
+                                  {(aiQueryResponse.response?.follow_up_suggestions && aiQueryResponse.response.follow_up_suggestions.length > 0
+                                    ? aiQueryResponse.response.follow_up_suggestions
+                                    : [
+                                        'So sánh giữa các đơn vị',
+                                        'Xu hướng theo thời gian',
+                                        'Hệ thống quan trọng nhất',
+                                        'Chi phí đầu tư'
+                                      ]
+                                  ).map((suggestion, idx) => (
                                     <Tag
                                       key={idx}
                                       style={{
                                         cursor: 'pointer',
                                         borderRadius: 12,
                                         padding: '4px 12px',
-                                        background: '#f0f5ff',
-                                        borderColor: '#d6e4ff',
-                                        color: '#1890ff',
+                                        background: '#f9f0ff',
+                                        borderColor: '#d3adf7',
+                                        color: '#722ed1',
                                       }}
                                       onClick={() => setAiQuery(suggestion)}
                                     >
@@ -2634,7 +2704,6 @@ const StrategicDashboard = () => {
                     <Space>
                       <RobotOutlined style={{ color: '#722ed1' }} />
                       <span>Trợ lý AI - Hỏi đáp dữ liệu</span>
-                      <Tag color="purple">GPT-4</Tag>
                     </Space>
                   }
                   style={{
@@ -2687,50 +2756,174 @@ const StrategicDashboard = () => {
                       </Space>
                     </Col>
 
-                    {/* AI Response */}
+                    {/* AI Response - Loading Animation */}
                     {aiQueryLoading && (
                       <Col xs={24}>
-                        <Card size="small" style={{ textAlign: 'center' }}>
-                          <Spin tip="AI đang phân tích..." />
+                        <Card
+                          size="small"
+                          style={{
+                            background: 'linear-gradient(135deg, #f9f0ff 0%, #efdbff 100%)',
+                            borderRadius: 12,
+                            border: '1px solid #d3adf7',
+                          }}
+                        >
+                          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                            <Space direction="vertical" align="center" size={12}>
+                              <div style={{ position: 'relative' }}>
+                                <RobotOutlined style={{ fontSize: 36, color: '#722ed1' }} />
+                                <SyncOutlined spin style={{
+                                  fontSize: 16,
+                                  color: '#722ed1',
+                                  position: 'absolute',
+                                  top: -5,
+                                  right: -10,
+                                }} />
+                              </div>
+                              <Text style={{ color: '#722ed1', fontSize: 14 }}>
+                                <BulbOutlined style={{ marginRight: 8 }} />
+                                AI đang phân tích và lập kế hoạch...
+                              </Text>
+                              <div style={{ display: 'flex', gap: 8 }}>
+                                {['Đọc câu hỏi', 'Lập kế hoạch', 'Phân tích dữ liệu'].map((step, idx) => (
+                                  <Tag key={idx} color="purple" style={{ margin: 0 }}>
+                                    {idx === 0 ? <CheckCircleOutlined /> : <SyncOutlined spin />} {step}
+                                  </Tag>
+                                ))}
+                              </div>
+                            </Space>
+                          </div>
                         </Card>
                       </Col>
                     )}
 
                     {aiQueryResponse && !aiQueryLoading && (
                       <Col xs={24}>
-                        <Card size="small" title="Kết quả phân tích">
-                          {aiQueryResponse.ai_response.error ? (
+                        <Card
+                          size="small"
+                          title={
+                            <Space>
+                              <RobotOutlined style={{ color: '#722ed1' }} />
+                              <span>Kết quả phân tích</span>
+                            </Space>
+                          }
+                          style={{
+                            borderRadius: 12,
+                            boxShadow: '0 2px 8px rgba(114, 46, 209, 0.1)',
+                          }}
+                        >
+                          {(aiQueryResponse.error || aiQueryResponse.ai_response?.error) ? (
                             <Alert
                               type="error"
-                              message={aiQueryResponse.ai_response.error}
+                              message={aiQueryResponse.error || aiQueryResponse.ai_response?.error}
                               showIcon
                             />
                           ) : (
-                            <Space direction="vertical" style={{ width: '100%' }}>
-                              {/* Explanation */}
-                              <div style={{ padding: '12px', background: '#f6ffed', borderRadius: 8 }}>
-                                <Text>{aiQueryResponse.ai_response.explanation}</Text>
-                              </div>
+                            <Space direction="vertical" style={{ width: '100%' }} size={16}>
+                              {/* Thinking Block - Collapsible */}
+                              {aiQueryResponse.thinking && (
+                                <Collapse
+                                  size="small"
+                                  ghost
+                                  style={{
+                                    background: '#fafafa',
+                                    borderRadius: 8,
+                                  }}
+                                >
+                                  <Panel
+                                    header={
+                                      <Space>
+                                        <BulbOutlined style={{ color: '#faad14' }} />
+                                        <Text type="secondary">AI đang suy nghĩ...</Text>
+                                        {aiQueryResponse.thinking.tasks && (
+                                          <Tag color="green" style={{ marginLeft: 8 }}>
+                                            {aiQueryResponse.thinking.tasks.filter(t => t.status === 'completed').length}/{aiQueryResponse.thinking.tasks.length} hoàn thành
+                                          </Tag>
+                                        )}
+                                      </Space>
+                                    }
+                                    key="thinking"
+                                  >
+                                    <Space direction="vertical" style={{ width: '100%' }} size={12}>
+                                      {/* Plan */}
+                                      {aiQueryResponse.thinking.plan && (
+                                        <div style={{ padding: '8px 12px', background: '#fff7e6', borderRadius: 6 }}>
+                                          <Text type="secondary" style={{ fontSize: 12 }}>Kế hoạch: </Text>
+                                          <Text style={{ fontSize: 13 }}>{aiQueryResponse.thinking.plan}</Text>
+                                        </div>
+                                      )}
 
-                              {/* SQL Query (collapsible) */}
-                              {aiQueryResponse.ai_response.sql && (
-                                <Collapse size="small">
-                                  <Panel header="Xem SQL Query" key="sql">
-                                    <pre style={{
-                                      background: '#282c34',
-                                      color: '#abb2bf',
-                                      padding: '12px',
-                                      borderRadius: '8px',
-                                      overflow: 'auto',
-                                      fontSize: '12px',
-                                    }}>
-                                      {aiQueryResponse.ai_response.sql}
-                                    </pre>
+                                      {/* Task Checklist */}
+                                      {aiQueryResponse.thinking.tasks && aiQueryResponse.thinking.tasks.length > 0 && (
+                                        <div style={{ padding: '8px 12px', background: '#f6ffed', borderRadius: 6 }}>
+                                          <Text strong style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>Các bước thực hiện:</Text>
+                                          {aiQueryResponse.thinking.tasks.map((task) => (
+                                            <div key={task.id} style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+                                              {task.status === 'completed' ? (
+                                                <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                                              ) : task.status === 'in_progress' ? (
+                                                <SyncOutlined spin style={{ color: '#1890ff', marginRight: 8 }} />
+                                              ) : (
+                                                <ClockCircleOutlined style={{ color: '#d9d9d9', marginRight: 8 }} />
+                                              )}
+                                              <Text style={{ fontSize: 13 }}>{task.name}</Text>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      {/* SQL Queries */}
+                                      {aiQueryResponse.thinking.sql_queries && aiQueryResponse.thinking.sql_queries.length > 0 && (
+                                        <Collapse size="small" ghost>
+                                          <Panel header={<Text type="secondary" style={{ fontSize: 12 }}>SQL Queries ({aiQueryResponse.thinking.sql_queries.length})</Text>} key="sql">
+                                            {aiQueryResponse.thinking.sql_queries.map((sql, idx) => (
+                                              <pre key={idx} style={{
+                                                background: '#282c34',
+                                                color: '#abb2bf',
+                                                padding: '8px',
+                                                borderRadius: '6px',
+                                                overflow: 'auto',
+                                                fontSize: '11px',
+                                                marginBottom: 8,
+                                              }}>
+                                                {sql}
+                                              </pre>
+                                            ))}
+                                          </Panel>
+                                        </Collapse>
+                                      )}
+                                    </Space>
                                   </Panel>
                                 </Collapse>
                               )}
 
-                              {/* Data Table */}
+                              {/* Main Response */}
+                              <div style={{
+                                padding: '16px',
+                                background: 'linear-gradient(135deg, #f6ffed 0%, #e6fffb 100%)',
+                                borderRadius: 10,
+                                borderLeft: '4px solid #52c41a',
+                              }}>
+                                {/* Greeting */}
+                                {aiQueryResponse.response?.greeting && (
+                                  <Text type="secondary" style={{ fontSize: 13, fontStyle: 'italic', display: 'block', marginBottom: 8 }}>
+                                    {aiQueryResponse.response.greeting}
+                                  </Text>
+                                )}
+
+                                {/* Main Answer */}
+                                <Text style={{ fontSize: 15, lineHeight: 1.8, display: 'block' }}>
+                                  {aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả'}
+                                </Text>
+
+                                {/* Details */}
+                                {aiQueryResponse.response?.details && (
+                                  <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
+                                    <Text type="secondary" style={{ fontSize: 13 }}>{aiQueryResponse.response.details}</Text>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Data Table with better styling */}
                               {aiQueryResponse.data && aiQueryResponse.data.rows.length > 0 && (
                                 <Table
                                   dataSource={aiQueryResponse.data.rows.map((row, idx) => ({
@@ -2746,14 +2939,50 @@ const StrategicDashboard = () => {
                                   pagination={{ pageSize: 5 }}
                                   size="small"
                                   scroll={{ x: 'max-content' }}
+                                  style={{ marginTop: 8 }}
                                 />
                               )}
 
                               {/* Total rows info */}
                               {aiQueryResponse.data && (
-                                <Text type="secondary">
+                                <Text type="secondary" style={{ fontSize: 12 }}>
                                   Hiển thị {Math.min(aiQueryResponse.data.rows.length, 100)} / {aiQueryResponse.data.total_rows} kết quả
                                 </Text>
+                              )}
+
+                              {/* Follow-up Suggestions */}
+                              {aiQueryResponse.response?.follow_up_suggestions && aiQueryResponse.response.follow_up_suggestions.length > 0 && (
+                                <div style={{
+                                  padding: '12px',
+                                  background: '#f5f5f5',
+                                  borderRadius: 8,
+                                  marginTop: 8,
+                                }}>
+                                  <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
+                                    <QuestionCircleOutlined style={{ marginRight: 6 }} />
+                                    Câu hỏi gợi ý:
+                                  </Text>
+                                  <Space wrap>
+                                    {aiQueryResponse.response.follow_up_suggestions.map((suggestion, idx) => (
+                                      <Button
+                                        key={idx}
+                                        size="small"
+                                        type="dashed"
+                                        style={{
+                                          borderRadius: 16,
+                                          fontSize: 12,
+                                          color: '#722ed1',
+                                          borderColor: '#d3adf7',
+                                        }}
+                                        onClick={() => {
+                                          setAiQuery(suggestion);
+                                        }}
+                                      >
+                                        {suggestion}
+                                      </Button>
+                                    ))}
+                                  </Space>
+                                </div>
                               )}
                             </Space>
                           )}

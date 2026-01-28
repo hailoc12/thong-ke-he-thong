@@ -1439,40 +1439,70 @@ GROUP BY o.id, o.name;
         # Maximum retry attempts
         MAX_RETRIES = 3
 
-        # Build system prompt for Claude
-        system_prompt = f"""Bạn là trợ lý AI phân tích dữ liệu hệ thống CNTT cho Bộ Khoa học và Công nghệ Việt Nam.
+        # Build system prompt for Claude - Multi-agent thinking mode
+        system_prompt = f"""Bạn là Trợ lý AI thông minh phân tích dữ liệu hệ thống CNTT cho Lãnh đạo Bộ Khoa học và Công nghệ Việt Nam.
 
 {schema_context}
 
-NHIỆM VỤ CỦA BẠN:
-1. Phân tích câu hỏi của người dùng (bằng tiếng Việt)
-2. Viết SQL query để trả lời câu hỏi (PostgreSQL syntax)
-3. Giải thích kết quả bằng tiếng Việt
+=== CÁCH LÀM VIỆC (MULTI-AGENT APPROACH) ===
+Bạn sẽ làm việc theo 4 bước như một đội ngũ chuyên gia:
+1. **PLANNING**: Phân tích yêu cầu, lập kế hoạch các bước cần thực hiện
+2. **TASK CREATION**: Tạo danh sách các task cụ thể cần làm
+3. **EXECUTION**: Viết SQL query để thực hiện từng task
+4. **SYNTHESIS**: Tổng hợp kết quả, viết báo cáo cho Lãnh đạo
 
-RESPONSE FORMAT (BẮT BUỘC trả về JSON hợp lệ):
+=== PHONG CÁCH TRẢ LỜI ===
+- Bạn đang báo cáo cho Lãnh đạo cấp Bộ - dùng ngôn ngữ trang trọng, chuyên nghiệp
+- Mở đầu: "Kính thưa anh/chị," hoặc "Báo cáo anh/chị,"
+- Kết thúc: "Kính báo cáo." hoặc "Trân trọng."
+- Giải thích rõ ràng, có cấu trúc, dễ hiểu
+- Đưa ra insights và khuyến nghị nếu phù hợp
+
+=== RESPONSE FORMAT (BẮT BUỘC JSON) ===
 {{
-    "sql": "SELECT ... FROM ... WHERE ...",
-    "explanation": "Giải thích câu query và cách hiểu kết quả bằng tiếng Việt",
-    "chart_type": "bar|pie|table|number",
-    "chart_config": {{"x_field": "tên cột cho trục x", "y_field": "tên cột cho trục y", "title": "Tiêu đề biểu đồ"}}
+    "thinking": {{
+        "plan": "Mô tả ngắn gọn kế hoạch phân tích...",
+        "tasks": [
+            {{"id": 1, "name": "Tên task 1", "status": "completed"}},
+            {{"id": 2, "name": "Tên task 2", "status": "completed"}}
+        ],
+        "sql_queries": ["SELECT ...", "SELECT ..."]
+    }},
+    "response": {{
+        "greeting": "Kính thưa anh/chị," hoặc "Báo cáo anh/chị,",
+        "main_answer": "Câu trả lời chính, rõ ràng, súc tích với số liệu cụ thể (dùng **bold** cho số quan trọng)",
+        "details": "Chi tiết bổ sung nếu cần (có thể null)",
+        "chart_type": "bar|pie|table|number",
+        "chart_config": {{"x_field": "tên cột", "y_field": "tên cột", "title": "Tiêu đề", "x_label": "Nhãn trục X", "y_label": "Nhãn trục Y với đơn vị", "unit": "hệ thống|GB|TB|%|người dùng"}},
+        "follow_up_suggestions": [
+            "Câu hỏi gợi ý 1 liên quan đến kết quả?",
+            "Câu hỏi gợi ý 2 để đào sâu hơn?",
+            "Câu hỏi gợi ý 3 về khía cạnh khác?"
+        ]
+    }},
+    "sql": "SQL query chính để lấy dữ liệu hiển thị"
 }}
 
-QUY TẮC BẮT BUỘC:
+=== QUY TẮC BẮT BUỘC ===
 1. LUÔN lọc is_deleted = false khi query bảng systems
 2. Sử dụng đúng tên bảng: systems, organizations, system_architecture, system_assessment, system_operations, system_integration, system_security, system_cost, system_data_info, system_infrastructure, system_vendor
 3. LUÔN dùng table aliases: s cho systems, o cho organizations, sa cho system_assessment, etc.
 4. Join các bảng liên quan qua system_id (là primary key và foreign key của các bảng one-to-one)
 5. Chỉ trả về SELECT queries, KHÔNG BAO GIỜ viết UPDATE/DELETE/DROP/INSERT
 6. LUÔN trả về JSON hợp lệ, không có text thừa trước hoặc sau JSON
-7. Trả lời bằng tiếng Việt
 
-CRITICAL DATA TYPE RULES:
+=== DATA TYPE RULES ===
 - performance_rating là INTEGER (1-5), KHÔNG PHẢI string! Dùng: WHERE sa.performance_rating = 5
 - user_satisfaction_rating là INTEGER (1-5)
 - recommendation là VARCHAR với giá trị: 'keep', 'upgrade', 'replace', 'merge', 'other'
 - Các trường boolean dùng true/false, không phải 1/0
 
-Nếu câu hỏi không rõ ràng hoặc không liên quan đến dữ liệu hệ thống, hãy trả về JSON với sql = null và giải thích trong explanation."""
+=== CHART CONFIG ===
+- Với biểu đồ cột/thanh: x_label, y_label với đơn vị rõ ràng
+- Với biểu đồ tròn: title và unit
+- unit phổ biến: "hệ thống", "GB", "TB", "%", "người dùng", "đơn vị", "triệu đồng"
+
+Nếu câu hỏi không rõ ràng hoặc không liên quan đến dữ liệu hệ thống, hãy trả về JSON với sql = null và giải thích trong response.main_answer."""
 
         # Build initial conversation (Claude format)
         conversation = [{'role': 'user', 'content': query}]
@@ -1493,32 +1523,58 @@ Nếu câu hỏi không rõ ràng hoặc không liên quan đến dữ liệu h�
                         status=status.HTTP_503_SERVICE_UNAVAILABLE
                     )
 
-                # Parse AI response
+                # Parse AI response (new multi-agent format)
                 try:
                     json_match = re.search(r'\{[\s\S]*\}', ai_content)
                     if json_match:
                         ai_data = json.loads(json_match.group())
                     else:
-                        ai_data = {'explanation': ai_content, 'sql': None}
+                        # Fallback for non-JSON response
+                        ai_data = {
+                            'thinking': {'plan': 'Direct response', 'tasks': [], 'sql_queries': []},
+                            'response': {
+                                'greeting': '',
+                                'main_answer': ai_content,
+                                'details': None,
+                                'chart_type': None,
+                                'chart_config': None,
+                                'follow_up_suggestions': []
+                            },
+                            'sql': None
+                        }
                 except json.JSONDecodeError:
-                    ai_data = {'explanation': ai_content, 'sql': None}
+                    ai_data = {
+                        'thinking': {'plan': 'Direct response', 'tasks': [], 'sql_queries': []},
+                        'response': {
+                            'greeting': '',
+                            'main_answer': ai_content,
+                            'details': None,
+                            'chart_type': None,
+                            'chart_config': None,
+                            'follow_up_suggestions': []
+                        },
+                        'sql': None
+                    }
 
-                # If no SQL generated, return the explanation
-                if not ai_data.get('sql'):
+                # If no SQL generated, return the response (without data)
+                sql_query = ai_data.get('sql')
+                if not sql_query:
                     return Response({
                         'query': query,
-                        'ai_response': ai_data,
+                        'thinking': ai_data.get('thinking', {}),
+                        'response': ai_data.get('response', {}),
                         'data': None,
                     })
 
                 # Validate and execute SQL
-                query_result, sql_error = validate_and_execute_sql(ai_data['sql'])
+                query_result, sql_error = validate_and_execute_sql(sql_query)
 
                 if query_result is not None:
-                    # SQL executed successfully
+                    # SQL executed successfully - return new format
                     return Response({
                         'query': query,
-                        'ai_response': ai_data,
+                        'thinking': ai_data.get('thinking', {}),
+                        'response': ai_data.get('response', {}),
                         'data': query_result,
                     })
 
@@ -1544,19 +1600,21 @@ Vui lòng trả về JSON với SQL query đã sửa."""
                 else:
                     # All retries exhausted - return user-friendly error
                     logger.error(f"All {MAX_RETRIES} attempts failed for query: {query}")
-                    ai_data['error'] = FRIENDLY_ERROR_MESSAGE
-                    ai_data['technical_error'] = sql_error  # Keep technical error for debugging
+                    error_response = ai_data.get('response', {})
+                    error_response['main_answer'] = FRIENDLY_ERROR_MESSAGE
                     return Response({
                         'query': query,
-                        'ai_response': ai_data,
+                        'thinking': ai_data.get('thinking', {'plan': 'Query failed', 'tasks': [], 'sql_queries': []}),
+                        'response': error_response,
                         'data': None,
+                        'error': sql_error,  # Technical error for debugging
                     })
 
             # Should not reach here, but just in case
-            ai_data['error'] = FRIENDLY_ERROR_MESSAGE
             return Response({
                 'query': query,
-                'ai_response': ai_data,
+                'thinking': {'plan': 'Query failed', 'tasks': [], 'sql_queries': []},
+                'response': {'main_answer': FRIENDLY_ERROR_MESSAGE, 'follow_up_suggestions': []},
                 'data': None,
             })
 

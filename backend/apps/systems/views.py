@@ -1369,9 +1369,13 @@ GROUP BY o.id, o.name;
             sql_upper = sql.upper()
             # Allow SELECT and WITH (for CTEs)
             is_safe_start = sql_upper.startswith('SELECT') or sql_upper.startswith('WITH')
-            # Check for dangerous keywords
-            dangerous_keywords = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'TRUNCATE', 'CREATE', '--']
-            has_dangerous = any(keyword in sql_upper for keyword in dangerous_keywords)
+            # Check for dangerous keywords as whole words (using regex word boundaries)
+            # This prevents false positives like "is_deleted" matching "DELETE"
+            import re as regex_check
+            dangerous_keywords = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'TRUNCATE', 'CREATE']
+            has_dangerous = any(regex_check.search(rf'\b{keyword}\b', sql_upper) for keyword in dangerous_keywords)
+            # Also check for SQL comments
+            has_dangerous = has_dangerous or '--' in sql
             # Check for multiple statements (semicolon in middle of query)
             has_multiple_statements = ';' in sql
 

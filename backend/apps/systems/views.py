@@ -1347,10 +1347,13 @@ GROUP BY o.id, o.name;
             Validate SQL safety and execute it.
             Returns (query_result, error_message) tuple.
             """
+            logger.info(f"[SQL DEBUG] Raw SQL input: {repr(sql)[:200]}")
+
             # Clean SQL: remove markdown code blocks, extra whitespace
             sql = sql.strip()
             # Remove markdown code blocks (```sql ... ``` or ``` ... ```)
             if sql.startswith('```'):
+                logger.info(f"[SQL DEBUG] Detected markdown code block, removing...")
                 lines = sql.split('\n')
                 # Remove first line (```sql or ```) and last line (```)
                 if lines[0].startswith('```'):
@@ -1359,6 +1362,9 @@ GROUP BY o.id, o.name;
                     lines = lines[:-1]
                 sql = '\n'.join(lines)
             sql = sql.strip().rstrip(';')  # Remove trailing semicolon
+
+            logger.info(f"[SQL DEBUG] Cleaned SQL: {repr(sql)[:200]}")
+
             # Basic safety check
             sql_upper = sql.upper()
             # Allow SELECT and WITH (for CTEs)
@@ -1368,6 +1374,9 @@ GROUP BY o.id, o.name;
             has_dangerous = any(keyword in sql_upper for keyword in dangerous_keywords)
             # Check for multiple statements (semicolon in middle of query)
             has_multiple_statements = ';' in sql
+
+            logger.info(f"[SQL DEBUG] Safety check: is_safe_start={is_safe_start}, has_dangerous={has_dangerous}, has_multiple_statements={has_multiple_statements}")
+            logger.info(f"[SQL DEBUG] SQL starts with (first 20 chars): {repr(sql[:20])}")
 
             if not is_safe_start or has_dangerous or has_multiple_statements:
                 return None, 'Query không an toàn, chỉ cho phép SELECT'
@@ -1488,18 +1497,28 @@ Nếu câu hỏi không rõ ràng hoặc không liên quan đến dữ liệu h�
                         status=status.HTTP_503_SERVICE_UNAVAILABLE
                     )
 
+                # Log raw AI response for debugging
+                logger.info(f"[AI DEBUG] Raw AI response (first 500 chars): {ai_content[:500]}...")
+
                 # Parse AI response
                 try:
                     json_match = re.search(r'\{[\s\S]*\}', ai_content)
                     if json_match:
                         ai_data = json.loads(json_match.group())
+                        logger.info(f"[AI DEBUG] JSON parsed successfully, keys: {list(ai_data.keys())}")
                     else:
                         ai_data = {'explanation': ai_content, 'sql': None}
-                except json.JSONDecodeError:
+                        logger.warning(f"[AI DEBUG] No JSON found in response")
+                except json.JSONDecodeError as json_err:
                     ai_data = {'explanation': ai_content, 'sql': None}
+                    logger.warning(f"[AI DEBUG] JSON decode error: {json_err}")
 
                 # If no SQL generated, return the explanation
-                if not ai_data.get('sql'):
+                sql_value = ai_data.get('sql')
+                logger.info(f"[AI DEBUG] SQL value type: {type(sql_value)}, value: {repr(sql_value)[:200] if sql_value else 'None'}")
+
+                if not sql_value:
+                    logger.info(f"[AI DEBUG] No SQL in response, returning explanation only")
                     return Response({
                         'query': query,
                         'ai_response': ai_data,
@@ -1507,7 +1526,7 @@ Nếu câu hỏi không rõ ràng hoặc không liên quan đến dữ liệu h�
                     })
 
                 # Validate and execute SQL
-                logger.info(f"Generated SQL: {ai_data.get('sql', 'None')[:200]}...")
+                logger.info(f"[AI DEBUG] Generated SQL before validation: {sql_value[:300]}...")
                 query_result, sql_error = validate_and_execute_sql(ai_data['sql'])
 
                 if query_result is not None:

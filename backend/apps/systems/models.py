@@ -279,6 +279,7 @@ class System(models.Model):
         verbose_name=_('Status')
     )
     go_live_date = models.DateField(null=True, blank=True, verbose_name=_('Go Live Date'))
+    is_go_live = models.BooleanField(default=True, null=True, blank=True, verbose_name=_('Is Go Live'))
     current_version = models.CharField(max_length=50, blank=True, verbose_name=_('Current Version'))
     upgrade_history = models.JSONField(default=list, blank=True)
 

@@ -15,6 +15,7 @@ import {
   Col,
   InputNumber,
   Switch,
+  Checkbox,
   message,
   Spin,
   Typography,
@@ -1074,6 +1075,9 @@ const SystemCreate = () => {
   const [tabValidationStatus, setTabValidationStatus] = useState<Record<string, boolean>>({});
   const [isCurrentTabValid, setIsCurrentTabValid] = useState(false);
 
+  // Go live checkbox state
+  const [isGoLive, setIsGoLive] = useState(true);
+
   useEffect(() => {
     fetchOrganizations();
     checkUserRole();
@@ -1659,6 +1663,45 @@ const SystemCreate = () => {
                 <SelectWithOther
                   options={systemGroupOptions}
                   placeholder="Chọn nhóm hệ thống"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* Go Live Section */}
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="is_go_live"
+                valuePropName="checked"
+                initialValue={true}
+              >
+                <Checkbox
+                  onChange={(e) => {
+                    setIsGoLive(e.target.checked);
+                    // Clear go_live_date when unchecked
+                    if (!e.target.checked) {
+                      form.setFieldValue('go_live_date', null);
+                    }
+                  }}
+                >
+                  Đã đưa vào sử dụng?
+                </Checkbox>
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Thời gian đưa vào vận hành"
+                name="go_live_date"
+                rules={isGoLive ? [{ required: true, message: 'Vui lòng chọn thời gian đưa vào vận hành' }] : []}
+                tooltip="Thời điểm hệ thống chính thức đưa vào vận hành"
+              >
+                <DatePicker
+                  placeholder="Chọn ngày"
+                  format="DD/MM/YYYY"
+                  style={{ width: '100%' }}
+                  disabled={!isGoLive}
                 />
               </Form.Item>
             </Col>

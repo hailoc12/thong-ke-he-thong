@@ -1238,6 +1238,7 @@ const StrategicDashboard = () => {
                                     background: typeColor,
                                     borderColor: typeColor,
                                     borderRadius: 6,
+                                    fontSize: 12,
                                   }}
                                   onClick={(e) => {
                                     e.stopPropagation();

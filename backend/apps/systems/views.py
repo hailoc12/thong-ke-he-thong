@@ -1021,10 +1021,12 @@ Response format (JSON):
 }}
 
 Rules:
-- Always use table aliases (s for systems_system, o for organizations_organization, etc.)
+- Use correct table names: systems, organizations, system_architecture, system_operations, etc.
+- Always use table aliases (s for systems, o for organizations, etc.)
 - Join related tables using system_id foreign key
 - Return only safe SELECT queries, never UPDATE/DELETE/DROP
 - If query is unclear, ask for clarification
+- Always output valid JSON format
 - Respond in Vietnamese"""
                         },
                         {
@@ -1063,13 +1065,18 @@ Rules:
             # Execute SQL if provided and safe
             query_result = None
             if ai_data.get('sql'):
-                sql = ai_data['sql'].strip()
+                sql = ai_data['sql'].strip().rstrip(';')  # Remove trailing semicolon
                 # Basic safety check
                 sql_upper = sql.upper()
-                if not sql_upper.startswith('SELECT') or any(
-                    keyword in sql_upper
-                    for keyword in ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'TRUNCATE', 'CREATE', '--', ';']
-                ):
+                # Allow SELECT and WITH (for CTEs)
+                is_safe_start = sql_upper.startswith('SELECT') or sql_upper.startswith('WITH')
+                # Check for dangerous keywords
+                dangerous_keywords = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'TRUNCATE', 'CREATE', '--']
+                has_dangerous = any(keyword in sql_upper for keyword in dangerous_keywords)
+                # Check for multiple statements (semicolon in middle of query)
+                has_multiple_statements = ';' in sql
+
+                if not is_safe_start or has_dangerous or has_multiple_statements:
                     ai_data['sql'] = None
                     ai_data['error'] = 'Query không an toàn, chỉ cho phép SELECT'
                 else:

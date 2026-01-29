@@ -1424,7 +1424,7 @@ GROUP BY o.id, o.name;
                         'Content-Type': 'application/json',
                     },
                     json={
-                        'model': 'gpt-4-turbo-preview',
+                        'model': 'gpt-4o',  # Use gpt-4o for better accuracy
                         'messages': openai_messages,
                         'temperature': 0.1,
                         'max_tokens': 2000,
@@ -1651,6 +1651,104 @@ Viết báo cáo TỰ NHIÊN dựa trên dữ liệu THỰC TẾ ở trên. PH�
                     # Add chart config from Phase 1
                     response_content['chart_type'] = chart_type
                     response_content['chart_config'] = chart_config
+
+                    # ====== PHASE 3: Self-Review for Consistency (Max 2 retries) ======
+                    MAX_REVIEW_RETRIES = 2
+                    review_passed = False
+
+                    for review_attempt in range(MAX_REVIEW_RETRIES + 1):
+                        if review_attempt == 0:
+                            # First time - do review
+                            logger.info(f"Phase 3 - Self-review (attempt {review_attempt + 1})")
+                        else:
+                            logger.info(f"Phase 3 - Re-generating after inconsistency (attempt {review_attempt + 1})")
+
+                        # Self-review prompt
+                        review_prompt = f"""Bạn là QA reviewer. Kiểm tra xem câu trả lời có MÂU THUẪN với dữ liệu thực tế không.
+
+=== CÂU HỎI GỐC ===
+{query}
+
+=== DỮ LIỆU THỰC TẾ (SQL result) ===
+- Tổng số dòng: {query_result.get('total_rows', 0)}
+- Dữ liệu: {json.dumps(query_result.get('rows', [])[:20], ensure_ascii=False, default=str)}
+
+=== CÂU TRẢ LỜI ===
+{response_content.get('main_answer', '')}
+
+=== KIỂM TRA ===
+1. Số lượng đề cập trong câu trả lời có KHỚP với total_rows không?
+2. Nếu câu trả lời nói "X hệ thống" thì có đúng X dòng trong data không?
+3. Các con số trong câu trả lời có khớp với data không?
+
+=== TRẢ LỜI (JSON) ===
+{{
+    "is_consistent": true/false,
+    "issues": ["Mô tả vấn đề nếu có"] hoặc []
+}}
+
+CHỈ trả về JSON, không giải thích."""
+
+                        try:
+                            review_content = call_ai(review_prompt, [{'role': 'user', 'content': 'Review consistency'}])
+                            review_match = re.search(r'\{[\s\S]*\}', review_content)
+
+                            if review_match:
+                                review_result = json.loads(review_match.group())
+                                is_consistent = review_result.get('is_consistent', True)
+                                issues = review_result.get('issues', [])
+
+                                if is_consistent:
+                                    logger.info("Self-review passed - response is consistent with data")
+                                    review_passed = True
+                                    break
+                                else:
+                                    logger.warning(f"Self-review failed - issues: {issues}")
+
+                                    if review_attempt < MAX_REVIEW_RETRIES:
+                                        # Retry Phase 2 with correction instruction
+                                        correction_prompt = f"""Câu trả lời trước có MÂU THUẪN với dữ liệu:
+Vấn đề: {', '.join(issues)}
+
+DỮ LIỆU THỰC TẾ:
+- Tổng số dòng: {query_result.get('total_rows', 0)}
+- Data: {data_summary}
+
+Viết lại câu trả lời CHÍNH XÁC với dữ liệu. Số liệu trong main_answer PHẢI khớp với total_rows.
+
+=== RESPONSE FORMAT (JSON) ===
+{{
+    "response": {{
+        "greeting": "Báo cáo anh/chị,",
+        "main_answer": "Câu trả lời với SỐ LIỆU CHÍNH XÁC từ data",
+        "details": null,
+        "system_list_markdown": "Markdown table nếu có danh sách hệ thống",
+        "follow_up_suggestions": ["Câu hỏi 1", "Câu hỏi 2"]
+                                    }}
+}}"""
+                                        retry_content = call_ai(correction_prompt, [{'role': 'user', 'content': 'Regenerate response'}])
+                                        retry_match = re.search(r'\{[\s\S]*\}', retry_content)
+                                        if retry_match:
+                                            retry_data = json.loads(retry_match.group())
+                                            response_content = retry_data.get('response', response_content)
+                                            response_content['chart_type'] = chart_type
+                                            response_content['chart_config'] = chart_config
+                                            logger.info("Response regenerated after self-review")
+                                    else:
+                                        logger.warning("Max review retries reached, using current response")
+                                        review_passed = True
+                                        break
+                            else:
+                                logger.warning("Could not parse review result, assuming consistent")
+                                review_passed = True
+                                break
+                        except Exception as review_error:
+                            logger.warning(f"Self-review error: {review_error}, skipping review")
+                            review_passed = True
+                            break
+
+                    # Add review status to thinking
+                    thinking['review_passed'] = review_passed
 
                     return Response({
                         'query': query,

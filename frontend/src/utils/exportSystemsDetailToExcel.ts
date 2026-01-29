@@ -227,59 +227,38 @@ function fixFormulaLikeCells(ws: XLSX.WorkSheet): void {
           textValue = formulaText;
         }
 
-        // Add space prefix to prevent Excel from interpreting as formula
-        // The space will be visible but is the safest way to escape
-        textValue = ' ' + textValue;
-
-        // Convert to pure text cell
+        // Convert to pure text cell by setting type to string and removing formula
+        // No prefix needed - just ensuring it's treated as text
         cell.t = 's'; // Force type to string
         cell.v = textValue; // Set the text value
         cell.w = textValue; // Also set the formatted text
         delete cell.f; // Remove formula property completely
       }
 
-      // Also handle string cells that start with =, +, -, @
-      if (cell && cell.t === 's' && typeof cell.v === 'string') {
-        const firstChar = cell.v.charAt(0);
-        if (firstChar === '=' || firstChar === '+' || firstChar === '@') {
-          // Prefix with space to prevent formula interpretation
-          cell.v = ' ' + cell.v;
-          cell.w = cell.v;
-        }
-        // For minus sign, only escape if not a negative number
-        if (firstChar === '-' && cell.v.length > 1) {
-          const rest = cell.v.substring(1);
-          if (!/^[\d.,]+$/.test(rest)) {
-            cell.v = ' ' + cell.v;
-            cell.w = cell.v;
-          }
-        }
-      }
+      // For string cells starting with formula characters, no prefix needed
+      // Just ensure they're marked as string type (t='s') which they already are
+      // Excel won't re-interpret them when opening from xlsx format
     }
   }
 }
 
 /**
  * Escape special characters that Excel interprets as formulas
- * Prefix with ' to prevent Excel from interpreting as formula
- * Excel will hide the ' and display the text correctly
+ * Also converts arrays to comma-separated strings to prevent SheetJS issues
  */
 function escapeExcelValue(value: any): any {
-  if (typeof value === 'string' && value.length > 0) {
-    const firstChar = value.charAt(0);
-    // Prefix with ' to escape formula characters
-    if (firstChar === '=' || firstChar === '+' || firstChar === '@') {
-      return "'" + value;
-    }
-    // For minus sign, only escape if not a negative number
-    if (firstChar === '-' && value.length > 1) {
-      const rest = value.substring(1);
-      // Check if it looks like a number (e.g., -123, -12.34)
-      if (!/^[\d.,]+$/.test(rest)) {
-        return "'" + value;
-      }
-    }
+  // Handle arrays - convert to comma-separated string
+  if (Array.isArray(value)) {
+    return value.join(', ');
   }
+
+  // Handle strings
+  if (typeof value === 'string' && value.length > 0) {
+    // Don't escape - just return the string as-is
+    // fixFormulaLikeCells will handle formula-like cells after sheet creation
+    return value;
+  }
+
   return value;
 }
 
@@ -295,70 +274,95 @@ function escapeRow(row: any[]): any[] {
 /**
  * Sheet 0: Full (All Fields)
  * Contains all fields from all sections in a single sheet
+ * Row 1: Tab/Section info (để dễ nhận biết field thuộc tab nào)
+ * Row 2: Column headers
+ * Row 3+: Data
  */
 function generateFullSheet(systems: SystemDetail[]): any[][] {
+  // Define section info with column counts
+  // Tab names match frontend SystemCreate.tsx tabs
+  const sections = [
+    { name: 'Cơ bản', count: 16 },       // Tab 1 (removed: Form Level)
+    { name: 'Nghiệp vụ', count: 8 },     // Tab 2 (removed: transactions_per_year, reports_per_year)
+    { name: 'Công nghệ', count: 21 },    // Tab 3 (removed: monitoring_tool, log_management)
+    { name: 'Dữ liệu', count: 18 },      // Tab 4
+    { name: 'Tích hợp', count: 13 },     // Tab 5 (removed: esb_integration_platform, data_exchange_format)
+    { name: 'Bảo mật', count: 18 },      // Tab 6
+    { name: 'Hạ tầng', count: 19 },      // Tab 7 (removed: server_location)
+    { name: 'Vận hành', count: 17 },     // Tab 8 (removed: sla)
+    { name: 'Đánh giá', count: 14 },     // Tab 9
+    { name: 'Khác', count: 24 },         // Chi phí (9) + Nhà cung cấp (13) + Metadata (2)
+  ];
+
+  // Generate tab info row - each column shows which tab it belongs to
+  const tabInfoRow: string[] = [];
+  for (const section of sections) {
+    for (let i = 0; i < section.count; i++) {
+      tabInfoRow.push(section.name);
+    }
+  }
+
   const headers = [
-    // Basic Info
+    // Basic Info (16 cols) - removed: Form Level
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'Tên tiếng Anh', 'Đơn vị',
     'Nhóm hệ thống', 'Trạng thái', 'Mức độ quan trọng', 'Mức bảo mật',
     'Phạm vi', 'Loại yêu cầu', 'Mục đích', 'Đã đưa vào sử dụng', 'Ngày vận hành',
-    'Phiên bản', 'Hoàn thành (%)', 'Form Level',
-    // Business
+    'Phiên bản', 'Hoàn thành (%)',
+    // Business (8 cols) - removed: transactions_per_year, reports_per_year (not in model)
     'Mục tiêu kinh doanh', 'Quy trình nghiệp vụ', 'Loại người dùng',
     'Số người dùng/năm', 'Tổng số tài khoản', 'MAU', 'DAU',
-    'Số đơn vị sử dụng', 'Số giao dịch/năm', 'Số báo cáo/năm',
-    // Architecture
+    'Số đơn vị sử dụng',
+    // Architecture (21 cols) - removed: monitoring_tool, log_management (not in model)
     'Kiểu kiến trúc', 'Mô tả kiến trúc phân tầng', 'Backend Tech', 'Frontend Tech', 'Mobile App',
     'Ngôn ngữ lập trình', 'Framework', 'Database', 'Database khác',
     'Database Model', 'Hosting', 'Cloud Provider', 'Container',
     'API Style', 'Message Queue', 'Cache', 'Search Engine',
     'BI/Reporting Tool', 'Source Repository', 'CI/CD Tool',
-    'Monitoring Tool', 'Log Management', 'Công cụ test tự động',
-    // Data
+    'Công cụ test tự động',
+    // Data (18 cols)
     'Nguồn dữ liệu', 'Phân loại dữ liệu', 'Khối lượng dữ liệu',
     'Storage (GB)', 'File Storage (GB)', 'Loại lưu trữ file', 'Tăng trưởng (%/năm)',
     'Loại dữ liệu', 'Secondary DBs', 'Số bản ghi',
     'Có Data Catalog', 'Ghi chú Data Catalog', 'Có MDM', 'Ghi chú MDM', 'Có dữ liệu cá nhân',
     'Có dữ liệu nhạy cảm', 'Có API', 'Số API endpoints',
-    // Integration
+    // Integration (13 cols) - removed: esb_integration_platform, data_exchange_format (not in model)
     'HT nội bộ tích hợp', 'HT bên ngoài tích hợp', 'Phương thức trao đổi',
     'Số API cung cấp', 'Số API sử dụng', 'Có tích hợp', 'Số kết nối',
     'Loại tích hợp', 'API Standard', 'API Gateway', 'Rate Limiting',
-    'Tài liệu API', 'ESB/Integration Platform', 'Data Exchange Method',
-    'Data Exchange Format',
-    // Security
+    'Tài liệu API', 'Data Exchange Method',
+    // Security (18 cols)
     'Phương thức xác thực', 'Có mã hóa', 'Mức bảo mật (Security)', 'Có MFA', 'Có RBAC', 'Có mã hóa at rest',
     'Có mã hóa in transit', 'Có Audit Log', 'Tiêu chuẩn tuân thủ',
     'Có Firewall', 'Có WAF', 'Có IDS/IPS', 'Có Antivirus',
     'Ngày audit bảo mật gần nhất', 'Ngày pen test gần nhất',
     'Có quét lỗ hổng', 'Số sự cố bảo mật năm qua', 'Ghi chú bảo mật',
-    // Infrastructure
+    // Infrastructure (19 cols) - removed: server_location (not in model)
     'Hosting Platform', 'Vị trí triển khai', 'Loại compute',
-    'Cấu hình server', 'Server Location', 'Số server', 'CPU cores', 'RAM (GB)',
+    'Cấu hình server', 'Số server', 'CPU cores', 'RAM (GB)',
     'Storage (TB)', 'Dung lượng lưu trữ', 'Bandwidth (Mbps)', 'Có CDN', 'Có Load Balancer',
     'Kế hoạch backup', 'Tần suất backup', 'Số ngày lưu backup', 'Kế hoạch DR', 'Có DR', 'RTO (giờ)', 'RPO (giờ)',
-    // Operations
+    // Operations (17 cols) - removed: sla (not in model)
     'Chủ sở hữu nghiệp vụ', 'Chủ sở hữu kỹ thuật', 'Người phụ trách',
     'SĐT phụ trách', 'Email phụ trách', 'Mức hỗ trợ', 'Loại phát triển',
     'Đơn vị phát triển', 'Quy mô team dev', 'Đơn vị vận hành',
     'Quy mô team ops', 'Tình trạng bảo hành', 'Hết bảo hành',
-    'Có HĐ bảo trì', 'Hết bảo trì', 'Phụ thuộc vendor', 'Tự bảo trì', 'SLA',
-    // Assessment
+    'Có HĐ bảo trì', 'Hết bảo trì', 'Phụ thuộc vendor', 'Tự bảo trì',
+    // Assessment (14 cols)
     'Sẵn sàng tích hợp', 'Vấn đề/Blockers', 'Khuyến nghị',
     'Điểm hiệu năng', 'Uptime (%)', 'Thời gian phản hồi (ms)',
     'Điểm hài lòng người dùng', 'Mức nợ kỹ thuật', 'Cần thay thế',
     'Kế hoạch thay thế', 'Vấn đề chính', 'Đề xuất cải tiến',
     'Kế hoạch tương lai', 'Ưu tiên hiện đại hóa',
-    // Cost
+    // Cost (9 cols)
     'Chi phí đầu tư ban đầu', 'Chi phí phát triển', 'Phí license/năm',
     'Phí bảo trì/năm', 'Phí hạ tầng/năm', 'Phí nhân sự/năm',
     'Tổng TCO', 'Ghi chú chi phí', 'Nguồn tài trợ',
-    // Vendor
+    // Vendor (13 cols)
     'Tên nhà cung cấp', 'Loại nhà cung cấp', 'Liên hệ NCC',
     'SĐT NCC', 'Email NCC', 'Số hợp đồng', 'Ngày bắt đầu HĐ',
     'Ngày kết thúc HĐ', 'Giá trị hợp đồng', 'Điểm hiệu suất NCC',
     'Điểm phản hồi NCC', 'Rủi ro vendor lock-in', 'NCC thay thế',
-    // Metadata
+    // Metadata (2 cols)
     'Ngày tạo', 'Ngày cập nhật',
   ];
 
@@ -385,14 +389,14 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
       getLabel(CRITICALITY_LABELS, sys.criticality_level),
       (sys as any).security_level || '',
       getLabel(SCOPE_LABELS, sys.scope),
-      (sys as any).request_type || '',
+      (sys as any).requirement_type || '',  // Fixed: was request_type
       sys.purpose || '',
-      formatBoolean((sys as any).is_go_live),
+      // is_go_live: null/undefined defaults to true (matches frontend behavior and model default)
+      (sys as any).is_go_live === false ? 'Không' : 'Có',
       formatDate(sys.go_live_date),
       sys.current_version || '',
       sys.completion_percentage ? `${sys.completion_percentage.toFixed(1)}%` : '',
-      sys.form_level || 1,
-      // Business
+      // Business (removed: transactions_per_year, reports_per_year - not in model)
       formatArray((sys as any).business_objectives, BUSINESS_OBJECTIVES_LABELS),
       (sys as any).business_processes || '',
       formatArray(sys.target_users, TARGET_USERS_LABELS),
@@ -401,43 +405,42 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
       formatNumber(sys.users_mau),
       formatNumber(sys.users_dau),
       formatNumber(sys.num_organizations),
-      formatNumber((sys as any).transactions_per_year),
-      formatNumber((sys as any).reports_per_year),
       // Architecture
-      getLabel(ARCH_TYPE_LABELS, arch.architecture_type),
+      formatArray((arch as any).architecture_type) || getLabel(ARCH_TYPE_LABELS, arch.architecture_type),  // CommaSeparatedListField
       arch.layered_architecture_details || (sys as any).layered_architecture_details || '',
-      arch.backend_tech || (sys as any).backend_tech || '',
-      arch.frontend_tech || (sys as any).frontend_tech || '',
-      getLabel(MOBILE_APP_LABELS, arch.mobile_app || (sys as any).mobile_app),
-      (sys as any).programming_language || '',
-      (sys as any).framework || '',
+      formatArray((arch as any).backend_tech) || '',  // CommaSeparatedListField returns array
+      formatArray((arch as any).frontend_tech) || '',  // CommaSeparatedListField returns array
+      // Mobile App: show "Có" if has value and not 'none', "Không có" otherwise
+      (arch.mobile_app && arch.mobile_app !== 'none') || ((sys as any).mobile_app && (sys as any).mobile_app !== 'none')
+        ? 'Có' : 'Không có',
+      formatArray((sys as any).programming_language),  // CommaSeparatedListField returns array
+      formatArray((sys as any).framework),  // CommaSeparatedListField returns array
       arch.database_type || (sys as any).database_name || '',
-      (sys as any).secondary_databases || '',
+      formatArray((data as any).secondary_databases),  // JSONField returns array
       getLabel(DB_MODEL_LABELS, arch.database_model),
       getLabel(HOSTING_PLATFORM_LABELS, arch.hosting_type || (sys as any).hosting_platform),
       arch.cloud_provider || '',
-      (sys as any).containerization || '',
-      (sys as any).api_style || '',
-      (sys as any).message_queue || '',
-      (sys as any).caching_solution || '',
-      (sys as any).search_engine || '',
-      (sys as any).reporting_bi_tool || '',
-      (sys as any).source_code_repository || '',
-      (sys as any).cicd_tool || '',
-      (sys as any).monitoring_tool || '',
-      (sys as any).log_management || '',
-      arch.automated_testing_tools || (sys as any).automated_testing_tools || '',
+      formatArray((arch as any).containerization),  // CommaSeparatedListField returns array
+      formatArray((arch as any).api_style),  // CommaSeparatedListField returns array
+      formatArray((arch as any).messaging_queue),  // CommaSeparatedListField returns array
+      (arch as any).cache_system || '',  // FlexibleChoiceField returns string
+      (arch as any).search_engine || '',  // FlexibleChoiceField returns string
+      (arch as any).reporting_bi_tool || '',  // FlexibleChoiceField returns string
+      (arch as any).source_repository || '',  // FlexibleChoiceField returns string
+      (arch as any).cicd_tool || '',
+      // Removed: monitoring_tool, log_management (not in model)
+      formatArray((arch as any).automated_testing_tools) || '',  // May be array
       // Data
-      (sys as any).data_source || '',
+      formatArray((sys as any).data_sources),  // Fixed: was data_source (singular), data_sources is JSONField
       getLabel(DATA_CLASS_LABELS, data.data_classification),
       (sys as any).data_volume || '',
       formatNumber(data.storage_size_gb),
-      formatNumber((sys as any).file_storage_gb),
+      formatNumber((data as any).file_storage_size_gb),  // Fixed: was file_storage_gb on sys
       (data as any).file_storage_type || (sys as any).file_storage_type || '',
       formatNumber(data.growth_rate_percent),
       formatArray(data.data_types),
-      (sys as any).secondary_databases || '',
-      formatNumber((sys as any).record_count),
+      formatArray((data as any).secondary_databases),  // Fixed: is in data_info model as JSONField
+      formatNumber((data as any).record_count),  // Fixed: record_count is in data_info model
       formatBoolean((sys as any).has_data_catalog),
       (sys as any).data_catalog_notes || '',
       formatBoolean((sys as any).has_mdm),
@@ -456,12 +459,11 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
       formatNumber(intg.integration_count),
       formatArray(intg.integration_types),
       intg.api_standard || (sys as any).api_standard || '',
-      (sys as any).api_gateway || '',
-      formatBoolean((sys as any).has_rate_limiting),
-      formatBoolean((sys as any).has_api_documentation),
-      (sys as any).esb_integration_platform || '',
+      (intg as any).api_gateway_name || '',  // Fixed: was api_gateway on sys, field is api_gateway_name in integration
+      formatBoolean((intg as any).has_rate_limiting),  // Fixed: field is in integration model
+      (intg as any).api_documentation ? 'Có' : 'Không',  // Fixed: api_documentation is TEXT, not boolean has_api_documentation
+      // Removed: esb_integration_platform, data_exchange_format (not in model)
       (sys as any).data_exchange_method || '',
-      (sys as any).data_exchange_format || '',
       // Security
       sec.auth_method || (sys as any).authentication_method || '',
       formatBoolean((sys as any).has_encryption),
@@ -486,7 +488,7 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
       getLabel(DEPLOYMENT_LOCATION_LABELS, (ops as any).deployment_location || (sys as any).deployment_location),
       getLabel(COMPUTE_TYPE_LABELS, (ops as any).compute_type || (sys as any).compute_type),
       (sys as any).server_configuration || '',
-      (sys as any).server_location || '',
+      // Removed: server_location (not in model)
       formatNumber(infra.num_servers),
       formatNumber(infra.total_cpu_cores),
       formatNumber(infra.total_ram_gb),
@@ -520,7 +522,7 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
       formatDate(ops.maintenance_end_date),
       getLabel(VENDOR_DEPENDENCY_LABELS, ops.vendor_dependency),
       formatBoolean(ops.can_self_maintain),
-      (sys as any).sla || '',
+      // Removed: sla (not in model)
       // Assessment
       getLabel(INTEGRATION_READINESS_LABELS, (sys as any).integration_readiness || (assess as any).integration_readiness),
       (assess as any).blockers || (sys as any).blockers || '',
@@ -566,18 +568,20 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
     ]);
   });
 
-  return [headers, ...rows];
+  // Return with tab info row first, then headers, then data
+  return [tabInfoRow, headers, ...rows];
 }
 
 /**
  * Sheet 1: Cơ bản (Basic Info)
  */
 function generateBasicSheet(systems: SystemDetail[]): any[][] {
+  // Removed: Form Level
   const headers = [
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'Tên tiếng Anh', 'Đơn vị',
     'Nhóm hệ thống', 'Trạng thái', 'Mức độ quan trọng', 'Mức bảo mật',
-    'Phạm vi', 'Loại yêu cầu', 'Mục đích', 'Ngày vận hành',
-    'Phiên bản', 'Hoàn thành (%)', 'Form Level'
+    'Phạm vi', 'Loại yêu cầu', 'Mục đích', 'Đã đưa vào sử dụng', 'Ngày vận hành',
+    'Phiên bản', 'Hoàn thành (%)'
   ];
 
   const rows = systems.map((sys, idx) => escapeRow([
@@ -591,12 +595,13 @@ function generateBasicSheet(systems: SystemDetail[]): any[][] {
     getLabel(CRITICALITY_LABELS, sys.criticality_level),
     (sys as any).security_level || '',
     getLabel(SCOPE_LABELS, sys.scope),
-    (sys as any).request_type || '',
+    (sys as any).requirement_type || '',  // Fixed: was request_type
     sys.purpose || '',
+    // is_go_live: null/undefined defaults to true (matches frontend behavior and model default)
+    (sys as any).is_go_live === false ? 'Không' : 'Có',
     formatDate(sys.go_live_date),
     sys.current_version || '',
     sys.completion_percentage ? `${sys.completion_percentage.toFixed(1)}%` : '',
-    sys.form_level || 1,
   ]));
 
   return [headers, ...rows];
@@ -606,11 +611,11 @@ function generateBasicSheet(systems: SystemDetail[]): any[][] {
  * Sheet 2: Nghiệp vụ (Business Context)
  */
 function generateBusinessSheet(systems: SystemDetail[]): any[][] {
+  // Removed: transactions_per_year, reports_per_year (not in model)
   const headers = [
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'Mục tiêu kinh doanh',
     'Quy trình nghiệp vụ', 'Loại người dùng', 'Số người dùng/năm',
-    'Tổng số tài khoản', 'MAU', 'DAU', 'Số đơn vị sử dụng',
-    'Số giao dịch/năm', 'Số báo cáo/năm'
+    'Tổng số tài khoản', 'MAU', 'DAU', 'Số đơn vị sử dụng'
   ];
 
   const rows = systems.map((sys, idx) => escapeRow([
@@ -625,53 +630,54 @@ function generateBusinessSheet(systems: SystemDetail[]): any[][] {
     formatNumber(sys.users_mau),
     formatNumber(sys.users_dau),
     formatNumber(sys.num_organizations),
-    formatNumber((sys as any).transactions_per_year),
-    formatNumber((sys as any).reports_per_year),
   ]));
 
   return [headers, ...rows];
 }
 
 /**
- * Sheet 3: Kiến trúc (Architecture)
+ * Sheet 3: Công nghệ (Technology/Architecture)
+ * Note: Frontend tab name is "Công nghệ", not "Kiến trúc"
  */
 function generateArchitectureSheet(systems: SystemDetail[]): any[][] {
+  // Removed: monitoring_tool, log_management (not in model)
   const headers = [
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'Kiểu kiến trúc',
     'Backend Tech', 'Frontend Tech', 'Mobile App', 'Ngôn ngữ lập trình',
     'Framework', 'Database', 'Database khác', 'Database Model',
     'Hosting', 'Cloud Provider', 'Container', 'API Style',
     'Message Queue', 'Cache', 'Search Engine', 'BI/Reporting Tool',
-    'Source Repository', 'CI/CD Tool', 'Monitoring Tool', 'Log Management'
+    'Source Repository', 'CI/CD Tool'
   ];
 
   const rows = systems.map((sys, idx) => {
     const arch = sys.architecture || {};
+    const data = sys.data_info || {};  // Needed for secondary_databases
     return escapeRow([
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
-      getLabel(ARCH_TYPE_LABELS, arch.architecture_type),
-      arch.backend_tech || (sys as any).backend_tech || '',
-      arch.frontend_tech || (sys as any).frontend_tech || '',
-      getLabel(MOBILE_APP_LABELS, arch.mobile_app || (sys as any).mobile_app),
-      (sys as any).programming_language || '',
-      (sys as any).framework || '',
+      formatArray((arch as any).architecture_type) || getLabel(ARCH_TYPE_LABELS, arch.architecture_type),  // CommaSeparatedListField
+      formatArray((arch as any).backend_tech) || '',  // CommaSeparatedListField returns array
+      formatArray((arch as any).frontend_tech) || '',  // CommaSeparatedListField returns array
+      // Mobile App: show "Có" if has value and not 'none', "Không có" otherwise
+      (arch.mobile_app && arch.mobile_app !== 'none') || ((sys as any).mobile_app && (sys as any).mobile_app !== 'none')
+        ? 'Có' : 'Không có',
+      formatArray((sys as any).programming_language),  // CommaSeparatedListField returns array
+      formatArray((sys as any).framework),  // CommaSeparatedListField returns array
       arch.database_type || (sys as any).database_name || '',
-      (sys as any).secondary_databases || '',
+      formatArray((data as any).secondary_databases),  // JSONField returns array
       getLabel(DB_MODEL_LABELS, arch.database_model),
       getLabel(HOSTING_PLATFORM_LABELS, arch.hosting_type || (sys as any).hosting_platform),
       arch.cloud_provider || '',
-      (sys as any).containerization || '',
-      (sys as any).api_style || '',
-      (sys as any).message_queue || '',
-      (sys as any).caching_solution || '',
-      (sys as any).search_engine || '',
-      (sys as any).reporting_bi_tool || '',
-      (sys as any).source_code_repository || '',
-      (sys as any).cicd_tool || '',
-      (sys as any).monitoring_tool || '',
-      (sys as any).log_management || '',
+      formatArray((arch as any).containerization),  // CommaSeparatedListField returns array
+      formatArray((arch as any).api_style),  // CommaSeparatedListField returns array
+      formatArray((arch as any).messaging_queue),  // CommaSeparatedListField returns array
+      (arch as any).cache_system || '',  // FlexibleChoiceField returns string
+      (arch as any).search_engine || '',  // FlexibleChoiceField returns string
+      (arch as any).reporting_bi_tool || '',  // FlexibleChoiceField returns string
+      (arch as any).source_repository || '',  // FlexibleChoiceField returns string
+      (arch as any).cicd_tool || '',
     ]);
   });
 
@@ -696,15 +702,15 @@ function generateDataSheet(systems: SystemDetail[]): any[][] {
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
-      (sys as any).data_source || '',
+      formatArray((sys as any).data_sources),  // Fixed: was data_source (singular), data_sources is JSONField
       getLabel(DATA_CLASS_LABELS, data.data_classification),
       (sys as any).data_volume || '',
       formatNumber(data.storage_size_gb),
-      formatNumber((sys as any).file_storage_gb),
+      formatNumber((data as any).file_storage_size_gb),  // Fixed: was file_storage_gb on sys
       formatNumber(data.growth_rate_percent),
       formatArray(data.data_types),
-      (sys as any).secondary_databases || '',
-      formatNumber((sys as any).record_count),
+      formatArray((data as any).secondary_databases),  // Fixed: is in data_info model as JSONField
+      formatNumber((data as any).record_count),  // Fixed: record_count is in data_info model
       formatBoolean((sys as any).has_data_catalog),
       formatBoolean((sys as any).has_mdm),
       formatBoolean(data.has_personal_data),
@@ -721,12 +727,13 @@ function generateDataSheet(systems: SystemDetail[]): any[][] {
  * Sheet 5: Tích hợp (Integration)
  */
 function generateIntegrationSheet(systems: SystemDetail[]): any[][] {
+  // Removed: esb_integration_platform, data_exchange_format (not in model)
   const headers = [
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'HT nội bộ tích hợp',
     'HT bên ngoài tích hợp', 'Phương thức trao đổi', 'Số API cung cấp',
     'Số API sử dụng', 'Có tích hợp', 'Số kết nối', 'Loại tích hợp',
     'API Standard', 'API Gateway', 'Rate Limiting', 'Tài liệu API',
-    'ESB/Integration Platform', 'Data Exchange Method', 'Data Exchange Format'
+    'Data Exchange Method'
   ];
 
   const rows = systems.map((sys, idx) => {
@@ -744,12 +751,10 @@ function generateIntegrationSheet(systems: SystemDetail[]): any[][] {
       formatNumber(intg.integration_count),
       formatArray(intg.integration_types),
       intg.api_standard || (sys as any).api_standard || '',
-      (sys as any).api_gateway || '',
-      formatBoolean((sys as any).has_rate_limiting),
-      formatBoolean((sys as any).has_api_documentation),
-      (sys as any).esb_integration_platform || '',
+      (intg as any).api_gateway_name || '',  // Fixed: was api_gateway on sys, field is api_gateway_name in integration
+      formatBoolean((intg as any).has_rate_limiting),  // Fixed: field is in integration model
+      (intg as any).api_documentation ? 'Có' : 'Không',  // Fixed: api_documentation is TEXT, not boolean has_api_documentation
       (sys as any).data_exchange_method || '',
-      (sys as any).data_exchange_format || '',
     ]);
   });
 
@@ -789,9 +794,10 @@ function generateSecuritySheet(systems: SystemDetail[]): any[][] {
  * Sheet 7: Hạ tầng (Infrastructure)
  */
 function generateInfrastructureSheet(systems: SystemDetail[]): any[][] {
+  // Removed: server_location (not in model)
   const headers = [
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'Hosting Platform',
-    'Vị trí triển khai', 'Loại compute', 'Server Location', 'Số server', 'CPU cores',
+    'Vị trí triển khai', 'Loại compute', 'Số server', 'CPU cores',
     'RAM (GB)', 'Storage (TB)', 'Bandwidth (Mbps)', 'Có CDN', 'Có Load Balancer'
   ];
 
@@ -805,7 +811,6 @@ function generateInfrastructureSheet(systems: SystemDetail[]): any[][] {
       getLabel(HOSTING_PLATFORM_LABELS, (sys as any).hosting_platform),
       getLabel(DEPLOYMENT_LOCATION_LABELS, (ops as any).deployment_location || (sys as any).deployment_location),
       getLabel(COMPUTE_TYPE_LABELS, (ops as any).compute_type || (sys as any).compute_type),
-      (sys as any).server_location || '',
       formatNumber(infra.num_servers),
       formatNumber(infra.total_cpu_cores),
       formatNumber(infra.total_ram_gb),
@@ -823,13 +828,14 @@ function generateInfrastructureSheet(systems: SystemDetail[]): any[][] {
  * Sheet 8: Vận hành (Operations)
  */
 function generateOperationsSheet(systems: SystemDetail[]): any[][] {
+  // Removed: sla (not in model)
   const headers = [
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'Chủ sở hữu nghiệp vụ',
     'Chủ sở hữu kỹ thuật', 'Người phụ trách', 'SĐT phụ trách',
     'Email phụ trách', 'Loại phát triển', 'Đơn vị phát triển',
     'Quy mô team dev', 'Đơn vị vận hành', 'Quy mô team ops',
     'Tình trạng bảo hành', 'Hết bảo hành', 'Có HĐ bảo trì',
-    'Hết bảo trì', 'Phụ thuộc vendor', 'Tự bảo trì', 'SLA'
+    'Hết bảo trì', 'Phụ thuộc vendor', 'Tự bảo trì'
   ];
 
   const rows = systems.map((sys, idx) => {
@@ -854,7 +860,6 @@ function generateOperationsSheet(systems: SystemDetail[]): any[][] {
       formatDate(ops.maintenance_end_date),
       getLabel(VENDOR_DEPENDENCY_LABELS, ops.vendor_dependency),
       formatBoolean(ops.can_self_maintain),
-      (sys as any).sla || '',
     ]);
   });
 
@@ -943,11 +948,11 @@ export async function exportSystemsDetailToExcel(systems: SystemDetail[]): Promi
     setColumnWidths(sheet2, [5, 15, 30, 40, 40, 25, 15, 15, 12, 12, 15, 15, 15]);
     XLSX.utils.book_append_sheet(wb, sheet2, '2. Nghiệp vụ');
 
-    // Sheet 3: Kiến trúc
+    // Sheet 3: Công nghệ
     const sheet3 = XLSX.utils.aoa_to_sheet(generateArchitectureSheet(systems));
     fixFormulaLikeCells(sheet3);
     setColumnWidths(sheet3, [5, 15, 30, 15, 20, 20, 12, 20, 20, 20, 20, 15, 15, 15, 12, 12, 15, 12, 15, 18, 18, 15, 15, 15]);
-    XLSX.utils.book_append_sheet(wb, sheet3, '3. Kiến trúc');
+    XLSX.utils.book_append_sheet(wb, sheet3, '3. Công nghệ');
 
     // Sheet 4: Dữ liệu
     const sheet4 = XLSX.utils.aoa_to_sheet(generateDataSheet(systems));

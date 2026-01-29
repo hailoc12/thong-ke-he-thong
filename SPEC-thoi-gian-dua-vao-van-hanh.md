@@ -2,132 +2,206 @@
 
 ## Tóm tắt
 
-Thêm field "Thời gian đưa vào vận hành" vào tab Cơ bản của System Create/Edit form.
+Thêm checkbox "Đã đưa vào sử dụng?" và field "Thời gian đưa vào vận hành" vào tab Cơ bản của System Create/Edit form với conditional required logic.
 
 ## Yêu cầu
 
 | Aspect | Requirement |
 |--------|-------------|
-| Tên field | Thời gian đưa vào vận hành |
+| Checkbox | "Đã đưa vào sử dụng?" - mặc định **ON** |
+| Date field | "Thời gian đưa vào vận hành" |
+| Logic | Checkbox ON → Date field **required** (cả Create & Edit) |
+| Logic | Checkbox OFF → Date field không required, có thể để trống |
 | Vị trí | Tab "Cơ bản" (Tab 1) |
-| Frontend | **Required** khi edit (bắt buộc nhập) |
-| Backend | **Không required** (null=True), default null cho hệ thống cũ |
+| Backend | Thêm field `is_go_live` (Boolean, default=True, nullable cho data cũ) |
+| Backend | `go_live_date` giữ nguyên null=True (chấp nhận null cho hệ thống cũ) |
+
+---
 
 ## Phân tích hiện trạng
 
-### Backend (Đã có sẵn)
+### Backend
 - **File:** `backend/apps/systems/models.py:281`
-- **Field:** `go_live_date = models.DateField(null=True, blank=True, verbose_name=_('Go Live Date'))`
-- **Status:** ✅ Đã tồn tại, đã `null=True, blank=True` → Đáp ứng yêu cầu
+- **Field date đã có:** `go_live_date = models.DateField(null=True, blank=True)`
+- **Field checkbox:** ❌ **CHƯA CÓ** - Cần thêm `is_go_live`
 
-### Frontend (Cần thêm UI)
-- **Validation rule đã có:** `systemValidationRules.ts:57` → `go_live_date: [createRequiredRule('Vui lòng chọn ngày đưa vào vận hành')]`
+### Frontend
 - **Date conversion đã có:** `SystemEdit.tsx:1574` → Đã có trong `dateFields` array
 - **Format for API đã có:** `SystemEdit.tsx:862` → Đã có trong `formatDateFieldsForAPI`
-- **UI Component:** ❌ **CHƯA CÓ** - Field không được render trong form
+- **UI Component:** ❌ **CHƯA CÓ** - Cả checkbox và date field đều chưa render
 
 ---
 
 ## Danh sách công việc
 
-### 1. Backend - Không cần thay đổi ✅
-- Field `go_live_date` đã có với `null=True, blank=True`
-- Serializer đã handle field này (auto-include trong ModelSerializer)
-- Không cần migration
+### 1. Backend - Model
+**File:** `backend/apps/systems/models.py`
 
-### 2. Frontend - SystemCreate.tsx
+| Task | Mô tả |
+|------|-------|
+| 1.1 | Thêm field `is_go_live = models.BooleanField(default=True)` |
+| 1.2 | Đặt gần field `go_live_date` để dễ quản lý |
+
+**Code thêm vào (sau line 281):**
+```python
+is_go_live = models.BooleanField(default=True, verbose_name=_('Is Go Live'))
+```
+
+### 2. Backend - Migration
+| Task | Mô tả |
+|------|-------|
+| 2.1 | Chạy `python manage.py makemigrations` |
+| 2.2 | Chạy `python manage.py migrate` |
+| 2.3 | Hệ thống cũ sẽ có `is_go_live=True` (default) |
+
+### 3. Frontend - SystemCreate.tsx
 **File:** `frontend/src/pages/SystemCreate.tsx`
 
 | Task | Mô tả |
 |------|-------|
-| 2.1 | Thêm Form.Item cho "Thời gian đưa vào vận hành" vào Tab 1 |
-| 2.2 | Đặt sau field "Thời gian mong muốn hoàn thành" (`target_completion_date`) |
-| 2.3 | Sử dụng DatePicker với format `DD/MM/YYYY` (full date, không chỉ month) |
-| 2.4 | **Không required** trong Create form (hệ thống mới có thể chưa go-live) |
+| 3.1 | Thêm state `isGoLive` với default `true` |
+| 3.2 | Thêm Checkbox "Đã đưa vào sử dụng?" |
+| 3.3 | Thêm DatePicker "Thời gian đưa vào vận hành" |
+| 3.4 | Conditional required: nếu checkbox ON → date required |
+| 3.5 | Đặt sau field `target_completion_date` |
 
 **Code mẫu:**
 ```tsx
+// State
+const [isGoLive, setIsGoLive] = useState(true);
+
+// JSX - Checkbox
+<Form.Item
+  name="is_go_live"
+  valuePropName="checked"
+  initialValue={true}
+>
+  <Checkbox onChange={(e) => setIsGoLive(e.target.checked)}>
+    Đã đưa vào sử dụng?
+  </Checkbox>
+</Form.Item>
+
+// JSX - DatePicker (conditional required)
 <Form.Item
   label="Thời gian đưa vào vận hành"
   name="go_live_date"
+  rules={isGoLive ? [{ required: true, message: 'Vui lòng chọn thời gian đưa vào vận hành' }] : []}
   tooltip="Thời điểm hệ thống chính thức đưa vào vận hành"
 >
   <DatePicker
     placeholder="Chọn ngày"
     format="DD/MM/YYYY"
     style={{ width: '100%' }}
+    disabled={!isGoLive}
   />
 </Form.Item>
 ```
 
-### 3. Frontend - SystemEdit.tsx
+### 4. Frontend - SystemEdit.tsx
 **File:** `frontend/src/pages/SystemEdit.tsx`
 
 | Task | Mô tả |
 |------|-------|
-| 3.1 | Thêm Form.Item cho "Thời gian đưa vào vận hành" vào Tab 1 |
-| 3.2 | Đặt sau field "Thời gian mong muốn hoàn thành" |
-| 3.3 | **Required** trong Edit form (bắt buộc nhập khi edit) |
-| 3.4 | Verify date conversion đã hoạt động (đã có sẵn trong code) |
+| 4.1 | Thêm state `isGoLive` |
+| 4.2 | Init state từ data load (từ API response) |
+| 4.3 | Thêm Checkbox "Đã đưa vào sử dụng?" |
+| 4.4 | Thêm DatePicker "Thời gian đưa vào vận hành" |
+| 4.5 | Conditional required: nếu checkbox ON → date required |
 
 **Code mẫu:**
 ```tsx
-<Form.Item
-  label="Thời gian đưa vào vận hành"
-  name="go_live_date"
-  rules={[{ required: true, message: 'Vui lòng chọn thời gian đưa vào vận hành' }]}
-  tooltip="Thời điểm hệ thống chính thức đưa vào vận hành"
->
-  <DatePicker
-    placeholder="Chọn ngày"
-    format="DD/MM/YYYY"
-    style={{ width: '100%' }}
-  />
-</Form.Item>
+// State
+const [isGoLive, setIsGoLive] = useState(true);
+
+// Trong useEffect load data, set state từ API
+useEffect(() => {
+  if (systemData) {
+    setIsGoLive(systemData.is_go_live ?? true);
+  }
+}, [systemData]);
+
+// JSX giống SystemCreate
 ```
 
-### 4. Frontend - systemValidationRules.ts
-**File:** `frontend/src/utils/systemValidationRules.ts`
-
+### 5. Frontend - Validation Logic
 | Task | Mô tả |
 |------|-------|
-| 4.1 | Verify rule `go_live_date` đã có (đã có sẵn ở line 57) |
-| 4.2 | Không cần thay đổi |
+| 5.1 | Khi submit, nếu `is_go_live=true` và `go_live_date` trống → báo lỗi |
+| 5.2 | Khi submit, nếu `is_go_live=false` → clear `go_live_date` (set null) |
 
 ---
 
 ## Checklist triển khai
 
-- [ ] **2.1** SystemCreate.tsx: Thêm Form.Item cho `go_live_date` trong Tab 1
-- [ ] **2.2** SystemCreate.tsx: Đặt sau `target_completion_date`
-- [ ] **2.3** SystemCreate.tsx: Sử dụng DatePicker full date (DD/MM/YYYY)
-- [ ] **3.1** SystemEdit.tsx: Thêm Form.Item cho `go_live_date` trong Tab 1
-- [ ] **3.2** SystemEdit.tsx: Đặt sau `target_completion_date`
-- [ ] **3.3** SystemEdit.tsx: Set `required: true`
-- [ ] **Test** Create mới system, để trống go_live_date → Phải thành công
-- [ ] **Test** Edit system, để trống go_live_date → Phải báo lỗi required
-- [ ] **Test** Edit system, nhập go_live_date → Phải lưu thành công
+### Backend
+- [ ] **1.1** Thêm field `is_go_live` vào model System
+- [ ] **2.1** Chạy makemigrations
+- [ ] **2.2** Chạy migrate
+
+### Frontend - SystemCreate.tsx
+- [ ] **3.1** Thêm state `isGoLive`
+- [ ] **3.2** Thêm Checkbox với `initialValue={true}`
+- [ ] **3.3** Thêm DatePicker
+- [ ] **3.4** Implement conditional required logic
+
+### Frontend - SystemEdit.tsx
+- [ ] **4.1** Thêm state `isGoLive`
+- [ ] **4.2** Init state từ API data
+- [ ] **4.3** Thêm Checkbox
+- [ ] **4.4** Thêm DatePicker
+- [ ] **4.5** Implement conditional required logic
+
+### Testing
+- [ ] **Test 1** Create: Checkbox ON + date trống → Báo lỗi required
+- [ ] **Test 2** Create: Checkbox ON + date nhập → Lưu OK
+- [ ] **Test 3** Create: Checkbox OFF + date trống → Lưu OK
+- [ ] **Test 4** Edit: Checkbox ON + date trống → Báo lỗi required
+- [ ] **Test 5** Edit: Toggle checkbox OFF → Date field disabled, có thể lưu
+- [ ] **Test 6** Verify hệ thống cũ có `is_go_live=true` sau migrate
+
+---
+
+## UI Layout
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Tab: Cơ bản                                             │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│ Thời gian mong muốn hoàn thành: [____MM/YYYY____]       │
+│                                                         │
+│ ☑ Đã đưa vào sử dụng?                                   │
+│                                                         │
+│ Thời gian đưa vào vận hành: [____DD/MM/YYYY____] *      │
+│ (* required khi checkbox checked)                       │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## Ghi chú kỹ thuật
 
 1. **Date format:**
-   - Display: `DD/MM/YYYY` (format người dùng nhìn thấy)
-   - API: `YYYY-MM-DD` (ISO 8601, tự động convert qua `formatDateFieldsForAPI`)
+   - Display: `DD/MM/YYYY`
+   - API: `YYYY-MM-DD` (ISO 8601)
 
-2. **So sánh với `target_completion_date`:**
-   - `target_completion_date`: Dùng month picker (`picker="month"`, format `MM/YYYY`)
-   - `go_live_date`: Dùng full date picker (format `DD/MM/YYYY`)
+2. **Default values:**
+   - `is_go_live`: `true` (default ON)
+   - `go_live_date`: `null` (cho hệ thống cũ chưa có data)
 
-3. **Lý do không required ở Create:**
-   - Khi tạo mới hệ thống, có thể chưa xác định được ngày go-live
-   - Chỉ bắt buộc khi edit (hệ thống đã tồn tại nên cần có thông tin này)
+3. **Behavior khi toggle checkbox:**
+   - ON → Enable date picker, required
+   - OFF → Disable date picker, không required, clear value khi submit
+
+4. **Migration safety:**
+   - `is_go_live` default=True → Hệ thống cũ sẽ tự động có is_go_live=True
+   - `go_live_date` đã null=True → An toàn cho data cũ
 
 ---
 
 ## Ước lượng
 
-- **Số file cần sửa:** 2 files (SystemCreate.tsx, SystemEdit.tsx)
-- **Số dòng code:** ~20-30 dòng mỗi file
-- **Risk level:** Thấp (thêm UI component, không thay đổi logic backend)
+- **Số file cần sửa:** 3 files (models.py, SystemCreate.tsx, SystemEdit.tsx)
+- **Migration:** 1 migration (add is_go_live field)
+- **Risk level:** Thấp (thêm field mới với default, không ảnh hưởng data cũ)

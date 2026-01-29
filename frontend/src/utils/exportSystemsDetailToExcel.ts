@@ -67,13 +67,7 @@ const ARCH_TYPE_LABELS: Record<string, string> = {
   other: 'Khác',
 };
 
-const MOBILE_APP_LABELS: Record<string, string> = {
-  native: 'Native',
-  hybrid: 'Hybrid',
-  pwa: 'PWA',
-  none: 'Không có',
-  other: 'Khác',
-};
+// Mobile App: Changed to show "Có/Không có" instead of specific type
 
 const DB_MODEL_LABELS: Record<string, string> = {
   centralized: 'Tập trung',

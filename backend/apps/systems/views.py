@@ -1412,8 +1412,9 @@ GROUP BY o.id, o.name;
                 )
                 return response.content[0].text
             else:
-                # OpenAI API via requests
-                openai_messages = [{'role': 'system', 'content': system_prompt}]
+                # OpenAI API via requests - using GPT-5.2 with reasoning
+                # Use 'developer' role instead of 'system' for GPT-5.2
+                openai_messages = [{'role': 'developer', 'content': system_prompt}]
                 for msg in conversation_messages:
                     openai_messages.append({'role': msg['role'], 'content': msg['content']})
 
@@ -1424,12 +1425,12 @@ GROUP BY o.id, o.name;
                         'Content-Type': 'application/json',
                     },
                     json={
-                        'model': 'gpt-4o',  # Use gpt-4o for better accuracy
+                        'model': 'gpt-5.2',  # GPT-5.2 with reasoning capability
                         'messages': openai_messages,
-                        'temperature': 0.1,
-                        'max_tokens': 2000,
+                        'reasoning_effort': 'medium',  # Enable reasoning for SQL generation
+                        'max_completion_tokens': 3000,
                     },
-                    timeout=60
+                    timeout=90  # Longer timeout for reasoning
                 )
                 response.raise_for_status()
                 return response.json()['choices'][0]['message']['content']

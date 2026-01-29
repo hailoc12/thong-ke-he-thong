@@ -96,6 +96,10 @@ export interface SystemArchitecture {
   has_data_model_doc?: boolean;
   hosting_type?: string;
   cloud_provider?: string;
+  has_layered_architecture?: boolean;
+  layered_architecture_details?: string;
+  has_automated_testing?: boolean;
+  automated_testing_tools?: string;
 }
 
 export interface SystemDataInfo {

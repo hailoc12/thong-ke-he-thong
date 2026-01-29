@@ -36,29 +36,9 @@ const SCOPE_LABELS: Record<string, string> = {
   other: 'Khác',
 };
 
-const DEV_TYPE_LABELS: Record<string, string> = {
-  internal: 'Nội bộ',
-  outsource: 'Thuê ngoài',
-  combined: 'Kết hợp',
-  other: 'Khác',
-};
-
-// VENDOR_TYPE_LABELS - Reserved for future use
-
-const WARRANTY_LABELS: Record<string, string> = {
-  active: 'Còn bảo hành',
-  expired: 'Hết bảo hành',
-  none: 'Không có',
-  other: 'Khác',
-};
-
-const VENDOR_DEPENDENCY_LABELS: Record<string, string> = {
-  high: 'Cao',
-  medium: 'Trung bình',
-  low: 'Thấp',
-  none: 'Không phụ thuộc',
-  other: 'Khác',
-};
+// DEV_TYPE_LABELS - Removed (dev_type field not in frontend form)
+// WARRANTY_LABELS - Removed (warranty fields not in frontend form)
+// VENDOR_DEPENDENCY_LABELS - Removed (vendor_dependency field not in frontend form)
 
 const ARCH_TYPE_LABELS: Record<string, string> = {
   monolithic: 'Monolithic',
@@ -92,12 +72,7 @@ const RECOMMENDATION_LABELS: Record<string, string> = {
   merge: 'Sáp nhập',
 };
 
-const INTEGRATION_READINESS_LABELS: Record<string, string> = {
-  ready: 'Sẵn sàng',
-  partial: 'Một phần',
-  not_ready: 'Chưa sẵn sàng',
-  other: 'Khác',
-};
+// INTEGRATION_READINESS_LABELS - Removed (field now uses formatArray for CheckboxGroup values)
 
 const HOSTING_PLATFORM_LABELS: Record<string, string> = {
   cloud: 'Cloud',
@@ -275,17 +250,20 @@ function escapeRow(row: any[]): any[] {
 function generateFullSheet(systems: SystemDetail[]): any[][] {
   // Define section info with column counts
   // Tab names match frontend SystemCreate.tsx tabs
+  // Section counts - only include fields that exist in frontend SystemCreate form
   const sections = [
-    { name: 'Cơ bản', count: 16 },       // Tab 1 (removed: Form Level)
-    { name: 'Nghiệp vụ', count: 8 },     // Tab 2 (removed: transactions_per_year, reports_per_year)
-    { name: 'Công nghệ', count: 21 },    // Tab 3 (removed: monitoring_tool, log_management)
+    { name: 'Cơ bản', count: 16 },       // Tab 1
+    { name: 'Nghiệp vụ', count: 8 },     // Tab 2
+    { name: 'Công nghệ', count: 21 },    // Tab 3
     { name: 'Dữ liệu', count: 18 },      // Tab 4
-    { name: 'Tích hợp', count: 13 },     // Tab 5 (removed: esb_integration_platform, data_exchange_format)
-    { name: 'Bảo mật', count: 18 },      // Tab 6
-    { name: 'Hạ tầng', count: 19 },      // Tab 7 (removed: server_location)
-    { name: 'Vận hành', count: 17 },     // Tab 8 (removed: sla)
-    { name: 'Đánh giá', count: 14 },     // Tab 9
-    { name: 'Khác', count: 24 },         // Chi phí (9) + Nhà cung cấp (13) + Metadata (2)
+    { name: 'Tích hợp', count: 13 },     // Tab 5
+    { name: 'Bảo mật', count: 5 },       // Tab 6 - only 5 fields in form
+    { name: 'Hạ tầng', count: 8 },       // Tab 7 - only 8 fields in form
+    { name: 'Vận hành', count: 5 },      // Tab 8 - only 5 fields in form
+    { name: 'Đánh giá', count: 3 },      // Tab 9 - only 3 fields in form
+    { name: 'Metadata', count: 2 },      // Ngày tạo, Ngày cập nhật
+    // REMOVED: Cost (9 cols) - no Cost tab in frontend form
+    // REMOVED: Vendor (13 cols) - no Vendor tab in frontend form
   ];
 
   // Generate tab info row - each column shows which tab it belongs to
@@ -324,38 +302,29 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
     'Số API cung cấp', 'Số API sử dụng', 'Có tích hợp', 'Số kết nối',
     'Loại tích hợp', 'API Standard', 'API Gateway', 'Rate Limiting',
     'Tài liệu API', 'Data Exchange Method',
-    // Security (18 cols)
-    'Phương thức xác thực', 'Có mã hóa', 'Mức bảo mật (Security)', 'Có MFA', 'Có RBAC', 'Có mã hóa at rest',
-    'Có mã hóa in transit', 'Có Audit Log', 'Tiêu chuẩn tuân thủ',
-    'Có Firewall', 'Có WAF', 'Có IDS/IPS', 'Có Antivirus',
-    'Ngày audit bảo mật gần nhất', 'Ngày pen test gần nhất',
-    'Có quét lỗ hổng', 'Số sự cố bảo mật năm qua', 'Ghi chú bảo mật',
-    // Infrastructure (19 cols) - removed: server_location (not in model)
-    'Hosting Platform', 'Vị trí triển khai', 'Loại compute',
-    'Cấu hình server', 'Số server', 'CPU cores', 'RAM (GB)',
-    'Storage (TB)', 'Dung lượng lưu trữ', 'Bandwidth (Mbps)', 'Có CDN', 'Có Load Balancer',
-    'Kế hoạch backup', 'Tần suất backup', 'Số ngày lưu backup', 'Kế hoạch DR', 'Có DR', 'RTO (giờ)', 'RPO (giờ)',
-    // Operations (17 cols) - removed: sla (not in model)
-    'Chủ sở hữu nghiệp vụ', 'Chủ sở hữu kỹ thuật', 'Người phụ trách',
-    'SĐT phụ trách', 'Email phụ trách', 'Mức hỗ trợ', 'Loại phát triển',
-    'Đơn vị phát triển', 'Quy mô team dev', 'Đơn vị vận hành',
-    'Quy mô team ops', 'Tình trạng bảo hành', 'Hết bảo hành',
-    'Có HĐ bảo trì', 'Hết bảo trì', 'Phụ thuộc vendor', 'Tự bảo trì',
-    // Assessment (14 cols)
-    'Sẵn sàng tích hợp', 'Vấn đề/Blockers', 'Khuyến nghị',
-    'Điểm hiệu năng', 'Uptime (%)', 'Thời gian phản hồi (ms)',
-    'Điểm hài lòng người dùng', 'Mức nợ kỹ thuật', 'Cần thay thế',
-    'Kế hoạch thay thế', 'Vấn đề chính', 'Đề xuất cải tiến',
-    'Kế hoạch tương lai', 'Ưu tiên hiện đại hóa',
-    // Cost (9 cols)
-    'Chi phí đầu tư ban đầu', 'Chi phí phát triển', 'Phí license/năm',
-    'Phí bảo trì/năm', 'Phí hạ tầng/năm', 'Phí nhân sự/năm',
-    'Tổng TCO', 'Ghi chú chi phí', 'Nguồn tài trợ',
-    // Vendor (13 cols)
-    'Tên nhà cung cấp', 'Loại nhà cung cấp', 'Liên hệ NCC',
-    'SĐT NCC', 'Email NCC', 'Số hợp đồng', 'Ngày bắt đầu HĐ',
-    'Ngày kết thúc HĐ', 'Giá trị hợp đồng', 'Điểm hiệu suất NCC',
-    'Điểm phản hồi NCC', 'Rủi ro vendor lock-in', 'NCC thay thế',
+    // Security (5 cols) - only fields in frontend SystemCreate form Tab 6
+    'Phương thức xác thực', 'Có mã hóa', 'Có Audit Log', 'Mức bảo mật', 'Có tài liệu ATTT',
+    // REMOVED: has_mfa, has_rbac, encryption_at_rest, encryption_in_transit, compliance_standards,
+    // has_firewall, has_waf, has_ids_ips, has_antivirus, last_security_audit_date,
+    // last_penetration_test_date, has_vulnerability_scanning, security_incidents_last_year, security_notes
+    // Infrastructure (8 cols) - only fields in frontend SystemCreate form Tab 7
+    'Cấu hình máy chủ', 'Dung lượng lưu trữ', 'Phương án sao lưu', 'Kế hoạch khôi phục thảm họa',
+    'Vị trí triển khai', 'Cấu hình tính toán', 'Loại hạ tầng tính toán', 'Tần suất triển khai',
+    // REMOVED: hosting_platform (in Công nghệ tab), num_servers, cpu_cores, ram_gb, storage_tb,
+    // bandwidth_mbps, has_cdn, has_load_balancer, backup_frequency, backup_retention_days,
+    // has_disaster_recovery, rto_hours, rpo_hours
+    // Operations (5 cols) - only fields in frontend SystemCreate form Tab 8
+    'Người chịu trách nhiệm', 'Người quản trị kỹ thuật', 'Số điện thoại liên hệ', 'Email liên hệ', 'Mức độ hỗ trợ',
+    // REMOVED: responsible_person, dev_type, developer, dev_team_size, operator, ops_team_size,
+    // warranty_status, warranty_end_date, has_maintenance_contract, maintenance_end_date,
+    // vendor_dependency, can_self_maintain
+    // Assessment (3 cols) - only fields in frontend SystemCreate form Tab 9
+    'Điểm phù hợp cho tích hợp', 'Điểm vướng mắc', 'Đề xuất của đơn vị',
+    // REMOVED: performance_rating, uptime_percent, avg_response_time_ms, user_satisfaction_rating,
+    // technical_debt_level, needs_replacement, replacement_plan, major_issues,
+    // improvement_suggestions, future_plans, modernization_priority
+    // REMOVED: Cost section (9 cols) - no Cost tab in frontend form
+    // REMOVED: Vendor section (13 cols) - no Vendor tab in frontend form
     // Metadata (2 cols)
     'Ngày tạo', 'Ngày cập nhật',
   ];
@@ -365,11 +334,9 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
     const data = sys.data_info || {};
     const ops = sys.operations || {};
     const intg = sys.integration || {};
-    const sec = sys.security || {};
-    const infra = sys.infrastructure || {};
+    const sec = sys.security || {};  // Used for authentication_method fallback
     const assess = sys.assessment || {};
-    const cost = sys.cost || {};
-    const vendor = sys.vendor || {};
+    // REMOVED: infra, cost, vendor - no longer used (fields not in frontend form)
 
     return escapeRow([
       // Basic Info
@@ -458,104 +425,45 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
       (intg as any).api_documentation ? 'Có' : 'Không',  // Fixed: api_documentation is TEXT, not boolean has_api_documentation
       // Removed: esb_integration_platform, data_exchange_format (not in model)
       (sys as any).data_exchange_method || '',
-      // Security
+      // Security (5 cols - only fields in frontend form Tab 6)
       sec.auth_method || (sys as any).authentication_method || '',
       formatBoolean((sys as any).has_encryption),
-      (sys as any).security_level || '',
-      formatBoolean(sec.has_mfa || (sys as any).has_mfa),
-      formatBoolean(sec.has_rbac || (sys as any).has_rbac),
-      formatBoolean(sec.has_data_encryption_at_rest),
-      formatBoolean(sec.has_data_encryption_in_transit),
       formatBoolean((sys as any).has_audit_log),
-      formatArray(sec.compliance_standards),
-      formatBoolean(sec.has_firewall),
-      formatBoolean(sec.has_waf),
-      formatBoolean(sec.has_ids_ips),
-      formatBoolean(sec.has_antivirus),
-      formatDate(sec.last_security_audit_date),
-      formatDate(sec.last_penetration_test_date),
-      formatBoolean(sec.has_vulnerability_scanning),
-      formatNumber(sec.security_incidents_last_year),
-      sec.security_notes || '',
-      // Infrastructure
-      getLabel(HOSTING_PLATFORM_LABELS, (sys as any).hosting_platform),
-      getLabel(DEPLOYMENT_LOCATION_LABELS, (ops as any).deployment_location || (sys as any).deployment_location),
-      getLabel(COMPUTE_TYPE_LABELS, (ops as any).compute_type || (sys as any).compute_type),
+      (sys as any).security_level || '',
+      formatBoolean((sys as any).has_security_documents),
+      // REMOVED: has_mfa, has_rbac, encryption_at_rest, encryption_in_transit, compliance_standards,
+      // has_firewall, has_waf, has_ids_ips, has_antivirus, last_security_audit_date,
+      // last_penetration_test_date, has_vulnerability_scanning, security_incidents_last_year, security_notes
+      // Infrastructure (8 cols - only fields in frontend form Tab 7)
       (sys as any).server_configuration || '',
-      // Removed: server_location (not in model)
-      formatNumber(infra.num_servers),
-      formatNumber(infra.total_cpu_cores),
-      formatNumber(infra.total_ram_gb),
-      formatNumber(infra.total_storage_tb),
       (sys as any).storage_capacity || '',
-      formatNumber(infra.bandwidth_mbps),
-      formatBoolean(infra.has_cdn),
-      formatBoolean(infra.has_load_balancer),
-      (sys as any).backup_plan || '',
-      infra.backup_frequency || '',
-      formatNumber(infra.backup_retention_days),
+      formatArray((sys as any).backup_plan),  // CheckboxGroupWithOther returns array
       (sys as any).disaster_recovery_plan || '',
-      formatBoolean(infra.has_disaster_recovery),
-      formatNumber(infra.rto_hours),
-      formatNumber(infra.rpo_hours),
-      // Operations
+      getLabel(DEPLOYMENT_LOCATION_LABELS, (ops as any).deployment_location || (sys as any).deployment_location),
+      (sys as any).compute_specifications || '',
+      getLabel(COMPUTE_TYPE_LABELS, (ops as any).compute_type || (sys as any).compute_type),
+      (sys as any).deployment_frequency || '',
+      // REMOVED: hosting_platform (in Công nghệ tab), num_servers, cpu_cores, ram_gb, storage_tb,
+      // bandwidth_mbps, has_cdn, has_load_balancer, backup_frequency, backup_retention_days,
+      // has_disaster_recovery, rto_hours, rpo_hours
+      // Operations (5 cols - only fields in frontend form Tab 8)
       sys.business_owner || '',
       sys.technical_owner || '',
-      sys.responsible_person || '',
       sys.responsible_phone || '',
       sys.responsible_email || '',
       ops.support_level || (sys as any).support_level || '',
-      getLabel(DEV_TYPE_LABELS, ops.dev_type || (sys as any).development_type),
-      ops.developer || (sys as any).developer_name || '',
-      formatNumber(ops.dev_team_size),
-      ops.operator || (sys as any).operator_name || '',
-      formatNumber(ops.ops_team_size),
-      getLabel(WARRANTY_LABELS, ops.warranty_status),
-      formatDate(ops.warranty_end_date),
-      formatBoolean(ops.has_maintenance_contract),
-      formatDate(ops.maintenance_end_date),
-      getLabel(VENDOR_DEPENDENCY_LABELS, ops.vendor_dependency),
-      formatBoolean(ops.can_self_maintain),
-      // Removed: sla (not in model)
-      // Assessment
-      getLabel(INTEGRATION_READINESS_LABELS, (sys as any).integration_readiness || (assess as any).integration_readiness),
-      (assess as any).blockers || (sys as any).blockers || '',
+      // REMOVED: responsible_person, dev_type, developer, dev_team_size, operator, ops_team_size,
+      // warranty_status, warranty_end_date, has_maintenance_contract, maintenance_end_date,
+      // vendor_dependency, can_self_maintain
+      // Assessment (3 cols - only fields in frontend form Tab 9)
+      formatArray((sys as any).integration_readiness),  // CheckboxGroupWithOther returns array
+      formatArray((sys as any).blockers),  // CheckboxGroupWithOther returns array
       getLabel(RECOMMENDATION_LABELS, (assess as any).recommendation || (sys as any).recommendation),
-      formatNumber(assess.performance_rating),
-      formatNumber(assess.uptime_percent),
-      formatNumber(assess.avg_response_time_ms),
-      formatNumber(assess.user_satisfaction_rating),
-      assess.technical_debt_level || '',
-      formatBoolean(assess.needs_replacement),
-      assess.replacement_plan || '',
-      assess.major_issues || '',
-      assess.improvement_suggestions || '',
-      assess.future_plans || '',
-      assess.modernization_priority || '',
-      // Cost
-      formatNumber(cost.initial_investment),
-      formatNumber(cost.development_cost),
-      formatNumber(cost.annual_license_cost),
-      formatNumber(cost.annual_maintenance_cost),
-      formatNumber(cost.annual_infrastructure_cost),
-      formatNumber(cost.annual_personnel_cost),
-      formatNumber(cost.total_cost_of_ownership),
-      cost.cost_notes || '',
-      cost.funding_source || '',
-      // Vendor
-      vendor.vendor_name || '',
-      vendor.vendor_type || '',
-      vendor.vendor_contact_person || '',
-      vendor.vendor_phone || '',
-      vendor.vendor_email || '',
-      vendor.contract_number || '',
-      formatDate(vendor.contract_start_date),
-      formatDate(vendor.contract_end_date),
-      formatNumber(vendor.contract_value),
-      formatNumber(vendor.vendor_performance_rating),
-      formatNumber(vendor.vendor_responsiveness_rating),
-      vendor.vendor_lock_in_risk || '',
-      vendor.alternative_vendors || '',
+      // REMOVED: performance_rating, uptime_percent, avg_response_time_ms, user_satisfaction_rating,
+      // technical_debt_level, needs_replacement, replacement_plan, major_issues,
+      // improvement_suggestions, future_plans, modernization_priority
+      // REMOVED: Cost section (9 cols) - no Cost tab in frontend form
+      // REMOVED: Vendor section (13 cols) - no Vendor tab in frontend form
       // Metadata
       formatDate(sys.created_at),
       formatDate(sys.updated_at),
@@ -757,12 +665,12 @@ function generateIntegrationSheet(systems: SystemDetail[]): any[][] {
 
 /**
  * Sheet 6: Bảo mật (Security)
+ * Only includes fields from frontend SystemCreate form Tab 6
  */
 function generateSecuritySheet(systems: SystemDetail[]): any[][] {
   const headers = [
-    'STT', 'Mã hệ thống', 'Tên hệ thống', 'Phương thức xác thực',
-    'Có MFA', 'Có RBAC', 'Có mã hóa at rest', 'Có mã hóa in transit',
-    'Có Audit Log', 'Tiêu chuẩn tuân thủ'
+    'STT', 'Mã hệ thống', 'Tên hệ thống',
+    'Phương thức xác thực', 'Có mã hóa', 'Có Audit Log', 'Mức bảo mật', 'Có tài liệu ATTT'
   ];
 
   const rows = systems.map((sys, idx) => {
@@ -771,13 +679,11 @@ function generateSecuritySheet(systems: SystemDetail[]): any[][] {
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
-      sec.auth_method || (sys as any).authentication_method || '',
-      formatBoolean(sec.has_mfa || (sys as any).has_mfa),
-      formatBoolean(sec.has_rbac || (sys as any).has_rbac),
-      formatBoolean(sec.has_data_encryption_at_rest),
-      formatBoolean(sec.has_data_encryption_in_transit),
+      sec.auth_method || formatArray((sys as any).authentication_method) || '',
+      formatBoolean((sys as any).has_encryption),
       formatBoolean((sys as any).has_audit_log),
-      formatArray(sec.compliance_standards),
+      (sys as any).security_level || '',
+      formatBoolean((sys as any).has_security_documents),
     ]);
   });
 
@@ -786,32 +692,29 @@ function generateSecuritySheet(systems: SystemDetail[]): any[][] {
 
 /**
  * Sheet 7: Hạ tầng (Infrastructure)
+ * Only includes fields from frontend SystemCreate form Tab 7
  */
 function generateInfrastructureSheet(systems: SystemDetail[]): any[][] {
-  // Removed: server_location (not in model)
   const headers = [
-    'STT', 'Mã hệ thống', 'Tên hệ thống', 'Hosting Platform',
-    'Vị trí triển khai', 'Loại compute', 'Số server', 'CPU cores',
-    'RAM (GB)', 'Storage (TB)', 'Bandwidth (Mbps)', 'Có CDN', 'Có Load Balancer'
+    'STT', 'Mã hệ thống', 'Tên hệ thống',
+    'Cấu hình máy chủ', 'Dung lượng lưu trữ', 'Phương án sao lưu', 'Kế hoạch khôi phục thảm họa',
+    'Vị trí triển khai', 'Cấu hình tính toán', 'Loại hạ tầng tính toán', 'Tần suất triển khai'
   ];
 
   const rows = systems.map((sys, idx) => {
-    const infra = sys.infrastructure || {};
     const ops = sys.operations || {};
     return escapeRow([
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
-      getLabel(HOSTING_PLATFORM_LABELS, (sys as any).hosting_platform),
+      (sys as any).server_configuration || '',
+      (sys as any).storage_capacity || '',
+      formatArray((sys as any).backup_plan),  // CheckboxGroupWithOther returns array
+      (sys as any).disaster_recovery_plan || '',
       getLabel(DEPLOYMENT_LOCATION_LABELS, (ops as any).deployment_location || (sys as any).deployment_location),
+      (sys as any).compute_specifications || '',
       getLabel(COMPUTE_TYPE_LABELS, (ops as any).compute_type || (sys as any).compute_type),
-      formatNumber(infra.num_servers),
-      formatNumber(infra.total_cpu_cores),
-      formatNumber(infra.total_ram_gb),
-      formatNumber(infra.total_storage_tb),
-      formatNumber(infra.bandwidth_mbps),
-      formatBoolean(infra.has_cdn),
-      formatBoolean(infra.has_load_balancer),
+      (sys as any).deployment_frequency || '',
     ]);
   });
 
@@ -820,16 +723,13 @@ function generateInfrastructureSheet(systems: SystemDetail[]): any[][] {
 
 /**
  * Sheet 8: Vận hành (Operations)
+ * Only includes fields from frontend SystemCreate form Tab 8
  */
 function generateOperationsSheet(systems: SystemDetail[]): any[][] {
-  // Removed: sla (not in model)
   const headers = [
-    'STT', 'Mã hệ thống', 'Tên hệ thống', 'Chủ sở hữu nghiệp vụ',
-    'Chủ sở hữu kỹ thuật', 'Người phụ trách', 'SĐT phụ trách',
-    'Email phụ trách', 'Loại phát triển', 'Đơn vị phát triển',
-    'Quy mô team dev', 'Đơn vị vận hành', 'Quy mô team ops',
-    'Tình trạng bảo hành', 'Hết bảo hành', 'Có HĐ bảo trì',
-    'Hết bảo trì', 'Phụ thuộc vendor', 'Tự bảo trì'
+    'STT', 'Mã hệ thống', 'Tên hệ thống',
+    'Người chịu trách nhiệm', 'Người quản trị kỹ thuật', 'Số điện thoại liên hệ',
+    'Email liên hệ', 'Mức độ hỗ trợ'
   ];
 
   const rows = systems.map((sys, idx) => {
@@ -840,20 +740,9 @@ function generateOperationsSheet(systems: SystemDetail[]): any[][] {
       sys.system_name || '',
       sys.business_owner || '',
       sys.technical_owner || '',
-      sys.responsible_person || '',
       sys.responsible_phone || '',
       sys.responsible_email || '',
-      getLabel(DEV_TYPE_LABELS, ops.dev_type || (sys as any).development_type),
-      ops.developer || (sys as any).developer_name || '',
-      formatNumber(ops.dev_team_size),
-      ops.operator || (sys as any).operator_name || '',
-      formatNumber(ops.ops_team_size),
-      getLabel(WARRANTY_LABELS, ops.warranty_status),
-      formatDate(ops.warranty_end_date),
-      formatBoolean(ops.has_maintenance_contract),
-      formatDate(ops.maintenance_end_date),
-      getLabel(VENDOR_DEPENDENCY_LABELS, ops.vendor_dependency),
-      formatBoolean(ops.can_self_maintain),
+      ops.support_level || (sys as any).support_level || '',
     ]);
   });
 
@@ -862,11 +751,12 @@ function generateOperationsSheet(systems: SystemDetail[]): any[][] {
 
 /**
  * Sheet 9: Đánh giá (Assessment)
+ * Only includes fields from frontend SystemCreate form Tab 9
  */
 function generateAssessmentSheet(systems: SystemDetail[]): any[][] {
   const headers = [
-    'STT', 'Mã hệ thống', 'Tên hệ thống', 'Sẵn sàng tích hợp',
-    'Vấn đề/Blockers', 'Khuyến nghị'
+    'STT', 'Mã hệ thống', 'Tên hệ thống',
+    'Điểm phù hợp cho tích hợp', 'Điểm vướng mắc', 'Đề xuất của đơn vị'
   ];
 
   const rows = systems.map((sys, idx) => {
@@ -875,8 +765,8 @@ function generateAssessmentSheet(systems: SystemDetail[]): any[][] {
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
-      getLabel(INTEGRATION_READINESS_LABELS, (sys as any).integration_readiness || (assess as any).integration_readiness),
-      (assess as any).blockers || (sys as any).blockers || '',
+      formatArray((sys as any).integration_readiness),  // CheckboxGroupWithOther returns array
+      formatArray((sys as any).blockers),  // CheckboxGroupWithOther returns array
       getLabel(RECOMMENDATION_LABELS, (assess as any).recommendation || (sys as any).recommendation),
     ]);
   });
@@ -902,28 +792,24 @@ export async function exportSystemsDetailToExcel(systems: SystemDetail[]): Promi
     fixFormulaLikeCells(sheetFull);
     // Set column widths for Full sheet (approximate widths for each section)
     const fullColumnWidths = [
-      // Basic Info (17 cols) - added is_go_live
-      5, 15, 35, 35, 25, 15, 15, 18, 12, 15, 15, 40, 10, 12, 10, 12, 8,
-      // Business (10 cols)
-      30, 30, 25, 12, 12, 10, 10, 12, 12, 12,
-      // Architecture (22 cols) - added layered_architecture_details, automated_testing_tools
-      15, 30, 20, 20, 12, 15, 15, 15, 15, 12, 15, 15, 12, 12, 12, 12, 12, 15, 15, 12, 12, 20,
-      // Data (18 cols) - added file_storage_type, data_catalog_notes, mdm_notes
+      // Basic Info (16 cols)
+      5, 15, 35, 35, 25, 15, 15, 18, 12, 15, 15, 40, 10, 12, 10, 12,
+      // Business (8 cols)
+      30, 30, 25, 12, 12, 10, 10, 12,
+      // Architecture (21 cols)
+      15, 30, 20, 20, 12, 15, 15, 15, 15, 12, 15, 15, 12, 12, 12, 12, 12, 15, 15, 12, 20,
+      // Data (18 cols)
       20, 15, 15, 10, 12, 15, 12, 20, 15, 12, 10, 25, 10, 25, 12, 12, 8, 10,
-      // Integration (15 cols)
-      25, 25, 15, 10, 10, 10, 10, 20, 12, 12, 10, 10, 18, 15, 12,
-      // Security (18 cols) - added has_encryption, security_level
-      18, 10, 15, 8, 8, 12, 12, 10, 25, 8, 8, 10, 10, 15, 15, 10, 10, 25,
-      // Infrastructure (20 cols) - added server_configuration, storage_capacity, backup_plan, disaster_recovery_plan
-      15, 15, 12, 25, 15, 8, 8, 8, 10, 18, 12, 8, 12, 25, 15, 12, 25, 8, 8, 8,
-      // Operations (18 cols) - added support_level
-      20, 20, 18, 15, 22, 15, 12, 20, 10, 18, 10, 15, 12, 10, 12, 12, 10, 12,
-      // Assessment (14 cols)
-      15, 30, 12, 10, 10, 15, 12, 15, 10, 25, 30, 30, 30, 15,
-      // Cost (9 cols)
-      18, 15, 12, 12, 12, 12, 12, 30, 15,
-      // Vendor (13 cols)
-      20, 15, 18, 15, 22, 15, 12, 12, 15, 10, 10, 15, 25,
+      // Integration (13 cols)
+      25, 25, 15, 10, 10, 10, 10, 20, 12, 12, 10, 12, 20,
+      // Security (5 cols) - only fields in frontend form
+      20, 10, 10, 15, 15,
+      // Infrastructure (8 cols) - only fields in frontend form
+      20, 18, 20, 25, 15, 30, 18, 15,
+      // Operations (5 cols) - only fields in frontend form
+      22, 22, 15, 25, 15,
+      // Assessment (3 cols) - only fields in frontend form
+      25, 25, 18,
       // Metadata (2 cols)
       12, 12,
     ];
@@ -960,28 +846,28 @@ export async function exportSystemsDetailToExcel(systems: SystemDetail[]): Promi
     setColumnWidths(sheet5, [5, 15, 30, 35, 35, 20, 12, 12, 10, 12, 25, 15, 15, 12, 12, 20, 18, 18]);
     XLSX.utils.book_append_sheet(wb, sheet5, '5. Tích hợp');
 
-    // Sheet 6: Bảo mật
+    // Sheet 6: Bảo mật (only fields from frontend form)
     const sheet6 = XLSX.utils.aoa_to_sheet(generateSecuritySheet(systems));
     fixFormulaLikeCells(sheet6);
-    setColumnWidths(sheet6, [5, 15, 30, 20, 10, 10, 15, 15, 12, 30]);
+    setColumnWidths(sheet6, [5, 15, 30, 25, 12, 12, 15, 18]);
     XLSX.utils.book_append_sheet(wb, sheet6, '6. Bảo mật');
 
-    // Sheet 7: Hạ tầng
+    // Sheet 7: Hạ tầng (only fields from frontend form)
     const sheet7 = XLSX.utils.aoa_to_sheet(generateInfrastructureSheet(systems));
     fixFormulaLikeCells(sheet7);
-    setColumnWidths(sheet7, [5, 15, 30, 18, 15, 15, 18, 10, 10, 10, 12, 12, 10, 12]);
+    setColumnWidths(sheet7, [5, 15, 30, 20, 18, 25, 28, 18, 30, 20, 18]);
     XLSX.utils.book_append_sheet(wb, sheet7, '7. Hạ tầng');
 
-    // Sheet 8: Vận hành
+    // Sheet 8: Vận hành (only fields from frontend form)
     const sheet8 = XLSX.utils.aoa_to_sheet(generateOperationsSheet(systems));
     fixFormulaLikeCells(sheet8);
-    setColumnWidths(sheet8, [5, 15, 30, 22, 22, 22, 15, 25, 15, 22, 12, 22, 12, 15, 12, 12, 12, 15, 10, 15]);
+    setColumnWidths(sheet8, [5, 15, 30, 25, 25, 18, 28, 18]);
     XLSX.utils.book_append_sheet(wb, sheet8, '8. Vận hành');
 
-    // Sheet 9: Đánh giá
+    // Sheet 9: Đánh giá (only fields from frontend form)
     const sheet9 = XLSX.utils.aoa_to_sheet(generateAssessmentSheet(systems));
     fixFormulaLikeCells(sheet9);
-    setColumnWidths(sheet9, [5, 15, 30, 18, 40, 15]);
+    setColumnWidths(sheet9, [5, 15, 30, 30, 30, 22]);
     XLSX.utils.book_append_sheet(wb, sheet9, '9. Đánh giá');
 
     // Generate file name

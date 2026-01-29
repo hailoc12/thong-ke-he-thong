@@ -395,7 +395,7 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
       formatNumber((sys as any).reports_per_year),
       // Architecture
       getLabel(ARCH_TYPE_LABELS, arch.architecture_type),
-      (sys as any).layered_architecture_details || '',
+      arch.layered_architecture_details || (sys as any).layered_architecture_details || '',
       arch.backend_tech || (sys as any).backend_tech || '',
       arch.frontend_tech || (sys as any).frontend_tech || '',
       getLabel(MOBILE_APP_LABELS, arch.mobile_app || (sys as any).mobile_app),
@@ -416,7 +416,7 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
       (sys as any).cicd_tool || '',
       (sys as any).monitoring_tool || '',
       (sys as any).log_management || '',
-      (sys as any).automated_testing_tools || '',
+      arch.automated_testing_tools || (sys as any).automated_testing_tools || '',
       // Data
       (sys as any).data_source || '',
       getLabel(DATA_CLASS_LABELS, data.data_classification),

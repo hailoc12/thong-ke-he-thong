@@ -210,10 +210,10 @@ LOGGING = {
         },
         'file': {
             'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': BASE_DIR / 'logs' / 'api_requests.log',
-            'maxBytes': 10 * 1024 * 1024,  # 10 MB
-            'backupCount': 5,
+            'when': 'midnight',
+            'backupCount': 30,  # Keep 30 days of logs
             'formatter': 'verbose',
         },
     },

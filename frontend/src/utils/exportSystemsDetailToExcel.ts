@@ -49,12 +49,7 @@ const ARCH_TYPE_LABELS: Record<string, string> = {
 
 // Mobile App: Changed to show "Có/Không có" instead of specific type
 
-const DB_MODEL_LABELS: Record<string, string> = {
-  centralized: 'Tập trung',
-  distributed: 'Phân tán',
-  per_app: 'Riêng/app',
-  other: 'Khác',
-};
+// DB_MODEL_LABELS - Removed (database_model field not in frontend form)
 
 const DATA_CLASS_LABELS: Record<string, string> = {
   public: 'Công khai',
@@ -252,11 +247,11 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
   // Tab names match frontend SystemCreate.tsx tabs
   // Section counts - only include fields that exist in frontend SystemCreate form
   const sections = [
-    { name: 'Cơ bản', count: 16 },       // Tab 1
+    { name: 'Cơ bản', count: 15 },       // Tab 1 - removed: Phiên bản (not in form)
     { name: 'Nghiệp vụ', count: 8 },     // Tab 2
-    { name: 'Công nghệ', count: 21 },    // Tab 3
-    { name: 'Dữ liệu', count: 18 },      // Tab 4
-    { name: 'Tích hợp', count: 13 },     // Tab 5
+    { name: 'Công nghệ', count: 19 },    // Tab 3 - removed: Database Model, Cloud Provider (not in form)
+    { name: 'Dữ liệu', count: 17 },      // Tab 4 - removed: Số API endpoints (not in form)
+    { name: 'Tích hợp', count: 12 },     // Tab 5 - removed: Loại tích hợp (not in form)
     { name: 'Bảo mật', count: 5 },       // Tab 6 - only 5 fields in form
     { name: 'Hạ tầng', count: 8 },       // Tab 7 - only 8 fields in form
     { name: 'Vận hành', count: 5 },      // Tab 8 - only 5 fields in form
@@ -275,32 +270,31 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
   }
 
   const headers = [
-    // Basic Info (16 cols) - removed: Form Level
+    // Basic Info (15 cols) - removed: Form Level, Phiên bản (not in form)
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'Tên tiếng Anh', 'Đơn vị',
     'Nhóm hệ thống', 'Trạng thái', 'Mức độ quan trọng', 'Mức bảo mật',
     'Phạm vi', 'Loại yêu cầu', 'Mục đích', 'Đã đưa vào sử dụng', 'Ngày vận hành',
-    'Phiên bản', 'Hoàn thành (%)',
+    'Hoàn thành (%)',
     // Business (8 cols) - removed: transactions_per_year, reports_per_year (not in model)
     'Mục tiêu kinh doanh', 'Quy trình nghiệp vụ', 'Loại người dùng',
     'Số người dùng/năm', 'Tổng số tài khoản', 'MAU', 'DAU',
     'Số đơn vị sử dụng',
-    // Architecture (21 cols) - removed: monitoring_tool, log_management (not in model)
+    // Architecture (19 cols) - removed: monitoring_tool, log_management (not in model), Database Model, Cloud Provider (not in form)
     'Kiểu kiến trúc', 'Mô tả kiến trúc phân tầng', 'Backend Tech', 'Frontend Tech', 'Mobile App',
     'Ngôn ngữ lập trình', 'Framework', 'Database', 'Database khác',
-    'Database Model', 'Hosting', 'Cloud Provider', 'Container',
-    'API Style', 'Message Queue', 'Cache', 'Search Engine',
+    'Hosting', 'Container', 'API Style', 'Message Queue', 'Cache', 'Search Engine',
     'BI/Reporting Tool', 'Source Repository', 'CI/CD Tool',
     'Công cụ test tự động',
-    // Data (18 cols)
+    // Data (17 cols) - removed: Số API endpoints (not in form)
     'Nguồn dữ liệu', 'Phân loại dữ liệu', 'Khối lượng dữ liệu',
     'Storage (GB)', 'File Storage (GB)', 'Loại lưu trữ file', 'Tăng trưởng (%/năm)',
     'Loại dữ liệu', 'Secondary DBs', 'Số bản ghi',
     'Có Data Catalog', 'Ghi chú Data Catalog', 'Có MDM', 'Ghi chú MDM', 'Có dữ liệu cá nhân',
-    'Có dữ liệu nhạy cảm', 'Có API', 'Số API endpoints',
-    // Integration (13 cols) - removed: esb_integration_platform, data_exchange_format (not in model)
+    'Có dữ liệu nhạy cảm', 'Có API',
+    // Integration (12 cols) - removed: esb_integration_platform, data_exchange_format (not in model), Loại tích hợp (not in form)
     'HT nội bộ tích hợp', 'HT bên ngoài tích hợp', 'Phương thức trao đổi',
     'Số API cung cấp', 'Số API sử dụng', 'Có tích hợp', 'Số kết nối',
-    'Loại tích hợp', 'API Standard', 'API Gateway', 'Rate Limiting',
+    'API Standard', 'API Gateway', 'Rate Limiting',
     'Tài liệu API', 'Data Exchange Method',
     // Security (5 cols) - only fields in frontend SystemCreate form Tab 6
     'Phương thức xác thực', 'Có mã hóa', 'Có Audit Log', 'Mức bảo mật', 'Có tài liệu ATTT',
@@ -339,7 +333,7 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
     // REMOVED: infra, cost, vendor - no longer used (fields not in frontend form)
 
     return escapeRow([
-      // Basic Info
+      // Basic Info (15 cols) - removed: Phiên bản (not in form)
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
@@ -355,18 +349,18 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
       // is_go_live: null/undefined defaults to true (matches frontend behavior and model default)
       (sys as any).is_go_live === false ? 'Không' : 'Có',
       formatDate(sys.go_live_date),
-      sys.current_version || '',
+      // REMOVED: sys.current_version (not in form)
       sys.completion_percentage ? `${sys.completion_percentage.toFixed(1)}%` : '',
-      // Business (removed: transactions_per_year, reports_per_year - not in model)
+      // Business (8 cols) - FIXED: user_types not target_users, annual_users not users_total
       formatArray((sys as any).business_objectives, BUSINESS_OBJECTIVES_LABELS),
       (sys as any).business_processes || '',
-      formatArray(sys.target_users, TARGET_USERS_LABELS),
-      formatNumber(sys.users_total),
+      formatArray((sys as any).user_types, TARGET_USERS_LABELS),  // FIXED: was sys.target_users
+      formatNumber((sys as any).annual_users),  // FIXED: was sys.users_total
       formatNumber((sys as any).total_accounts),
       formatNumber(sys.users_mau),
       formatNumber(sys.users_dau),
       formatNumber(sys.num_organizations),
-      // Architecture
+      // Architecture (19 cols) - removed: Database Model, Cloud Provider (not in form)
       formatArray((arch as any).architecture_type) || getLabel(ARCH_TYPE_LABELS, arch.architecture_type),  // CommaSeparatedListField
       arch.layered_architecture_details || (sys as any).layered_architecture_details || '',
       formatArray((arch as any).backend_tech) || '',  // CommaSeparatedListField returns array
@@ -378,9 +372,9 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
       formatArray((sys as any).framework),  // CommaSeparatedListField returns array
       arch.database_type || (sys as any).database_name || '',
       formatArray((data as any).secondary_databases),  // JSONField returns array
-      getLabel(DB_MODEL_LABELS, arch.database_model),
+      // REMOVED: database_model (not in form)
       getLabel(HOSTING_PLATFORM_LABELS, arch.hosting_type || (sys as any).hosting_platform),
-      arch.cloud_provider || '',
+      // REMOVED: arch.cloud_provider (not in form)
       formatArray((arch as any).containerization),  // CommaSeparatedListField returns array
       formatArray((arch as any).api_style),  // CommaSeparatedListField returns array
       formatArray((arch as any).messaging_queue),  // CommaSeparatedListField returns array
@@ -389,11 +383,10 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
       (arch as any).reporting_bi_tool || '',  // FlexibleChoiceField returns string
       (arch as any).source_repository || '',  // FlexibleChoiceField returns string
       (arch as any).cicd_tool || '',
-      // Removed: monitoring_tool, log_management (not in model)
-      formatArray((arch as any).automated_testing_tools) || '',  // May be array
-      // Data
+      formatArray((arch as any).automated_testing_tools) || '',  // May be array (correctly empty - in form but no data)
+      // Data (17 cols) - FIXED: data_classification_type, removed: api_endpoints_count (not in form)
       formatArray((sys as any).data_sources),  // Fixed: was data_source (singular), data_sources is JSONField
-      getLabel(DATA_CLASS_LABELS, data.data_classification),
+      formatArray((sys as any).data_classification_type, DATA_CLASS_LABELS),  // FIXED: was data.data_classification
       (sys as any).data_volume || '',
       formatNumber(data.storage_size_gb),
       formatNumber((data as any).file_storage_size_gb),  // Fixed: was file_storage_gb on sys
@@ -409,21 +402,20 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
       formatBoolean(data.has_personal_data),
       formatBoolean(data.has_sensitive_data),
       formatBoolean(data.has_api),
-      formatNumber(data.api_endpoints_count),
-      // Integration
-      intg.connected_internal_systems || (sys as any).internal_systems_connected || '',
-      intg.connected_external_systems || (sys as any).external_systems_connected || '',
+      // REMOVED: formatNumber(data.api_endpoints_count), (not in form)
+      // Integration (12 cols) - FIXED: integrated_internal/external_systems, removed: integration_types (not in form)
+      formatArray((sys as any).integrated_internal_systems),  // FIXED: was intg.connected_internal_systems
+      formatArray((sys as any).integrated_external_systems),  // FIXED: was intg.connected_external_systems
       (sys as any).data_exchange_method || '',
       formatNumber((sys as any).api_provided_count),
       formatNumber((sys as any).api_consumed_count),
       formatBoolean(intg.has_integration),
       formatNumber(intg.integration_count),
-      formatArray(intg.integration_types),
+      // REMOVED: formatArray(intg.integration_types), (not in form)
       intg.api_standard || (sys as any).api_standard || '',
       (intg as any).api_gateway_name || '',  // Fixed: was api_gateway on sys, field is api_gateway_name in integration
       formatBoolean((intg as any).has_rate_limiting),  // Fixed: field is in integration model
       (intg as any).api_documentation ? 'Có' : 'Không',  // Fixed: api_documentation is TEXT, not boolean has_api_documentation
-      // Removed: esb_integration_platform, data_exchange_format (not in model)
       (sys as any).data_exchange_method || '',
       // Security (5 cols - only fields in frontend form Tab 6)
       sec.auth_method || (sys as any).authentication_method || '',
@@ -478,12 +470,12 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
  * Sheet 1: Cơ bản (Basic Info)
  */
 function generateBasicSheet(systems: SystemDetail[]): any[][] {
-  // Removed: Form Level
+  // Removed: Form Level, Phiên bản (not in form)
   const headers = [
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'Tên tiếng Anh', 'Đơn vị',
     'Nhóm hệ thống', 'Trạng thái', 'Mức độ quan trọng', 'Mức bảo mật',
     'Phạm vi', 'Loại yêu cầu', 'Mục đích', 'Đã đưa vào sử dụng', 'Ngày vận hành',
-    'Phiên bản', 'Hoàn thành (%)'
+    'Hoàn thành (%)'
   ];
 
   const rows = systems.map((sys, idx) => escapeRow([
@@ -502,7 +494,7 @@ function generateBasicSheet(systems: SystemDetail[]): any[][] {
     // is_go_live: null/undefined defaults to true (matches frontend behavior and model default)
     (sys as any).is_go_live === false ? 'Không' : 'Có',
     formatDate(sys.go_live_date),
-    sys.current_version || '',
+    // REMOVED: sys.current_version (not in form)
     sys.completion_percentage ? `${sys.completion_percentage.toFixed(1)}%` : '',
   ]));
 
@@ -526,8 +518,8 @@ function generateBusinessSheet(systems: SystemDetail[]): any[][] {
     sys.system_name || '',
     formatArray((sys as any).business_objectives, BUSINESS_OBJECTIVES_LABELS),
     (sys as any).business_processes || '',
-    formatArray(sys.target_users, TARGET_USERS_LABELS),
-    formatNumber(sys.users_total),
+    formatArray((sys as any).user_types, TARGET_USERS_LABELS),  // FIXED: was sys.target_users
+    formatNumber((sys as any).annual_users),  // FIXED: was sys.users_total
     formatNumber((sys as any).total_accounts),
     formatNumber(sys.users_mau),
     formatNumber(sys.users_dau),
@@ -542,14 +534,13 @@ function generateBusinessSheet(systems: SystemDetail[]): any[][] {
  * Note: Frontend tab name is "Công nghệ", not "Kiến trúc"
  */
 function generateArchitectureSheet(systems: SystemDetail[]): any[][] {
-  // Removed: monitoring_tool, log_management (not in model)
+  // Removed: monitoring_tool, log_management (not in model), Database Model, Cloud Provider (not in form)
   const headers = [
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'Kiểu kiến trúc',
     'Backend Tech', 'Frontend Tech', 'Mobile App', 'Ngôn ngữ lập trình',
-    'Framework', 'Database', 'Database khác', 'Database Model',
-    'Hosting', 'Cloud Provider', 'Container', 'API Style',
-    'Message Queue', 'Cache', 'Search Engine', 'BI/Reporting Tool',
-    'Source Repository', 'CI/CD Tool'
+    'Framework', 'Database', 'Database khác', 'Hosting', 'Container',
+    'API Style', 'Message Queue', 'Cache', 'Search Engine',
+    'BI/Reporting Tool', 'Source Repository', 'CI/CD Tool'
   ];
 
   const rows = systems.map((sys, idx) => {
@@ -569,9 +560,9 @@ function generateArchitectureSheet(systems: SystemDetail[]): any[][] {
       formatArray((sys as any).framework),  // CommaSeparatedListField returns array
       arch.database_type || (sys as any).database_name || '',
       formatArray((data as any).secondary_databases),  // JSONField returns array
-      getLabel(DB_MODEL_LABELS, arch.database_model),
+      // REMOVED: database_model (not in form)
       getLabel(HOSTING_PLATFORM_LABELS, arch.hosting_type || (sys as any).hosting_platform),
-      arch.cloud_provider || '',
+      // REMOVED: arch.cloud_provider (not in form)
       formatArray((arch as any).containerization),  // CommaSeparatedListField returns array
       formatArray((arch as any).api_style),  // CommaSeparatedListField returns array
       formatArray((arch as any).messaging_queue),  // CommaSeparatedListField returns array
@@ -590,12 +581,13 @@ function generateArchitectureSheet(systems: SystemDetail[]): any[][] {
  * Sheet 4: Dữ liệu (Data Info)
  */
 function generateDataSheet(systems: SystemDetail[]): any[][] {
+  // Removed: Số API endpoints (not in form)
   const headers = [
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'Nguồn dữ liệu',
     'Phân loại dữ liệu', 'Khối lượng dữ liệu', 'Storage (GB)',
     'File Storage (GB)', 'Tăng trưởng (%/năm)', 'Loại dữ liệu',
     'Secondary DBs', 'Số bản ghi', 'Có Data Catalog', 'Có MDM',
-    'Có dữ liệu cá nhân', 'Có dữ liệu nhạy cảm', 'Có API', 'Số API endpoints'
+    'Có dữ liệu cá nhân', 'Có dữ liệu nhạy cảm', 'Có API'
   ];
 
   const rows = systems.map((sys, idx) => {
@@ -605,7 +597,7 @@ function generateDataSheet(systems: SystemDetail[]): any[][] {
       sys.system_code || '',
       sys.system_name || '',
       formatArray((sys as any).data_sources),  // Fixed: was data_source (singular), data_sources is JSONField
-      getLabel(DATA_CLASS_LABELS, data.data_classification),
+      formatArray((sys as any).data_classification_type, DATA_CLASS_LABELS),  // FIXED: was data.data_classification
       (sys as any).data_volume || '',
       formatNumber(data.storage_size_gb),
       formatNumber((data as any).file_storage_size_gb),  // Fixed: was file_storage_gb on sys
@@ -618,7 +610,7 @@ function generateDataSheet(systems: SystemDetail[]): any[][] {
       formatBoolean(data.has_personal_data),
       formatBoolean(data.has_sensitive_data),
       formatBoolean(data.has_api),
-      formatNumber(data.api_endpoints_count),
+      // REMOVED: formatNumber(data.api_endpoints_count), (not in form)
     ]);
   });
 
@@ -629,11 +621,11 @@ function generateDataSheet(systems: SystemDetail[]): any[][] {
  * Sheet 5: Tích hợp (Integration)
  */
 function generateIntegrationSheet(systems: SystemDetail[]): any[][] {
-  // Removed: esb_integration_platform, data_exchange_format (not in model)
+  // Removed: esb_integration_platform, data_exchange_format (not in model), Loại tích hợp (not in form)
   const headers = [
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'HT nội bộ tích hợp',
     'HT bên ngoài tích hợp', 'Phương thức trao đổi', 'Số API cung cấp',
-    'Số API sử dụng', 'Có tích hợp', 'Số kết nối', 'Loại tích hợp',
+    'Số API sử dụng', 'Có tích hợp', 'Số kết nối',
     'API Standard', 'API Gateway', 'Rate Limiting', 'Tài liệu API',
     'Data Exchange Method'
   ];
@@ -644,14 +636,14 @@ function generateIntegrationSheet(systems: SystemDetail[]): any[][] {
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
-      intg.connected_internal_systems || (sys as any).internal_systems_connected || '',
-      intg.connected_external_systems || (sys as any).external_systems_connected || '',
+      formatArray((sys as any).integrated_internal_systems),  // FIXED: was intg.connected_internal_systems
+      formatArray((sys as any).integrated_external_systems),  // FIXED: was intg.connected_external_systems
       (sys as any).data_exchange_method || '',
       formatNumber((sys as any).api_provided_count),
       formatNumber((sys as any).api_consumed_count),
       formatBoolean(intg.has_integration),
       formatNumber(intg.integration_count),
-      formatArray(intg.integration_types),
+      // REMOVED: formatArray(intg.integration_types), (not in form)
       intg.api_standard || (sys as any).api_standard || '',
       (intg as any).api_gateway_name || '',  // Fixed: was api_gateway on sys, field is api_gateway_name in integration
       formatBoolean((intg as any).has_rate_limiting),  // Fixed: field is in integration model
@@ -792,16 +784,16 @@ export async function exportSystemsDetailToExcel(systems: SystemDetail[]): Promi
     fixFormulaLikeCells(sheetFull);
     // Set column widths for Full sheet (approximate widths for each section)
     const fullColumnWidths = [
-      // Basic Info (16 cols)
-      5, 15, 35, 35, 25, 15, 15, 18, 12, 15, 15, 40, 10, 12, 10, 12,
+      // Basic Info (15 cols) - removed: Phiên bản
+      5, 15, 35, 35, 25, 15, 15, 18, 12, 15, 15, 40, 10, 12, 12,
       // Business (8 cols)
       30, 30, 25, 12, 12, 10, 10, 12,
-      // Architecture (21 cols)
-      15, 30, 20, 20, 12, 15, 15, 15, 15, 12, 15, 15, 12, 12, 12, 12, 12, 15, 15, 12, 20,
-      // Data (18 cols)
-      20, 15, 15, 10, 12, 15, 12, 20, 15, 12, 10, 25, 10, 25, 12, 12, 8, 10,
-      // Integration (13 cols)
-      25, 25, 15, 10, 10, 10, 10, 20, 12, 12, 10, 12, 20,
+      // Architecture (19 cols) - removed: Database Model, Cloud Provider
+      15, 30, 20, 20, 12, 15, 15, 15, 15, 15, 12, 12, 12, 12, 12, 15, 15, 12, 20,
+      // Data (17 cols) - removed: Số API endpoints
+      20, 15, 15, 10, 12, 15, 12, 20, 15, 12, 10, 25, 10, 25, 12, 12, 8,
+      // Integration (12 cols) - removed: Loại tích hợp
+      25, 25, 15, 10, 10, 10, 10, 12, 12, 10, 12, 20,
       // Security (5 cols) - only fields in frontend form
       20, 10, 10, 15, 15,
       // Infrastructure (8 cols) - only fields in frontend form
@@ -816,10 +808,10 @@ export async function exportSystemsDetailToExcel(systems: SystemDetail[]): Promi
     setColumnWidths(sheetFull, fullColumnWidths);
     XLSX.utils.book_append_sheet(wb, sheetFull, 'Full');
 
-    // Sheet 1: Cơ bản
+    // Sheet 1: Cơ bản (15 cols - removed Phiên bản)
     const sheet1 = XLSX.utils.aoa_to_sheet(generateBasicSheet(systems));
     fixFormulaLikeCells(sheet1);
-    setColumnWidths(sheet1, [5, 15, 35, 35, 25, 15, 15, 18, 12, 15, 15, 40, 12, 10, 12, 8]);
+    setColumnWidths(sheet1, [5, 15, 35, 35, 25, 15, 15, 18, 12, 15, 15, 40, 12, 10, 12]);
     XLSX.utils.book_append_sheet(wb, sheet1, '1. Cơ bản');
 
     // Sheet 2: Nghiệp vụ
@@ -828,22 +820,22 @@ export async function exportSystemsDetailToExcel(systems: SystemDetail[]): Promi
     setColumnWidths(sheet2, [5, 15, 30, 40, 40, 25, 15, 15, 12, 12, 15, 15, 15]);
     XLSX.utils.book_append_sheet(wb, sheet2, '2. Nghiệp vụ');
 
-    // Sheet 3: Công nghệ
+    // Sheet 3: Công nghệ (20 cols - removed Database Model, Cloud Provider)
     const sheet3 = XLSX.utils.aoa_to_sheet(generateArchitectureSheet(systems));
     fixFormulaLikeCells(sheet3);
-    setColumnWidths(sheet3, [5, 15, 30, 15, 20, 20, 12, 20, 20, 20, 20, 15, 15, 15, 12, 12, 15, 12, 15, 18, 18, 15, 15, 15]);
+    setColumnWidths(sheet3, [5, 15, 30, 15, 20, 20, 12, 20, 20, 20, 20, 15, 12, 12, 15, 12, 15, 18, 18, 15]);
     XLSX.utils.book_append_sheet(wb, sheet3, '3. Công nghệ');
 
-    // Sheet 4: Dữ liệu
+    // Sheet 4: Dữ liệu (17 cols - removed Số API endpoints)
     const sheet4 = XLSX.utils.aoa_to_sheet(generateDataSheet(systems));
     fixFormulaLikeCells(sheet4);
-    setColumnWidths(sheet4, [5, 15, 30, 30, 20, 15, 12, 15, 15, 25, 25, 15, 12, 12, 15, 15, 10, 12]);
+    setColumnWidths(sheet4, [5, 15, 30, 30, 20, 15, 12, 15, 15, 25, 25, 15, 12, 12, 15, 15, 10]);
     XLSX.utils.book_append_sheet(wb, sheet4, '4. Dữ liệu');
 
-    // Sheet 5: Tích hợp
+    // Sheet 5: Tích hợp (15 cols - removed Loại tích hợp)
     const sheet5 = XLSX.utils.aoa_to_sheet(generateIntegrationSheet(systems));
     fixFormulaLikeCells(sheet5);
-    setColumnWidths(sheet5, [5, 15, 30, 35, 35, 20, 12, 12, 10, 12, 25, 15, 15, 12, 12, 20, 18, 18]);
+    setColumnWidths(sheet5, [5, 15, 30, 35, 35, 20, 12, 12, 10, 12, 15, 15, 12, 12, 20]);
     XLSX.utils.book_append_sheet(wb, sheet5, '5. Tích hợp');
 
     // Sheet 6: Bảo mật (only fields from frontend form)

@@ -290,6 +290,7 @@ class SystemDetailSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     criticality_display = serializers.CharField(source='get_criticality_level_display', read_only=True)
     scope_display = serializers.CharField(source='get_scope_display', read_only=True)
+    completion_percentage = serializers.SerializerMethodField()
 
     # Fix: Convert comma-separated string to array for frontend
     programming_language = CommaSeparatedListField(required=False)
@@ -319,6 +320,11 @@ class SystemDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = System
         fields = '__all__'
+
+    def get_completion_percentage(self, obj):
+        """Calculate completion percentage for the system"""
+        from .utils import calculate_system_completion_percentage
+        return calculate_system_completion_percentage(obj)
 
     def to_representation(self, instance):
         """Customize representation based on form_level"""

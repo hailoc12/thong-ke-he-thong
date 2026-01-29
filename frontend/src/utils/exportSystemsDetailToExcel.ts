@@ -151,11 +151,21 @@ const TARGET_USERS_LABELS: Record<string, string> = {
 };
 
 // ===== HELPER FUNCTIONS =====
+/**
+ * Format boolean value to Vietnamese Yes/No
+ * - true → "Có"
+ * - false → "Không"
+ * - undefined/null → "Không" (since model defaults are false)
+ *
+ * Note: If you want to distinguish "not set" from "false", use formatBooleanAllowEmpty()
+ */
 function formatBoolean(value: boolean | undefined | null): string {
   if (value === true) return 'Có';
-  if (value === false) return 'Không';
-  return '';
+  // For false, undefined, null - return "Không"
+  // This is because model defaults are typically false
+  return 'Không';
 }
+
 
 function formatArray(value: string[] | undefined | null, labelMap?: Record<string, string>): string {
   if (!value || !Array.isArray(value)) return '';

@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from rest_framework.renderers import BaseRenderer
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count, Sum, Avg
 from django.db.models.functions import Coalesce
@@ -23,6 +24,17 @@ from .serializers import (
     AttachmentSerializer,
 )
 from .utils import calculate_system_completion_percentage
+
+
+class EventStreamRenderer(BaseRenderer):
+    """Custom renderer for Server-Sent Events (SSE)."""
+    media_type = 'text/event-stream'
+    format = 'txt'
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        if isinstance(data, bytes):
+            return data
+        return str(data).encode('utf-8')
 
 
 class SystemViewSet(viewsets.ModelViewSet):
@@ -1812,11 +1824,14 @@ Trả về JSON với SQL đã sửa."""
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], renderer_classes=[EventStreamRenderer])
     def ai_query_stream(self, request):
         """
         SSE Streaming endpoint for real-time AI progress.
         Streams events for each phase of AI processing.
+
+        Authentication: Pass JWT token via 'token' query parameter
+        (EventSource doesn't support custom headers).
 
         Events:
         - phase_start: When a phase begins
@@ -1824,7 +1839,32 @@ Trả về JSON với SQL đã sửa."""
         - error: When an error occurs
         - complete: Final result with all data
         """
-        user = request.user
+        # Manual authentication from query param (EventSource limitation)
+        from rest_framework_simplejwt.tokens import AccessToken
+        from rest_framework.exceptions import AuthenticationFailed
+
+        token_param = request.query_params.get('token')
+        if not token_param:
+            def error_stream():
+                yield f"event: error\ndata: {json.dumps({'error': 'Token required'})}\n\n"
+            response = StreamingHttpResponse(error_stream(), content_type='text/event-stream')
+            response['Cache-Control'] = 'no-cache'
+            response['X-Accel-Buffering'] = 'no'
+            return response
+
+        try:
+            access_token = AccessToken(token_param)
+            from apps.accounts.models import User
+            user_id = access_token.payload.get('user_id')
+            user = User.objects.get(id=user_id)
+        except Exception as e:
+            logger.warning(f"SSE authentication failed: {e}")
+            def error_stream():
+                yield f"event: error\ndata: {json.dumps({'error': 'Invalid token'})}\n\n"
+            response = StreamingHttpResponse(error_stream(), content_type='text/event-stream')
+            response['Cache-Control'] = 'no-cache'
+            response['X-Accel-Buffering'] = 'no'
+            return response
         if user.role != 'lanhdaobo':
             def error_stream():
                 yield f"event: error\ndata: {json.dumps({'error': 'Chỉ Lãnh đạo Bộ mới có quyền sử dụng AI Assistant'})}\n\n"

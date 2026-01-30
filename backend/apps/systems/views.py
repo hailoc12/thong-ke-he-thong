@@ -1960,7 +1960,13 @@ Trả về JSON với SQL đã sửa."""
             # Schema context (abbreviated for SSE)
             schema_context = """Database Schema:
 - organizations: id, name, organization_type, code
-- systems: id, system_name, status, criticality_level, org_id, hosting_platform, has_encryption, is_deleted
+- systems: id, system_name, status, criticality_level, org_id, hosting_platform, has_encryption, is_deleted,
+  storage_capacity, data_volume, server_configuration, backup_plan, disaster_recovery_plan,
+  programming_language, framework, database_name,
+  users_total, users_mau, users_dau, total_accounts,
+  api_provided_count, api_consumed_count,
+  authentication_method, compliance_standards_list,
+  business_owner, technical_owner, go_live_date
 - system_architecture: system_id, architecture_type, scalability_level
 - system_assessment: system_id, performance_rating, recommendation
 - system_data_info: system_id, data_classification

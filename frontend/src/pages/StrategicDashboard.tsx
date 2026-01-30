@@ -622,7 +622,8 @@ const StrategicDashboard = () => {
       }
       setAiQueryLoading(false);
       setAiProcessingPhase('idle');
-      setAiProgressTasks([]);
+      // Don't clear progress tasks - keep them visible after completion
+      // Tasks will be cleared when starting a new query
       eventSource.close();
     });
 
@@ -780,6 +781,31 @@ const StrategicDashboard = () => {
   };
 
   const escapeRow = (row: any[]): any[] => row.map(escapeExcelValue);
+
+  // Vietnamese unit labels mapping for AI data display
+  const getVietnameseUnit = (dataType: string): string => {
+    const unitMap: Record<string, string> = {
+      'total_systems': 'Hệ thống',
+      'system_count': 'Hệ thống',
+      'systems': 'Hệ thống',
+      'total_organizations': 'Đơn vị',
+      'organization_count': 'Đơn vị',
+      'orgs': 'Đơn vị',
+      'api_count': 'API',
+      'total_apis': 'API',
+      'apis': 'API',
+      'investment_cost': 'Tỷ VNĐ',
+      'cost': 'VNĐ',
+      'storage_size': 'GB',
+      'db_size': 'GB',
+      'health_score': 'Điểm',
+      'score': 'Điểm',
+      'percentage': '%',
+      'percent': '%',
+      'count': 'Số lượng',
+    };
+    return unitMap[dataType.toLowerCase()] || dataType;
+  };
 
   const handleExportExcel = useCallback(() => {
     if (!stats) {
@@ -1766,7 +1792,7 @@ const StrategicDashboard = () => {
                                         {Object.values(aiQueryResponse.data.rows[0])[0]?.toLocaleString() || '0'}
                                       </Text>
                                       <Text type="secondary" style={{ display: 'block', fontSize: 13, marginTop: 4 }}>
-                                        {aiQueryResponse.response?.chart_config?.unit || aiQueryResponse.data.columns[0]}
+                                        {aiQueryResponse.response?.chart_config?.unit || getVietnameseUnit(aiQueryResponse.data.columns[0])}
                                       </Text>
                                     </div>
                                   )}
@@ -1779,7 +1805,7 @@ const StrategicDashboard = () => {
                                         Chi tiết dữ liệu ({Math.min(aiQueryResponse.data.rows.length, 5)} / {aiQueryResponse.data.total_rows} kết quả)
                                         {aiQueryResponse.response?.chart_config?.unit && (
                                           <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>
-                                            Đơn vị: {aiQueryResponse.response.chart_config.unit}
+                                            Đơn vị: {getVietnameseUnit(aiQueryResponse.response.chart_config.unit)}
                                           </Tag>
                                         )}
                                       </Text>
@@ -1970,7 +1996,7 @@ const StrategicDashboard = () => {
                   )}
 
                   {/* Progressive Loading State - Claude Code Style */}
-                  {aiQueryLoading && aiProcessingPhase !== 'idle' && (
+                  {(aiQueryLoading || (aiQueryResponse && aiProgressTasks.length > 0)) && (
                     <div style={{
                       display: 'flex',
                       gap: 12,
@@ -3261,7 +3287,7 @@ const StrategicDashboard = () => {
                     </Col>
 
                     {/* AI Response - Progressive Loading (Claude Code Style) */}
-                    {aiQueryLoading && aiProcessingPhase !== 'idle' && (
+                    {(aiQueryLoading || (aiQueryResponse && aiProgressTasks.length > 0)) && (
                       <Col xs={24}>
                         <Card
                           size="small"

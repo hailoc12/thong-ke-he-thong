@@ -580,6 +580,19 @@ const StrategicDashboard = () => {
       }
     });
 
+    // Handle progress updates (detailed status messages during processing)
+    eventSource.addEventListener('progress', (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        // Update the description of the current in-progress task
+        setAiProgressTasks(prev => prev.map(t =>
+          t.status === 'in_progress' ? { ...t, name: data.message || t.name } : t
+        ));
+      } catch (err) {
+        console.error('Error parsing progress:', err);
+      }
+    });
+
     eventSource.addEventListener('complete', (e: MessageEvent) => {
       try {
         const data = JSON.parse(e.data);

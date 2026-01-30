@@ -1975,7 +1975,14 @@ Phân tích câu hỏi và tạo SQL query. Trả về JSON:
 CHỈ trả về JSON."""
 
             try:
+                # Progress: Calling AI
+                yield f"event: progress\ndata: {json.dumps({'message': 'Đang gọi AI tạo truy vấn SQL...'})}\n\n"
+
                 phase1_content = call_ai_internal(phase1_prompt, [{'role': 'user', 'content': query}])
+
+                # Progress: Processing response
+                yield f"event: progress\ndata: {json.dumps({'message': 'Đang xử lý kết quả AI...'})}\n\n"
+
                 json_match = re.search(r'\{[\s\S]*\}', phase1_content)
                 if json_match:
                     phase1_data = json.loads(json_match.group())
@@ -2045,7 +2052,14 @@ CHỈ trả về JSON."""
 CHỈ trả về JSON."""
 
             try:
+                # Progress: Calling AI
+                yield f"event: progress\ndata: {json.dumps({'message': 'Đang gọi AI tạo báo cáo...'})}\n\n"
+
                 phase2_content = call_ai_internal(phase2_prompt, [{'role': 'user', 'content': 'Generate response'}])
+
+                # Progress: Processing response
+                yield f"event: progress\ndata: {json.dumps({'message': 'Đang hoàn thiện báo cáo...'})}\n\n"
+
                 json_match2 = re.search(r'\{[\s\S]*\}', phase2_content)
                 if json_match2:
                     phase2_data = json.loads(json_match2.group())

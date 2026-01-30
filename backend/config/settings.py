@@ -230,3 +230,7 @@ LOGGING = {
         },
     },
 }
+
+# AI API Keys
+OPENAI_API_KEY = env('OPENAI_API_KEY', default=None)
+ANTHROPIC_API_KEY = env('ANTHROPIC_API_KEY', default=None)

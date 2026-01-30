@@ -1824,7 +1824,7 @@ Trả về JSON với SQL đã sửa."""
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=False, methods=['get'], renderer_classes=[EventStreamRenderer])
+    @action(detail=False, methods=['get'], renderer_classes=[EventStreamRenderer], authentication_classes=[], permission_classes=[])
     def ai_query_stream(self, request):
         """
         SSE Streaming endpoint for real-time AI progress.

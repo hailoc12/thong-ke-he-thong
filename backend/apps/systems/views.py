@@ -1426,28 +1426,22 @@ GROUP BY o.id, o.name;
                 )
                 return response.content[0].text
             else:
-                # OpenAI API via requests - using GPT-5.2 with reasoning
-                # Use 'developer' role instead of 'system' for GPT-5.2
-                openai_messages = [{'role': 'developer', 'content': system_prompt}]
-                for msg in conversation_messages:
-                    openai_messages.append({'role': msg['role'], 'content': msg['content']})
+                # OpenAI API - using GPT-5 with reasoning via Responses API
+                import openai as openai_sdk
+                openai_client = openai_sdk.OpenAI(api_key=api_key)
 
-                response = requests.post(
-                    'https://api.openai.com/v1/chat/completions',
-                    headers={
-                        'Authorization': f'Bearer {api_key}',
-                        'Content-Type': 'application/json',
-                    },
-                    json={
-                        'model': 'gpt-5.2',  # GPT-5.2 with reasoning capability
-                        'messages': openai_messages,
-                        'reasoning_effort': 'medium',  # Enable reasoning for SQL generation
-                        'max_completion_tokens': 3000,
-                    },
-                    timeout=90  # Longer timeout for reasoning
+                # Build input array with 'developer' role for system prompt
+                input_array = [{'role': 'developer', 'content': system_prompt}]
+                for msg in conversation_messages:
+                    input_array.append({'role': msg['role'], 'content': msg['content']})
+
+                response = openai_client.responses.create(
+                    model='gpt-5',
+                    reasoning={'effort': 'medium'},
+                    input=input_array,
+                    max_output_tokens=3000,
                 )
-                response.raise_for_status()
-                return response.json()['choices'][0]['message']['content']
+                return response.output_text
 
         # User-friendly error message in Vietnamese
         FRIENDLY_ERROR_MESSAGE = (
@@ -1900,26 +1894,22 @@ Trả về JSON với SQL đã sửa."""
             # Helper function to call AI
             def call_ai_internal(system_prompt, messages):
                 if use_openai:
-                    response = requests.post(
-                        'https://api.openai.com/v1/chat/completions',
-                        headers={
-                            'Authorization': f'Bearer {OPENAI_API_KEY}',
-                            'Content-Type': 'application/json'
-                        },
-                        json={
-                            'model': 'gpt-5.2',
-                            'reasoning': {'effort': 'medium'},
-                            'messages': [
-                                {'role': 'system', 'content': system_prompt},
-                                *messages
-                            ],
-                            'max_completion_tokens': 16000,
-                            'temperature': 1
-                        },
-                        timeout=120
+                    # Use OpenAI Responses API for reasoning models (GPT-5 series)
+                    # https://platform.openai.com/docs/guides/reasoning
+                    import openai
+                    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+                    # Build input array with system prompt and user messages
+                    input_array = [{'role': 'developer', 'content': system_prompt}]
+                    input_array.extend(messages)
+
+                    response = client.responses.create(
+                        model='gpt-5',
+                        reasoning={'effort': 'medium'},
+                        input=input_array,
+                        max_output_tokens=16000,
                     )
-                    response.raise_for_status()
-                    return response.json()['choices'][0]['message']['content']
+                    return response.output_text
                 elif use_claude:
                     import anthropic
                     client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)

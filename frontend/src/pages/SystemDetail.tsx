@@ -707,13 +707,13 @@ const SystemDetail = () => {
             {renderBooleanField(integ.has_integration_monitoring)}
           </Descriptions.Item>
           <Descriptions.Item label="Hệ thống nội bộ tích hợp" span={2}>
-            {renderArrayField(integ.integrated_internal_systems, 'Không có')}
+            {renderArrayField(system.integrated_internal_systems, 'Không có')}
           </Descriptions.Item>
           <Descriptions.Item label="Hệ thống bên ngoài tích hợp" span={2}>
-            {renderArrayField(integ.integrated_external_systems, 'Không có')}
+            {renderArrayField(system.integrated_external_systems, 'Không có')}
           </Descriptions.Item>
           <Descriptions.Item label="API/Webservices" span={2}>
-            {renderArrayField(integ.api_list, 'Chưa có API')}
+            {renderArrayField(system.api_list || integ.api_list, 'Chưa có API')}
           </Descriptions.Item>
           <Descriptions.Item label="Phương thức trao đổi dữ liệu" span={2}>
             {renderArrayField(system.data_exchange_method || integ.data_exchange_method, 'Chưa xác định')}

@@ -50,8 +50,11 @@ yarn-error.log*
 
 # Playwright
 .playwright-mcp/
+
+# Credentials (security sensitive)
+.credentials
 07-resources/deploy-credentials.md
-ADMIN_CREDENTIALS.md
+13-quality-solution/docs/ADMIN_CREDENTIALS.md
 
 # Environment files
 frontend/.env.production

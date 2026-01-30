@@ -371,7 +371,7 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
         ? 'Có' : 'Không có',
       formatArray((sys as any).programming_language),  // CommaSeparatedListField returns array
       formatArray((sys as any).framework),  // CommaSeparatedListField returns array
-      arch.database_type || (sys as any).database_name || '',
+      (arch as any).database_name || (sys as any).database_name || '',  // FIXED: was arch.database_type, should be arch.database_name
       formatArray((data as any).secondary_databases),  // JSONField returns array
       // REMOVED: database_model (not in form)
       getLabel(HOSTING_PLATFORM_LABELS, arch.hosting_type || (sys as any).hosting_platform),
@@ -408,8 +408,8 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
       formatArray((sys as any).integrated_internal_systems),  // FIXED: was intg.connected_internal_systems
       formatArray((sys as any).integrated_external_systems),  // FIXED: was intg.connected_external_systems
       (sys as any).data_exchange_method || '',
-      formatNumber((sys as any).api_provided_count),
-      formatNumber((sys as any).api_consumed_count),
+      formatNumber((intg as any).api_provided_count),  // FIXED: read from integration table, not system level
+      formatNumber((intg as any).api_consumed_count),  // FIXED: read from integration table, not system level
       formatBoolean(intg.has_integration),
       formatNumber(intg.integration_count),
       // REMOVED: formatArray(intg.integration_types), (not in form)
@@ -560,7 +560,7 @@ function generateArchitectureSheet(systems: SystemDetail[]): any[][] {
         ? 'Có' : 'Không có',
       formatArray((sys as any).programming_language),  // CommaSeparatedListField returns array
       formatArray((sys as any).framework),  // CommaSeparatedListField returns array
-      arch.database_type || (sys as any).database_name || '',
+      (arch as any).database_name || (sys as any).database_name || '',  // FIXED: was arch.database_type, should be arch.database_name
       formatArray((data as any).secondary_databases),  // JSONField returns array
       // REMOVED: database_model (not in form)
       getLabel(HOSTING_PLATFORM_LABELS, arch.hosting_type || (sys as any).hosting_platform),
@@ -641,8 +641,8 @@ function generateIntegrationSheet(systems: SystemDetail[]): any[][] {
       formatArray((sys as any).integrated_internal_systems),  // FIXED: was intg.connected_internal_systems
       formatArray((sys as any).integrated_external_systems),  // FIXED: was intg.connected_external_systems
       (sys as any).data_exchange_method || '',
-      formatNumber((sys as any).api_provided_count),
-      formatNumber((sys as any).api_consumed_count),
+      formatNumber((intg as any).api_provided_count),  // FIXED: read from integration table, not system level
+      formatNumber((intg as any).api_consumed_count),  // FIXED: read from integration table, not system level
       formatBoolean(intg.has_integration),
       formatNumber(intg.integration_count),
       // REMOVED: formatArray(intg.integration_types), (not in form)

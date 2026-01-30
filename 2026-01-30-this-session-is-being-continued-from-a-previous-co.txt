@@ -1,0 +1,1065 @@
+
+ ▐▛███▜▌   Claude Code v2.1.19
+▝▜█████▛▘  Opus 4.5 · Claude Max
+  ▘▘ ▝▝    ~/Dropbox/9. active/consultant/support_b4t/thong_ke_he_thong
+══════════════════ Conversation compacted · ctrl+o for history ═════════════════
+  ⎿  Read docker-compose.yml (68 lines)
+  ⎿  Referenced file backend/apps/systems/views.py
+  ⎿  Read backend/apps/accounts/permissions.py (73 lines)
+  ⎿  Read backend/config/urls.py (44 lines)
+  ⎿  Plan file referenced (~/.claude/plans/graceful-dreaming-rainbow.md)
+  ⎿  Skills restored (ai_humanizer)
+
+⏺ Tôi sẽ tiếp tục implement Task #1: Backend SSE Streaming Endpoint. Trước tiên,
+   để tôi kiểm tra task list và đọc thêm phần code cần thiết.
+5 tasks (0 done, 1 in progress, 4 open)
+
+◼ #1 Backend - SSE Streaming Endpoint
+◼ #2 Backend - Update AI Prompt for Executive Style
+◼ #3 Frontend - SSE Integration
+◼ #4 Frontend - Strategic Response Display
+◼ #5 Frontend - Enhanced Data Modal
+
+⏺ Read(backend/apps/systems/views.py)
+  ⎿  Read 200 lines
+
+⏺ Read(backend/apps/systems/views.py)
+  ⎿  Read 150 lines
+
+⏺ Read(backend/apps/systems/views.py)
+  ⎿  Read 50 lines
+
+⏺ Bây giờ tôi sẽ implement SSE streaming endpoint. Trước tiên cần thêm import
+  StreamingHttpResponse và sau đó thêm endpoint mới sau ai_query action.
+
+⏺ Update(backend/apps/systems/views.py)
+  ⎿  Added 2 lines
+       7  from django.db.models import Q, Count, Sum, Avg                
+       8  from django.db.models.functions import Coalesce                
+       9  from django.conf import settings                               
+      10 +from django.http import StreamingHttpResponse                  
+      11  import json                                                    
+      12  import logging                                                 
+      13 +import time                                                    
+      14                                                                 
+      15  from apps.accounts.permissions import IsOrgUserOrAdmin,        
+          CanManageOrgSystems                                            
+      16  from .models import System, Attachment                         
+
+⏺ Bây giờ tôi sẽ thêm SSE endpoint mới. Tôi sẽ thêm nó trước roadmap_stats
+  action (line 1808).
+
+⏺ Update(backend/apps/systems/views.py)
+  ⎿  Added 260 lines
+      1808              )                                                
+      1809                                                               
+      1810      @action(detail=False, methods=['get'])                   
+      1811 +    def ai_query_stream(self, request):                      
+      1812 +        """                                                  
+      1813 +        SSE Streaming endpoint for real-time AI progress.    
+      1814 +        Streams events for each phase of AI processing.      
+      1815 +                                                             
+      1816 +        Events:                                              
+      1817 +        - phase_start: When a phase begins                   
+      1818 +        - phase_complete: When a phase completes             
+      1819 +        - error: When an error occurs                        
+      1820 +        - complete: Final result with all data               
+      1821 +        """                                                  
+      1822 +        user = request.user                                  
+      1823 +        if user.role != 'lanhdaobo':                         
+      1824 +            def error_stream():                              
+      1825 +                yield f"event: error\ndata:                  
+           +{json.dumps({'error': 'Chỉ Lãnh đạo Bộ mới có quyền sử dụng  
+           +AI Assistant'})}\n\n"                                        
+      1826 +            response = StreamingHttpResponse(error_stream(), 
+           + content_type='text/event-stream')                           
+      1827 +            response['Cache-Control'] = 'no-cache'           
+      1828 +            response['X-Accel-Buffering'] = 'no'             
+      1829 +            return response                                  
+      1830 +                                                             
+      1831 +        query = request.query_params.get('query',            
+           +'').strip()                                                  
+      1832 +        if not query:                                        
+      1833 +            def error_stream():                              
+      1834 +                yield f"event: error\ndata:                  
+           +{json.dumps({'error': 'Vui lòng nhập câu hỏi'})}\n\n"        
+      1835 +            response = StreamingHttpResponse(error_stream(), 
+           + content_type='text/event-stream')                           
+      1836 +            response['Cache-Control'] = 'no-cache'           
+      1837 +            response['X-Accel-Buffering'] = 'no'             
+      1838 +            return response                                  
+      1839 +                                                             
+      1840 +        def event_stream():                                  
+      1841 +            import re                                        
+      1842 +            import requests                                  
+      1843 +                                                             
+      1844 +            # API Configuration                              
+      1845 +            CLAUDE_API_KEY = getattr(settings,               
+           +'CLAUDE_API_KEY', None)                                      
+      1846 +            OPENAI_API_KEY = getattr(settings,               
+           +'OPENAI_API_KEY', None)                                      
+      1847 +                                                             
+      1848 +            use_claude = bool(CLAUDE_API_KEY)                
+      1849 +            use_openai = bool(OPENAI_API_KEY)                
+      1850 +                                                             
+      1851 +            if not use_claude and not use_openai:            
+      1852 +                yield f"event: error\ndata:                  
+           +{json.dumps({'error': 'AI service not configured'})}\n\n"    
+      1853 +                return                                       
+      1854 +                                                             
+      1855 +            # Helper function to call AI                     
+      1856 +            def call_ai_internal(system_prompt, messages):   
+      1857 +                if use_openai:                               
+      1858 +                    response = requests.post(                
+      1859 +                                                             
+           +'https://api.openai.com/v1/chat/completions',                
+      1860 +                        headers={                            
+      1861 +                            'Authorization': f'Bearer        
+           +{OPENAI_API_KEY}',                                           
+      1862 +                            'Content-Type':                  
+           +'application/json'                                           
+      1863 +                        },                                   
+      1864 +                        json={                               
+      1865 +                            'model': 'gpt-5.2',              
+      1866 +                            'reasoning': {'effort':          
+           +'medium'},                                                   
+      1867 +                            'messages': [                    
+      1868 +                                {'role': 'system',           
+           +'content': system_prompt},                                   
+      1869 +                                *messages                    
+      1870 +                            ],                               
+      1871 +                            'max_completion_tokens': 16000,  
+      1872 +                            'temperature': 1                 
+      1873 +                        },                                   
+      1874 +                        timeout=120                          
+      1875 +                    )                                        
+      1876 +                    response.raise_for_status()              
+      1877 +                    return                                   
+           +response.json()['choices'][0]['message']['content']          
+      1878 +                elif use_claude:                             
+      1879 +                    import anthropic                         
+      1880 +                    client =                                 
+           +anthropic.Anthropic(api_key=CLAUDE_API_KEY)                  
+      1881 +                    response = client.messages.create(       
+      1882 +                        model='claude-sonnet-4-20250514',    
+      1883 +                        max_tokens=4096,                     
+      1884 +                        system=system_prompt,                
+      1885 +                        messages=messages                    
+      1886 +                    )                                        
+      1887 +                    return response.content[0].text          
+      1888 +                                                             
+      1889 +            # SQL validation function                        
+      1890 +            def validate_and_execute_sql_internal(sql):      
+      1891 +                from django.db import connection             
+      1892 +                sql_upper = sql.upper().strip()              
+      1893 +                if any(kw in sql_upper for kw in ['DROP',    
+           +'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE',             
+           +'TRUNCATE']):                                                
+      1894 +                    return None, "Only SELECT queries        
+           +allowed"                                                     
+      1895 +                try:                                         
+      1896 +                    with connection.cursor() as cursor:      
+      1897 +                        cursor.execute(sql)                  
+      1898 +                        columns = [col[0] for col in         
+           +cursor.description] if cursor.description else []            
+      1899 +                        rows = cursor.fetchall()             
+      1900 +                        result = {                           
+      1901 +                            'columns': columns,              
+      1902 +                            'rows': [dict(zip(columns, row)) 
+           + for row in rows],                                           
+      1903 +                            'total_rows': len(rows)          
+      1904 +                        }                                    
+      1905 +                        return result, None                  
+      1906 +                except Exception as e:                       
+      1907 +                    return None, str(e)                      
+      1908 +                                                             
+      1909 +            # ====== START STREAMING ======                  
+      1910 +                                                             
+      1911 +            # Phase 1: SQL Generation                        
+      1912 +            yield f"event: phase_start\ndata:                
+           +{json.dumps({'phase': 1, 'name': 'Phân tích yêu cầu',        
+           +'description': 'Đang phân tích câu hỏi và tạo truy vấn       
+           +SQL...'})}\n\n"                                              
+      1913 +                                                             
+      1914 +            # Schema context (abbreviated for SSE)           
+      1915 +            schema_context = """Database Schema:             
+      1916 +- organizations: id, name, organization_type, code           
+      1917 +- systems: id, system_name, status, criticality_level,       
+           +org_id, hosting_platform, has_encryption, is_deleted         
+      1918 +- system_architecture: system_id, architecture_type,         
+           +scalability_level                                            
+      1919 +- system_assessment: system_id, performance_rating,          
+           +recommendation                                               
+      1920 +- system_data_info: system_id, data_classification           
+      1921 +- system_integration: system_id, has_api_gateway,            
+           +integration_level                                            
+      1922 +- system_security: system_id, auth_methods, encryption_type, 
+           + has_security_audit                                          
+      1923 +                                                             
+      1924 +Lưu ý: Dùng is_deleted = false khi query bảng systems"""     
+      1925 +                                                             
+      1926 +            phase1_prompt = f"""Bạn là AI assistant chuyên   
+           +phân tích dữ liệu hệ thống CNTT cho Bộ KH&CN.                
+      1927 +                                                             
+      1928 +{schema_context}                                             
+      1929 +                                                             
+      1930 +Phân tích câu hỏi và tạo SQL query. Trả về JSON:             
+      1931 +{{                                                           
+      1932 +    "thinking": {{"plan": "Kế hoạch phân tích", "tasks":     
+           +["task1", "task2"]}},                                        
+      1933 +    "sql": "SELECT query here",                              
+      1934 +    "chart_type": "bar|pie|line|table|null"                  
+      1935 +}}                                                           
+      1936 +                                                             
+      1937 +CHỈ trả về JSON."""                                          
+      1938 +                                                             
+      1939 +            try:                                             
+      1940 +                phase1_content =                             
+           +call_ai_internal(phase1_prompt, [{'role': 'user', 'content': 
+           + query}])                                                    
+      1941 +                json_match = re.search(r'\{[\s\S]*\}',       
+           +phase1_content)                                              
+      1942 +                if json_match:                               
+      1943 +                    phase1_data =                            
+           +json.loads(json_match.group())                               
+      1944 +                else:                                        
+      1945 +                    phase1_data = {'thinking': {'plan':      
+           +'Direct response'}, 'sql': None}                             
+      1946 +                                                             
+      1947 +                thinking = phase1_data.get('thinking', {})   
+      1948 +                sql_query = phase1_data.get('sql')           
+      1949 +                chart_type = phase1_data.get('chart_type')   
+      1950 +                                                             
+      1951 +                yield f"event: phase_complete\ndata:         
+           +{json.dumps({'phase': 1, 'thinking': thinking, 'sql':        
+           +sql_query})}\n\n"                                            
+      1952 +                                                             
+      1953 +            except Exception as e:                           
+      1954 +                logger.error(f"Phase 1 error: {e}")          
+      1955 +                yield f"event: error\ndata:                  
+           +{json.dumps({'error': 'Lỗi phân tích yêu cầu', 'detail':     
+           +str(e)})}\n\n"                                               
+      1956 +                return                                       
+      1957 +                                                             
+      1958 +            if not sql_query:                                
+      1959 +                yield f"event: complete\ndata:               
+           +{json.dumps({'query': query, 'thinking': thinking,           
+           +'response': {'greeting': 'Báo cáo anh/chị,', 'main_answer':  
+           +'Không thể tạo truy vấn cho yêu cầu này.',                   
+           +'follow_up_suggestions': []}, 'data': None})}\n\n"           
+      1960 +                return                                       
+      1961 +                                                             
+      1962 +            # Execute SQL                                    
+      1963 +            yield f"event: phase_start\ndata:                
+           +{json.dumps({'phase': 2, 'name': 'Truy vấn dữ liệu',         
+           +'description': 'Đang thực thi truy vấn SQL...'})}\n\n"       
+      1964 +                                                             
+      1965 +            query_result, sql_error =                        
+           +validate_and_execute_sql_internal(sql_query)                 
+      1966 +                                                             
+      1967 +            if query_result is None:                         
+      1968 +                yield f"event: error\ndata:                  
+           +{json.dumps({'error': 'Lỗi truy vấn dữ liệu', 'detail':      
+           +sql_error})}\n\n"                                            
+      1969 +                return                                       
+      1970 +                                                             
+      1971 +            yield f"event: phase_complete\ndata:             
+           +{json.dumps({'phase': 2, 'total_rows':                       
+           +query_result.get('total_rows', 0)})}\n\n"                    
+      1972 +                                                             
+      1973 +            # Phase 3: Generate Response                     
+      1974 +            yield f"event: phase_start\ndata:                
+           +{json.dumps({'phase': 3, 'name': 'Tạo báo cáo',              
+           +'description': 'Đang tạo báo cáo chiến lược...'})}\n\n"      
+      1975 +                                                             
+      1976 +            data_summary = json.dumps(query_result,          
+           +ensure_ascii=False, indent=2, default=str)                   
+      1977 +            if len(data_summary) > 3000:                     
+      1978 +                data_summary = data_summary[:3000] + "\n...  
+           +(truncated)"                                                 
+      1979 +                                                             
+      1980 +            # Updated Phase 2 prompt for executive style     
+      1981 +            phase2_prompt = f"""Bạn là AI assistant báo cáo  
+           +cho Lãnh đạo Bộ KH&CN.                                       
+      1982 +                                                             
+      1983 +=== NGUYÊN TẮC BÁO CÁO CHIẾN LƯỢC ===                        
+      1984 +1. NGẮN GỌN: main_answer tối đa 2-3 câu, tập trung kết quả   
+           +chính                                                        
+      1985 +2. INSIGHT: Thêm strategic_insight về ý nghĩa chiến lược của 
+           + dữ liệu                                                     
+      1986 +3. HÀNH ĐỘNG: Thêm recommended_action gợi ý bước tiếp theo   
+      1987 +4. KHÔNG liệt kê chi tiết trong main_answer - data chi tiết  
+           +sẽ hiển thị riêng                                            
+      1988 +                                                             
+      1989 +=== CÂU HỎI ===                                              
+      1990 +{query}                                                      
+      1991 +                                                             
+      1992 +=== DỮ LIỆU (JSON) ===                                       
+      1993 +{data_summary}                                               
+      1994 +                                                             
+      1995 +=== RESPONSE FORMAT (JSON) ===                               
+      1996 +{{                                                           
+      1997 +    "response": {{                                           
+      1998 +        "greeting": "Báo cáo anh/chị,",                      
+      1999 +        "main_answer": "**Số lượng** + kết luận ngắn gọn     
+           +(2-3 câu)",                                                  
+      2000 +        "strategic_insight": "Ý nghĩa chiến lược: phân tích  
+           +xu hướng, rủi ro, cơ hội (1-2 câu)",                         
+      2001 +        "recommended_action": "Đề xuất hành động cụ thể cho  
+           +lãnh đạo (1 câu)",                                           
+      2002 +        "details": null,                                     
+      2003 +        "follow_up_suggestions": ["Rủi ro bảo mật?", "Ngân   
+           +sách cần thiết?", "Lộ trình triển khai?"]                    
+      2004 +    }}                                                       
+      2005 +}}                                                           
+      2006 +                                                             
+      2007 +CHỈ trả về JSON."""                                          
+      2008 +                                                             
+      2009 +            try:                                             
+      2010 +                phase2_content =                             
+           +call_ai_internal(phase2_prompt, [{'role': 'user', 'content': 
+           + 'Generate response'}])                                      
+      2011 +                json_match2 = re.search(r'\{[\s\S]*\}',      
+           +phase2_content)                                              
+      2012 +                if json_match2:                              
+      2013 +                    phase2_data =                            
+           +json.loads(json_match2.group())                              
+      2014 +                    response_content =                       
+           +phase2_data.get('response', {})                              
+      2015 +                else:                                        
+      2016 +                    response_content = {'greeting': 'Báo cáo 
+           + anh/chị,', 'main_answer': phase2_content,                   
+           +'follow_up_suggestions': []}                                 
+      2017 +                                                             
+      2018 +                response_content['chart_type'] = chart_type  
+      2019 +                                                             
+      2020 +            except Exception as e:                           
+      2021 +                logger.error(f"Phase 3 error: {e}")          
+      2022 +                response_content = {                         
+      2023 +                    'greeting': 'Báo cáo anh/chị,',          
+      2024 +                    'main_answer': f'Tìm thấy                
+           +**{query_result.get("total_rows", 0)}** kết quả.',           
+      2025 +                    'follow_up_suggestions': []              
+      2026 +                }                                            
+      2027 +                                                             
+      2028 +            yield f"event: phase_complete\ndata:             
+           +{json.dumps({'phase': 3})}\n\n"                              
+      2029 +                                                             
+      2030 +            # Phase 4: Self-Review                           
+      2031 +            yield f"event: phase_start\ndata:                
+           +{json.dumps({'phase': 4, 'name': 'Kiểm tra', 'description':  
+           +'Đang kiểm tra tính nhất quán...'})}\n\n"                    
+      2032 +                                                             
+      2033 +            review_prompt = f"""Kiểm tra câu trả lời có khớp 
+           + với dữ liệu không.                                          
+      2034 +                                                             
+      2035 +Dữ liệu: {query_result.get('total_rows', 0)} dòng            
+      2036 +Câu trả lời: {response_content.get('main_answer', '')}       
+      2037 +                                                             
+      2038 +Trả về JSON: {{"is_consistent": true/false, "issues":        
+           +[]}}"""                                                      
+      2039 +                                                             
+      2040 +            try:                                             
+      2041 +                review_content =                             
+           +call_ai_internal(review_prompt, [{'role': 'user', 'content': 
+           + 'Review'}])                                                 
+      2042 +                review_match = re.search(r'\{[\s\S]*\}',     
+           +review_content)                                              
+      2043 +                if review_match:                             
+      2044 +                    review_result =                          
+           +json.loads(review_match.group())                             
+      2045 +                    is_consistent =                          
+           +review_result.get('is_consistent', True)                     
+      2046 +                else:                                        
+      2047 +                    is_consistent = True                     
+      2048 +            except:                                          
+      2049 +                is_consistent = True                         
+      2050 +                                                             
+      2051 +            thinking['review_passed'] = is_consistent        
+      2052 +            yield f"event: phase_complete\ndata:             
+           +{json.dumps({'phase': 4, 'review_passed':                    
+           +is_consistent})}\n\n"                                        
+      2053 +                                                             
+      2054 +            # Final result                                   
+      2055 +            final_response = {                               
+      2056 +                'query': query,                              
+      2057 +                'thinking': thinking,                        
+      2058 +                'response': response_content,                
+      2059 +                'data': query_result                         
+      2060 +            }                                                
+      2061 +                                                             
+      2062 +            yield f"event: complete\ndata:                   
+           +{json.dumps(final_response, ensure_ascii=False,              
+           +default=str)}\n\n"                                           
+      2063 +                                                             
+      2064 +        response = StreamingHttpResponse(event_stream(),     
+           +content_type='text/event-stream')                            
+      2065 +        response['Cache-Control'] = 'no-cache'               
+      2066 +        response['X-Accel-Buffering'] = 'no'                 
+      2067 +        response['Connection'] = 'keep-alive'                
+      2068 +        return response                                      
+      2069 +                                                             
+      2070 +    @action(detail=False, methods=['get'])                   
+      2071      def roadmap_stats(self, request):                        
+      2072          """                                                  
+      2073          Strategic Dashboard - Roadmap Statistics             
+
+⏺ Đã thêm SSE endpoint. Bây giờ tôi sẽ update Task #2 - cập nhật Phase 2 prompt
+  trong ai_query gốc để dùng executive style.
+✔ Task #1 updated: status → completed
+✔ Task #2 updated: status → in progress
+
+⏺ Read(backend/apps/systems/views.py)
+  ⎿  Read 60 lines
+
+⏺ Update(backend/apps/systems/views.py)
+  ⎿  Added 22 lines, removed 17 lines
+      1502                                                               
+      1503  Nếu câu hỏi không liên quan đến dữ liệu, trả về JSON với sql 
+             = null."""                                                  
+      1504                                                               
+      1505 -        # ====== PHASE 2 PROMPT: Generate Response with      
+           -actual data ======                                           
+      1505 +        # ====== PHASE 2 PROMPT: Generate Response with      
+           +actual data (Executive Style) ======                         
+      1506          phase2_prompt_template = """Bạn là Trợ lý AI báo cáo 
+             cho Lãnh đạo Bộ Khoa học và Công nghệ Việt Nam.             
+      1507                                                               
+      1508  === DỮ LIỆU THỰC TẾ ĐÃ LẤY ===                               
+     ...
+      1510  Kết quả SQL (JSON):                                          
+      1511  {data_json}                                                  
+      1512                                                               
+      1513 -=== NHIỆM VỤ ===                                             
+      1514 -Viết báo cáo TỰ NHIÊN dựa trên dữ liệu THỰC TẾ ở trên. PHẢI  
+           -sử dụng số liệu cụ thể từ kết quả.                           
+      1513 +=== NGUYÊN TẮC BÁO CÁO CHIẾN LƯỢC (QUAN TRỌNG) ===           
+      1514 +1. NGẮN GỌN: main_answer TỐI ĐA 2-3 câu, chỉ nêu kết quả     
+           +chính + kết luận                                             
+      1515 +2. INSIGHT: Thêm strategic_insight phân tích ý nghĩa chiến   
+           +lược (xu hướng, rủi ro, cơ hội)                              
+      1516 +3. HÀNH ĐỘNG: Thêm recommended_action gợi ý cụ thể cho lãnh  
+           +đạo                                                          
+      1517 +4. KHÔNG liệt kê danh sách chi tiết trong main_answer - data 
+           + sẽ hiển thị riêng                                           
+      1518                                                               
+      1519  === PHONG CÁCH ===                                           
+      1520  - Trang trọng, chuyên nghiệp cho Lãnh đạo cấp Bộ             
+      1521 -- Mở đầu: "Báo cáo anh/chị," hoặc "Kính thưa anh/chị,"       
+      1521 +- Mở đầu: "Báo cáo anh/chị,"                                 
+      1522  - Dùng **bold** cho số liệu quan trọng                       
+      1523  - Kết thúc ngắn gọn, không cần "Kính báo cáo"                
+      1524                                                               
+     ...
+      1523  {{                                                           
+      1524      "response": {{                                           
+      1525          "greeting": "Báo cáo anh/chị,",                      
+      1526 -        "main_answer": "Câu trả lời với SỐ LIỆU CỤ THỂ từ    
+           -data (dùng **bold** cho số)",                                
+      1527 -        "details": "Chi tiết bổ sung nếu cần hoặc null",     
+      1528 -        "system_list_markdown": "Nếu data chứa danh sách hệ  
+           -thống, tạo markdown table với header | STT | Tên hệ thống |  
+           -Đơn vị | và liệt kê tất cả. Nếu không có danh sách hệ thống  
+           -thì để null",                                                
+      1526 +        "main_answer": "**Số liệu chính** + kết luận ngắn    
+           +gọn (TỐI ĐA 2-3 câu)",                                       
+      1527 +        "strategic_insight": "Ý nghĩa chiến lược: phân tích  
+           +xu hướng, rủi ro, hoặc cơ hội từ dữ liệu (1-2 câu)",         
+      1528 +        "recommended_action": "Đề xuất hành động cụ thể cho  
+           +lãnh đạo (1 câu)",                                           
+      1529 +        "details": null,                                     
+      1530 +        "system_list_markdown": "Nếu data chứa danh sách hệ  
+           +thống, tạo markdown table. Nếu không thì null",              
+      1531          "follow_up_suggestions": [                           
+      1532 -            "Câu hỏi chiến lược về rủi ro/ưu tiên?",         
+      1533 -            "Câu hỏi chiến lược về nguồn lực?",              
+      1534 -            "Câu hỏi chiến lược về lộ trình?"                
+      1532 +            "Câu hỏi về rủi ro/bảo mật?",                    
+      1533 +            "Câu hỏi về ngân sách/nguồn lực?",               
+      1534 +            "Câu hỏi về lộ trình triển khai?"                
+      1535          ]                                                    
+      1536      }}                                                       
+      1537  }}                                                           
+      1538                                                               
+      1539  === LƯU Ý QUAN TRỌNG ===                                     
+      1540 -- main_answer PHẢI chứa số liệu thực từ data, KHÔNG ĐƯỢC     
+           -dùng placeholder                                             
+      1541 -- Ví dụ tốt: "Tổng dung lượng dữ liệu là **1,234 GB**"       
+      1542 -- Ví dụ xấu: "Tổng dung lượng là X GB"                       
+      1543 -- follow_up_suggestions phải CHIẾN LƯỢC (về rủi ro, ưu tiên, 
+           - ngân sách, lộ trình)                                        
+      1544 -- **BẮT BUỘC**: Khi data chứa danh sách các hệ thống (rows   
+           -với system_name), PHẢI tạo system_list_markdown với format:  
+      1540 +- main_answer PHẢI chứa số liệu thực từ data, KHÔNG          
+           +dùng placeholder                                             
+      1541 +- main_answer KHÔNG liệt kê chi tiết - chỉ tóm tắt kết quả   
+           +chính                                                        
+      1542 +- strategic_insight phải có giá trị cho việc ra quyết định   
+      1543 +- recommended_action phải là hành động cụ thể, khả thi       
+      1544 +- follow_up_suggestions phải CHIẾN LƯỢC (rủi ro, ưu tiên,    
+           +ngân sách, lộ trình)                                         
+      1545 +- **BẮT BUỘC**: Khi có danh sách hệ thống, tạo               
+           +system_list_markdown với format:                             
+      1546    | STT | Tên hệ thống | Đơn vị |                            
+      1547    |-----|--------------|--------|                            
+      1548 -  | 1 | Tên hệ thống A | Tên đơn vị |                        
+      1549 -  | 2 | Tên hệ thống B | Tên đơn vị |"""                     
+      1548 +  | 1 | Tên hệ thống A | Tên đơn vị |"""                     
+      1549                                                               
+      1550          # Build conversation for Phase 1                     
+      1551          conversation = [{'role': 'user', 'content': query}]  
+✔ Task #2 updated: status → completed
+✔ Task #3 updated: status → in progress
+
+⏺ Bây giờ implement Task #3 - Frontend SSE Integration. Để tôi đọc file
+  frontend.
+
+⏺ Search(pattern: "handleAIQuery", path:
+        "frontend/src/pages/StrategicDashboard.tsx", output_mode: "content")
+  ⎿  Found 4 lines (ctrl+o to expand)
+
+⏺ Read(frontend/src/pages/StrategicDashboard.tsx)
+  ⎿  Read 120 lines
+
+⏺ Search(pattern: "PROGRESSIVE_TASKS", path:
+        "frontend/src/pages/StrategicDashboard.tsx", output_mode: "content")
+  ⎿  Found 36 lines (ctrl+o to expand)
+
+⏺ Read(frontend/src/pages/StrategicDashboard.tsx)
+  ⎿  Read 50 lines
+  ⎿  You've hit your limit · resets 1pm (Asia/Saigon)
+     /upgrade to increase your usage limit.
+
+✻ Baked for 9m 27s
+ ▐▛███▜▌   Claude Code v2.1.19
+▝▜█████▛▘  Opus 4.5 · Claude Max
+  ▘▘ ▝▝    ~/Dropbox/9. active/consultant/support_b4t/thong_ke_he_thong
+══════════════════ Conversation compacted · ctrl+o for history ═════════════════
+  ⎿  Read docker-compose.yml (68 lines)
+  ⎿  Referenced file backend/apps/systems/views.py
+  ⎿  Read backend/apps/accounts/permissions.py (73 lines)
+  ⎿  Read backend/config/urls.py (44 lines)
+  ⎿  Plan file referenced (~/.claude/plans/graceful-dreaming-rainbow.md)
+  ⎿  Skills restored (ai_humanizer)
+
+⏺ Tôi sẽ tiếp tục implement Task #1: Backend SSE Streaming Endpoint. Trước tiên,
+   để tôi kiểm tra task list và đọc thêm phần code cần thiết.
+5 tasks (0 done, 1 in progress, 4 open)
+
+◼ #1 Backend - SSE Streaming Endpoint
+◼ #2 Backend - Update AI Prompt for Executive Style
+◼ #3 Frontend - SSE Integration
+◼ #4 Frontend - Strategic Response Display
+◼ #5 Frontend - Enhanced Data Modal
+
+⏺ Read(backend/apps/systems/views.py)
+  ⎿  Read 200 lines
+
+⏺ Read(backend/apps/systems/views.py)
+  ⎿  Read 150 lines
+
+⏺ Read(backend/apps/systems/views.py)
+  ⎿  Read 50 lines
+
+⏺ Bây giờ tôi sẽ implement SSE streaming endpoint. Trước tiên cần thêm import
+  StreamingHttpResponse và sau đó thêm endpoint mới sau ai_query action.
+
+⏺ Update(backend/apps/systems/views.py)
+  ⎿  Added 2 lines
+       7  from django.db.models import Q, Count, Sum, Avg                
+       8  from django.db.models.functions import Coalesce                
+       9  from django.conf import settings                               
+      10 +from django.http import StreamingHttpResponse                  
+      11  import json                                                    
+      12  import logging                                                 
+      13 +import time                                                    
+      14                                                                 
+      15  from apps.accounts.permissions import IsOrgUserOrAdmin,        
+          CanManageOrgSystems                                            
+      16  from .models import System, Attachment                         
+
+⏺ Bây giờ tôi sẽ thêm SSE endpoint mới. Tôi sẽ thêm nó trước roadmap_stats
+  action (line 1808).
+
+⏺ Update(backend/apps/systems/views.py)
+  ⎿  Added 260 lines
+      1808              )                                                
+      1809                                                               
+      1810      @action(detail=False, methods=['get'])                   
+      1811 +    def ai_query_stream(self, request):                      
+      1812 +        """                                                  
+      1813 +        SSE Streaming endpoint for real-time AI progress.    
+      1814 +        Streams events for each phase of AI processing.      
+      1815 +                                                             
+      1816 +        Events:                                              
+      1817 +        - phase_start: When a phase begins                   
+      1818 +        - phase_complete: When a phase completes             
+      1819 +        - error: When an error occurs                        
+      1820 +        - complete: Final result with all data               
+      1821 +        """                                                  
+      1822 +        user = request.user                                  
+      1823 +        if user.role != 'lanhdaobo':                         
+      1824 +            def error_stream():                              
+      1825 +                yield f"event: error\ndata:                  
+           +{json.dumps({'error': 'Chỉ Lãnh đạo Bộ mới có quyền sử dụng  
+           +AI Assistant'})}\n\n"                                        
+      1826 +            response = StreamingHttpResponse(error_stream(), 
+           + content_type='text/event-stream')                           
+      1827 +            response['Cache-Control'] = 'no-cache'           
+      1828 +            response['X-Accel-Buffering'] = 'no'             
+      1829 +            return response                                  
+      1830 +                                                             
+      1831 +        query = request.query_params.get('query',            
+           +'').strip()                                                  
+      1832 +        if not query:                                        
+      1833 +            def error_stream():                              
+      1834 +                yield f"event: error\ndata:                  
+           +{json.dumps({'error': 'Vui lòng nhập câu hỏi'})}\n\n"        
+      1835 +            response = StreamingHttpResponse(error_stream(), 
+           + content_type='text/event-stream')                           
+      1836 +            response['Cache-Control'] = 'no-cache'           
+      1837 +            response['X-Accel-Buffering'] = 'no'             
+      1838 +            return response                                  
+      1839 +                                                             
+      1840 +        def event_stream():                                  
+      1841 +            import re                                        
+      1842 +            import requests                                  
+      1843 +                                                             
+      1844 +            # API Configuration                              
+      1845 +            CLAUDE_API_KEY = getattr(settings,               
+           +'CLAUDE_API_KEY', None)                                      
+      1846 +            OPENAI_API_KEY = getattr(settings,               
+           +'OPENAI_API_KEY', None)                                      
+      1847 +                                                             
+      1848 +            use_claude = bool(CLAUDE_API_KEY)                
+      1849 +            use_openai = bool(OPENAI_API_KEY)                
+      1850 +                                                             
+      1851 +            if not use_claude and not use_openai:            
+      1852 +                yield f"event: error\ndata:                  
+           +{json.dumps({'error': 'AI service not configured'})}\n\n"    
+      1853 +                return                                       
+      1854 +                                                             
+      1855 +            # Helper function to call AI                     
+      1856 +            def call_ai_internal(system_prompt, messages):   
+      1857 +                if use_openai:                               
+      1858 +                    response = requests.post(                
+      1859 +                                                             
+           +'https://api.openai.com/v1/chat/completions',                
+      1860 +                        headers={                            
+      1861 +                            'Authorization': f'Bearer        
+           +{OPENAI_API_KEY}',                                           
+      1862 +                            'Content-Type':                  
+           +'application/json'                                           
+      1863 +                        },                                   
+      1864 +                        json={                               
+      1865 +                            'model': 'gpt-5.2',              
+      1866 +                            'reasoning': {'effort':          
+           +'medium'},                                                   
+      1867 +                            'messages': [                    
+      1868 +                                {'role': 'system',           
+           +'content': system_prompt},                                   
+      1869 +                                *messages                    
+      1870 +                            ],                               
+      1871 +                            'max_completion_tokens': 16000,  
+      1872 +                            'temperature': 1                 
+      1873 +                        },                                   
+      1874 +                        timeout=120                          
+      1875 +                    )                                        
+      1876 +                    response.raise_for_status()              
+      1877 +                    return                                   
+           +response.json()['choices'][0]['message']['content']          
+      1878 +                elif use_claude:                             
+      1879 +                    import anthropic                         
+      1880 +                    client =                                 
+           +anthropic.Anthropic(api_key=CLAUDE_API_KEY)                  
+      1881 +                    response = client.messages.create(       
+      1882 +                        model='claude-sonnet-4-20250514',    
+      1883 +                        max_tokens=4096,                     
+      1884 +                        system=system_prompt,                
+      1885 +                        messages=messages                    
+      1886 +                    )                                        
+      1887 +                    return response.content[0].text          
+      1888 +                                                             
+      1889 +            # SQL validation function                        
+      1890 +            def validate_and_execute_sql_internal(sql):      
+      1891 +                from django.db import connection             
+      1892 +                sql_upper = sql.upper().strip()              
+      1893 +                if any(kw in sql_upper for kw in ['DROP',    
+           +'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE',             
+           +'TRUNCATE']):                                                
+      1894 +                    return None, "Only SELECT queries        
+           +allowed"                                                     
+      1895 +                try:                                         
+      1896 +                    with connection.cursor() as cursor:      
+      1897 +                        cursor.execute(sql)                  
+      1898 +                        columns = [col[0] for col in         
+           +cursor.description] if cursor.description else []            
+      1899 +                        rows = cursor.fetchall()             
+      1900 +                        result = {                           
+      1901 +                            'columns': columns,              
+      1902 +                            'rows': [dict(zip(columns, row)) 
+           + for row in rows],                                           
+      1903 +                            'total_rows': len(rows)          
+      1904 +                        }                                    
+      1905 +                        return result, None                  
+      1906 +                except Exception as e:                       
+      1907 +                    return None, str(e)                      
+      1908 +                                                             
+      1909 +            # ====== START STREAMING ======                  
+      1910 +                                                             
+      1911 +            # Phase 1: SQL Generation                        
+      1912 +            yield f"event: phase_start\ndata:                
+           +{json.dumps({'phase': 1, 'name': 'Phân tích yêu cầu',        
+           +'description': 'Đang phân tích câu hỏi và tạo truy vấn       
+           +SQL...'})}\n\n"                                              
+      1913 +                                                             
+      1914 +            # Schema context (abbreviated for SSE)           
+      1915 +            schema_context = """Database Schema:             
+      1916 +- organizations: id, name, organization_type, code           
+      1917 +- systems: id, system_name, status, criticality_level,       
+           +org_id, hosting_platform, has_encryption, is_deleted         
+      1918 +- system_architecture: system_id, architecture_type,         
+           +scalability_level                                            
+      1919 +- system_assessment: system_id, performance_rating,          
+           +recommendation                                               
+      1920 +- system_data_info: system_id, data_classification           
+      1921 +- system_integration: system_id, has_api_gateway,            
+           +integration_level                                            
+      1922 +- system_security: system_id, auth_methods, encryption_type, 
+           + has_security_audit                                          
+      1923 +                                                             
+      1924 +Lưu ý: Dùng is_deleted = false khi query bảng systems"""     
+      1925 +                                                             
+      1926 +            phase1_prompt = f"""Bạn là AI assistant chuyên   
+           +phân tích dữ liệu hệ thống CNTT cho Bộ KH&CN.                
+      1927 +                                                             
+      1928 +{schema_context}                                             
+      1929 +                                                             
+      1930 +Phân tích câu hỏi và tạo SQL query. Trả về JSON:             
+      1931 +{{                                                           
+      1932 +    "thinking": {{"plan": "Kế hoạch phân tích", "tasks":     
+           +["task1", "task2"]}},                                        
+      1933 +    "sql": "SELECT query here",                              
+      1934 +    "chart_type": "bar|pie|line|table|null"                  
+      1935 +}}                                                           
+      1936 +                                                             
+      1937 +CHỈ trả về JSON."""                                          
+      1938 +                                                             
+      1939 +            try:                                             
+      1940 +                phase1_content =                             
+           +call_ai_internal(phase1_prompt, [{'role': 'user', 'content': 
+           + query}])                                                    
+      1941 +                json_match = re.search(r'\{[\s\S]*\}',       
+           +phase1_content)                                              
+      1942 +                if json_match:                               
+      1943 +                    phase1_data =                            
+           +json.loads(json_match.group())                               
+      1944 +                else:                                        
+      1945 +                    phase1_data = {'thinking': {'plan':      
+           +'Direct response'}, 'sql': None}                             
+      1946 +                                                             
+      1947 +                thinking = phase1_data.get('thinking', {})   
+      1948 +                sql_query = phase1_data.get('sql')           
+      1949 +                chart_type = phase1_data.get('chart_type')   
+      1950 +                                                             
+      1951 +                yield f"event: phase_complete\ndata:         
+           +{json.dumps({'phase': 1, 'thinking': thinking, 'sql':        
+           +sql_query})}\n\n"                                            
+      1952 +                                                             
+      1953 +            except Exception as e:                           
+      1954 +                logger.error(f"Phase 1 error: {e}")          
+      1955 +                yield f"event: error\ndata:                  
+           +{json.dumps({'error': 'Lỗi phân tích yêu cầu', 'detail':     
+           +str(e)})}\n\n"                                               
+      1956 +                return                                       
+      1957 +                                                             
+      1958 +            if not sql_query:                                
+      1959 +                yield f"event: complete\ndata:               
+           +{json.dumps({'query': query, 'thinking': thinking,           
+           +'response': {'greeting': 'Báo cáo anh/chị,', 'main_answer':  
+           +'Không thể tạo truy vấn cho yêu cầu này.',                   
+           +'follow_up_suggestions': []}, 'data': None})}\n\n"           
+      1960 +                return                                       
+      1961 +                                                             
+      1962 +            # Execute SQL                                    
+      1963 +            yield f"event: phase_start\ndata:                
+           +{json.dumps({'phase': 2, 'name': 'Truy vấn dữ liệu',         
+           +'description': 'Đang thực thi truy vấn SQL...'})}\n\n"       
+      1964 +                                                             
+      1965 +            query_result, sql_error =                        
+           +validate_and_execute_sql_internal(sql_query)                 
+      1966 +                                                             
+      1967 +            if query_result is None:                         
+      1968 +                yield f"event: error\ndata:                  
+           +{json.dumps({'error': 'Lỗi truy vấn dữ liệu', 'detail':      
+           +sql_error})}\n\n"                                            
+      1969 +                return                                       
+      1970 +                                                             
+      1971 +            yield f"event: phase_complete\ndata:             
+           +{json.dumps({'phase': 2, 'total_rows':                       
+           +query_result.get('total_rows', 0)})}\n\n"                    
+      1972 +                                                             
+      1973 +            # Phase 3: Generate Response                     
+      1974 +            yield f"event: phase_start\ndata:                
+           +{json.dumps({'phase': 3, 'name': 'Tạo báo cáo',              
+           +'description': 'Đang tạo báo cáo chiến lược...'})}\n\n"      
+      1975 +                                                             
+      1976 +            data_summary = json.dumps(query_result,          
+           +ensure_ascii=False, indent=2, default=str)                   
+      1977 +            if len(data_summary) > 3000:                     
+      1978 +                data_summary = data_summary[:3000] + "\n...  
+           +(truncated)"                                                 
+      1979 +                                                             
+      1980 +            # Updated Phase 2 prompt for executive style     
+      1981 +            phase2_prompt = f"""Bạn là AI assistant báo cáo  
+           +cho Lãnh đạo Bộ KH&CN.                                       
+      1982 +                                                             
+      1983 +=== NGUYÊN TẮC BÁO CÁO CHIẾN LƯỢC ===                        
+      1984 +1. NGẮN GỌN: main_answer tối đa 2-3 câu, tập trung kết quả   
+           +chính                                                        
+      1985 +2. INSIGHT: Thêm strategic_insight về ý nghĩa chiến lược của 
+           + dữ liệu                                                     
+      1986 +3. HÀNH ĐỘNG: Thêm recommended_action gợi ý bước tiếp theo   
+      1987 +4. KHÔNG liệt kê chi tiết trong main_answer - data chi tiết  
+           +sẽ hiển thị riêng                                            
+      1988 +                                                             
+      1989 +=== CÂU HỎI ===                                              
+      1990 +{query}                                                      
+      1991 +                                                             
+      1992 +=== DỮ LIỆU (JSON) ===                                       
+      1993 +{data_summary}                                               
+      1994 +                                                             
+      1995 +=== RESPONSE FORMAT (JSON) ===                               
+      1996 +{{                                                           
+      1997 +    "response": {{                                           
+      1998 +        "greeting": "Báo cáo anh/chị,",                      
+      1999 +        "main_answer": "**Số lượng** + kết luận ngắn gọn     
+           +(2-3 câu)",                                                  
+      2000 +        "strategic_insight": "Ý nghĩa chiến lược: phân tích  
+           +xu hướng, rủi ro, cơ hội (1-2 câu)",                         
+      2001 +        "recommended_action": "Đề xuất hành động cụ thể cho  
+           +lãnh đạo (1 câu)",                                           
+      2002 +        "details": null,                                     
+      2003 +        "follow_up_suggestions": ["Rủi ro bảo mật?", "Ngân   
+           +sách cần thiết?", "Lộ trình triển khai?"]                    
+      2004 +    }}                                                       
+      2005 +}}                                                           
+      2006 +                                                             
+      2007 +CHỈ trả về JSON."""                                          
+      2008 +                                                             
+      2009 +            try:                                             
+      2010 +                phase2_content =                             
+           +call_ai_internal(phase2_prompt, [{'role': 'user', 'content': 
+           + 'Generate response'}])                                      
+      2011 +                json_match2 = re.search(r'\{[\s\S]*\}',      
+           +phase2_content)                                              
+      2012 +                if json_match2:                              
+      2013 +                    phase2_data =                            
+           +json.loads(json_match2.group())                              
+      2014 +                    response_content =                       
+           +phase2_data.get('response', {})                              
+      2015 +                else:                                        
+      2016 +                    response_content = {'greeting': 'Báo cáo 
+           + anh/chị,', 'main_answer': phase2_content,                   
+           +'follow_up_suggestions': []}                                 
+      2017 +                                                             
+      2018 +                response_content['chart_type'] = chart_type  
+      2019 +                                                             
+      2020 +            except Exception as e:                           
+      2021 +                logger.error(f"Phase 3 error: {e}")          
+      2022 +                response_content = {                         
+      2023 +                    'greeting': 'Báo cáo anh/chị,',          
+      2024 +                    'main_answer': f'Tìm thấy                
+           +**{query_result.get("total_rows", 0)}** kết quả.',           
+      2025 +                    'follow_up_suggestions': []              
+      2026 +                }                                            
+      2027 +                                                             
+      2028 +            yield f"event: phase_complete\ndata:             
+           +{json.dumps({'phase': 3})}\n\n"                              
+      2029 +                                                             
+      2030 +            # Phase 4: Self-Review                           
+      2031 +            yield f"event: phase_start\ndata:                
+           +{json.dumps({'phase': 4, 'name': 'Kiểm tra', 'description':  
+           +'Đang kiểm tra tính nhất quán...'})}\n\n"                    
+      2032 +                                                             
+      2033 +            review_prompt = f"""Kiểm tra câu trả lời có khớp 
+           + với dữ liệu không.                                          
+      2034 +                                                             
+      2035 +Dữ liệu: {query_result.get('total_rows', 0)} dòng            
+      2036 +Câu trả lời: {response_content.get('main_answer', '')}       
+      2037 +                                                             
+      2038 +Trả về JSON: {{"is_consistent": true/false, "issues":        
+           +[]}}"""                                                      
+      2039 +                                                             
+      2040 +            try:                                             
+      2041 +                review_content =                             
+           +call_ai_internal(review_prompt, [{'role': 'user', 'content': 
+           + 'Review'}])                                                 
+      2042 +                review_match = re.search(r'\{[\s\S]*\}',     
+           +review_content)                                              
+      2043 +                if review_match:                             
+      2044 +                    review_result =                          
+           +json.loads(review_match.group())                             
+      2045 +                    is_consistent =                          
+           +review_result.get('is_consistent', True)                     
+      2046 +                else:                                        
+      2047 +                    is_consistent = True                     
+      2048 +            except:                                          
+      2049 +                is_consistent = True                         
+      2050 +                                                             
+      2051 +            thinking['review_passed'] = is_consistent        
+      2052 +            yield f"event: phase_complete\ndata:             
+           +{json.dumps({'phase': 4, 'review_passed':                    
+           +is_consistent})}\n\n"                                        
+      2053 +                                                             
+      2054 +            # Final result                                   
+      2055 +            final_response = {                               
+      2056 +                'query': query,                              
+      2057 +                'thinking': thinking,                        
+      2058 +                'response': response_content,                
+      2059 +                'data': query_result                         
+      2060 +            }                                                
+      2061 +                                                             
+      2062 +            yield f"event: complete\ndata:                   
+           +{json.dumps(final_response, ensure_ascii=False,              
+           +default=str)}\n\n"                                           
+      2063 +                                                             
+      2064 +        response = StreamingHttpResponse(event_stream(),     
+           +content_type='text/event-stream')                            
+      2065 +        response['Cache-Control'] = 'no-cache'               
+      2066 +        response['X-Accel-Buffering'] = 'no'                 
+      2067 +        response['Connection'] = 'keep-alive'                
+      2068 +        return response                                      
+      2069 +                                                             
+      2070 +    @action(detail=False, methods=['get'])                   
+      2071      def roadmap_stats(self, request):                        
+      2072          """                                                  
+      2073          Strategic Dashboard - Roadmap Statistics             
+
+⏺ Đã thêm SSE endpoint. Bây giờ tôi sẽ update Task #2 - cập nhật Phase 2 prompt
+  trong ai_query gốc để dùng executive style.
+✔ Task #1 updated: status → completed
+✔ Task #2 updated: status → in progress
+
+⏺ Read(backend/apps/systems/views.py)
+  ⎿  Read 60 lines
+
+⏺ Update(backend/apps/systems/views.py)
+  ⎿  Added 22 lines, removed 17 lines
+      1502                                                               
+      1503  Nếu câu hỏi không liên quan đến dữ liệu, trả về JSON với sql 
+             = null."""                                                  
+      1504                                                               
+      1505 -        # ====== PHASE 2 PROMPT: Generate Response with      
+           -actual data ======                                           
+      1505 +        # ====== PHASE 2 PROMPT: Generate Response with      
+           +actual data (Executive Style) ======                         
+      1506          phase2_prompt_template = """Bạn là Trợ lý AI báo cáo 
+             cho Lãnh đạo Bộ Khoa học và Công nghệ Việt Nam.             
+      1507                                                               
+      1508  === DỮ LIỆU THỰC TẾ ĐÃ LẤY ===                               
+     ...
+      1510  Kết quả SQL (JSON):                                          
+      1511  {data_json}                                                  
+      1512                                                               
+      1513 -=== NHIỆM VỤ ===                                             
+      1514 -Viết báo cáo TỰ NHIÊN dựa trên dữ liệu THỰC TẾ ở trên. PHẢI  
+           -sử dụng số liệu cụ thể từ kết quả.                           
+      1513 +=== NGUYÊN TẮC BÁO CÁO CHIẾN LƯỢC (QUAN TRỌNG) ===           
+      1514 +1. NGẮN GỌN: main_answer TỐI ĐA 2-3 câu, chỉ nêu kết quả     
+           +chính + kết luận                                             
+      1515 +2. INSIGHT: Thêm strategic_insight phân tích ý nghĩa chiến   
+           +lược (xu hướng, rủi ro, cơ hội)                              
+      1516 +3. HÀNH ĐỘNG: Thêm recommended_action gợi ý cụ thể cho lãnh  
+           +đạo                                                          
+      1517 +4. KHÔNG liệt kê danh sách chi tiết trong main_answer - data 
+           + sẽ hiển thị riêng                                           
+      1518                                                               
+      1519  === PHONG CÁCH ===                                           
+      1520  - Trang trọng, chuyên nghiệp cho Lãnh đạo cấp Bộ             
+      1521 -- Mở đầu: "Báo cáo anh/chị," hoặc "Kính thưa anh/chị,"       
+      1521 +- Mở đầu: "Báo cáo anh/chị,"                                 
+      1522  - Dùng **bold** cho số liệu quan trọng                       
+      1523  - Kết thúc ngắn gọn, không cần "Kính báo cáo"                
+      1524                                                               
+     ...
+      1523  {{                                                           
+      1524      "response": {{                                           
+      1525          "greeting": "Báo cáo anh/chị,",                      
+      1526 -        "main_answer": "Câu trả lời với SỐ LIỆU CỤ THỂ từ    
+           -data (dùng **bold** cho số)",                                
+      1527 -        "details": "Chi tiết bổ sung nếu cần hoặc null",     
+      1528 -        "system_list_markdown": "Nếu data chứa danh sách hệ  
+           -thống, tạo markdown table với header | STT | Tên hệ thống |  
+           -Đơn vị | và liệt kê tất cả. Nếu không có danh sách hệ thống  
+           -thì để null",                                                
+      1526 +        "main_answer": "**Số liệu chính** + kết luận ngắn    
+           +gọn (TỐI ĐA 2-3 câu)",                                       
+      1527 +        "strategic_insight": "Ý nghĩa chiến lược: phân tích  
+           +xu hướng, rủi ro, hoặc cơ hội từ dữ liệu (1-2 câu)",         
+      1528 +        "recommended_action": "Đề xuất hành động cụ thể cho  
+           +lãnh đạo (1 câu)",                                           
+      1529 +        "details": null,                                     
+      1530 +        "system_list_markdown": "Nếu data chứa danh sách hệ  
+           +thống, tạo markdown table. Nếu không thì null",              
+      1531          "follow_up_suggestions": [                           
+      1532 -            "Câu hỏi chiến lược về rủi ro/ưu tiên?",         
+      1533 -            "Câu hỏi chiến lược về nguồn lực?",              
+      1534 -            "Câu hỏi chiến lược về lộ trình?"                
+      1532 +            "Câu hỏi về rủi ro/bảo mật?",                    
+      1533 +            "Câu hỏi về ngân sách/nguồn lực?",               
+      1534 +            "Câu hỏi về lộ trình triển khai?"                
+      1535          ]                                                    
+      1536      }}                                                       
+      1537  }}                                                           
+      1538                                                               
+      1539  === LƯU Ý QUAN TRỌNG ===                                     
+      1540 -- main_answer PHẢI chứa số liệu thực từ data, KHÔNG ĐƯỢC     
+           -dùng placeholder                                             
+      1541 -- Ví dụ tốt: "Tổng dung lượng dữ liệu là **1,234 GB**"       
+      1542 -- Ví dụ xấu: "Tổng dung lượng là X GB"                       
+      1543 -- follow_up_suggestions phải CHIẾN LƯỢC (về rủi ro, ưu tiên, 
+           - ngân sách, lộ trình)                                        
+      1544 -- **BẮT BUỘC**: Khi data chứa danh sách các hệ thống (rows   
+           -với system_name), PHẢI tạo system_list_markdown với format:  
+      1540 +- main_answer PHẢI chứa số liệu thực từ data, KHÔNG          
+           +dùng placeholder                                             
+      1541 +- main_answer KHÔNG liệt kê chi tiết - chỉ tóm tắt kết quả   
+           +chính                                                        
+      1542 +- strategic_insight phải có giá trị cho việc ra quyết định   
+      1543 +- recommended_action phải là hành động cụ thể, khả thi       
+      1544 +- follow_up_suggestions phải CHIẾN LƯỢC (rủi ro, ưu tiên,    
+           +ngân sách, lộ trình)                                         
+      1545 +- **BẮT BUỘC**: Khi có danh sách hệ thống, tạo               
+           +system_list_markdown với format:                             
+      1546    | STT | Tên hệ thống | Đơn vị |                            
+      1547    |-----|--------------|--------|                            
+      1548 -  | 1 | Tên hệ thống A | Tên đơn vị |                        
+      1549 -  | 2 | Tên hệ thống B | Tên đơn vị |"""                     
+      1548 +  | 1 | Tên hệ thống A | Tên đơn vị |"""                     
+      1549                                                               
+      1550          # Build conversation for Phase 1                     
+      1551          conversation = [{'role': 'user', 'content': query}]  
+✔ Task #2 updated: status → completed
+✔ Task #3 updated: status → in progress
+
+⏺ Bây giờ implement Task #3 - Frontend SSE Integration. Để tôi đọc file
+  frontend.
+
+⏺ Search(pattern: "handleAIQuery", path:
+        "frontend/src/pages/StrategicDashboard.tsx", output_mode: "content")
+  ⎿  Found 4 lines (ctrl+o to expand)
+
+⏺ Read(frontend/src/pages/StrategicDashboard.tsx)
+  ⎿  Read 120 lines
+
+⏺ Search(pattern: "PROGRESSIVE_TASKS", path:
+        "frontend/src/pages/StrategicDashboard.tsx", output_mode: "content")
+  ⎿  Found 36 lines (ctrl+o to expand)
+
+⏺ Read(frontend/src/pages/StrategicDashboard.tsx)
+  ⎿  Read 50 lines
+  ⎿  You've hit your limit · resets 1pm (Asia/Saigon)
+     /upgrade to increase your usage limit.
+
+✻ Baked for 9m 27s

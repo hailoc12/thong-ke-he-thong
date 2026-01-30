@@ -247,7 +247,7 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
   // Tab names match frontend SystemCreate.tsx tabs
   // Section counts - only include fields that exist in frontend SystemCreate form
   const sections = [
-    { name: 'Cơ bản', count: 15 },       // Tab 1 - removed: Phiên bản (not in form)
+    { name: 'Cơ bản', count: 16 },       // Tab 1 - removed: Phiên bản (not in form), added: Thời gian mong muốn hoàn thành
     { name: 'Nghiệp vụ', count: 8 },     // Tab 2
     { name: 'Công nghệ', count: 19 },    // Tab 3 - removed: Database Model, Cloud Provider (not in form)
     { name: 'Dữ liệu', count: 17 },      // Tab 4 - removed: Số API endpoints (not in form)
@@ -270,11 +270,11 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
   }
 
   const headers = [
-    // Basic Info (15 cols) - removed: Form Level, Phiên bản (not in form)
+    // Basic Info (16 cols) - removed: Form Level, Phiên bản (not in form)
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'Tên tiếng Anh', 'Đơn vị',
     'Nhóm hệ thống', 'Trạng thái', 'Mức độ quan trọng', 'Mức bảo mật',
-    'Phạm vi', 'Loại yêu cầu', 'Mục đích', 'Đã đưa vào sử dụng', 'Ngày vận hành',
-    'Hoàn thành (%)',
+    'Phạm vi', 'Loại yêu cầu', 'Mục đích', 'Thời gian mong muốn hoàn thành',
+    'Đã đưa vào sử dụng', 'Thời gian đưa vào vận hành', 'Hoàn thành (%)',
     // Business (8 cols) - removed: transactions_per_year, reports_per_year (not in model)
     'Mục tiêu kinh doanh', 'Quy trình nghiệp vụ', 'Loại người dùng',
     'Số người dùng/năm', 'Tổng số tài khoản', 'MAU', 'DAU',
@@ -333,7 +333,7 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
     // REMOVED: infra, cost, vendor - no longer used (fields not in frontend form)
 
     return escapeRow([
-      // Basic Info (15 cols) - removed: Phiên bản (not in form)
+      // Basic Info (16 cols) - removed: Phiên bản (not in form)
       idx + 1,
       sys.system_code || '',
       sys.system_name || '',
@@ -346,9 +346,10 @@ function generateFullSheet(systems: SystemDetail[]): any[][] {
       getLabel(SCOPE_LABELS, sys.scope),
       (sys as any).requirement_type || '',  // Fixed: was request_type
       sys.purpose || '',
+      formatDate((sys as any).target_completion_date),  // Thời gian mong muốn hoàn thành
       // is_go_live: null/undefined defaults to true (matches frontend behavior and model default)
       (sys as any).is_go_live === false ? 'Không' : 'Có',
-      formatDate(sys.go_live_date),
+      formatDate(sys.go_live_date),  // Thời gian đưa vào vận hành
       // REMOVED: sys.current_version (not in form)
       sys.completion_percentage ? `${sys.completion_percentage.toFixed(1)}%` : '',
       // Business (8 cols) - FIXED: user_types not target_users, annual_users not users_total
@@ -474,8 +475,8 @@ function generateBasicSheet(systems: SystemDetail[]): any[][] {
   const headers = [
     'STT', 'Mã hệ thống', 'Tên hệ thống', 'Tên tiếng Anh', 'Đơn vị',
     'Nhóm hệ thống', 'Trạng thái', 'Mức độ quan trọng', 'Mức bảo mật',
-    'Phạm vi', 'Loại yêu cầu', 'Mục đích', 'Đã đưa vào sử dụng', 'Ngày vận hành',
-    'Hoàn thành (%)'
+    'Phạm vi', 'Loại yêu cầu', 'Mục đích', 'Thời gian mong muốn hoàn thành',
+    'Đã đưa vào sử dụng', 'Thời gian đưa vào vận hành', 'Hoàn thành (%)'
   ];
 
   const rows = systems.map((sys, idx) => escapeRow([
@@ -491,9 +492,10 @@ function generateBasicSheet(systems: SystemDetail[]): any[][] {
     getLabel(SCOPE_LABELS, sys.scope),
     (sys as any).requirement_type || '',  // Fixed: was request_type
     sys.purpose || '',
+    formatDate((sys as any).target_completion_date),  // Thời gian mong muốn hoàn thành
     // is_go_live: null/undefined defaults to true (matches frontend behavior and model default)
     (sys as any).is_go_live === false ? 'Không' : 'Có',
-    formatDate(sys.go_live_date),
+    formatDate(sys.go_live_date),  // Thời gian đưa vào vận hành
     // REMOVED: sys.current_version (not in form)
     sys.completion_percentage ? `${sys.completion_percentage.toFixed(1)}%` : '',
   ]));
@@ -784,8 +786,8 @@ export async function exportSystemsDetailToExcel(systems: SystemDetail[]): Promi
     fixFormulaLikeCells(sheetFull);
     // Set column widths for Full sheet (approximate widths for each section)
     const fullColumnWidths = [
-      // Basic Info (15 cols) - removed: Phiên bản
-      5, 15, 35, 35, 25, 15, 15, 18, 12, 15, 15, 40, 10, 12, 12,
+      // Basic Info (16 cols) - removed: Phiên bản, added: Thời gian mong muốn hoàn thành
+      5, 15, 35, 35, 25, 15, 15, 18, 12, 15, 15, 40, 20, 10, 18, 12,
       // Business (8 cols)
       30, 30, 25, 12, 12, 10, 10, 12,
       // Architecture (19 cols) - removed: Database Model, Cloud Provider
@@ -808,10 +810,10 @@ export async function exportSystemsDetailToExcel(systems: SystemDetail[]): Promi
     setColumnWidths(sheetFull, fullColumnWidths);
     XLSX.utils.book_append_sheet(wb, sheetFull, 'Full');
 
-    // Sheet 1: Cơ bản (15 cols - removed Phiên bản)
+    // Sheet 1: Cơ bản (16 cols - removed Phiên bản, added Thời gian mong muốn hoàn thành)
     const sheet1 = XLSX.utils.aoa_to_sheet(generateBasicSheet(systems));
     fixFormulaLikeCells(sheet1);
-    setColumnWidths(sheet1, [5, 15, 35, 35, 25, 15, 15, 18, 12, 15, 15, 40, 12, 10, 12]);
+    setColumnWidths(sheet1, [5, 15, 35, 35, 25, 15, 15, 18, 12, 15, 15, 40, 20, 12, 18, 12]);
     XLSX.utils.book_append_sheet(wb, sheet1, '1. Cơ bản');
 
     // Sheet 2: Nghiệp vụ

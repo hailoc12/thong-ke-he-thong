@@ -345,10 +345,15 @@ const SystemDetail = () => {
       children: (
         <Descriptions
           bordered
-          column={{ xs: 1, sm: 2, md: 2 }}
+          column={{ xs: 1, sm: 1, md: 1, lg: 2 }}
           size={isMobile ? 'small' : 'default'}
-          labelStyle={{ width: '180px', fontWeight: 500 }}
-          contentStyle={{ minWidth: '150px' }}
+          labelStyle={{
+            width: isMobile ? 'auto' : '180px',
+            maxWidth: '200px',
+            fontWeight: 500,
+            wordBreak: 'break-word'
+          }}
+          contentStyle={{ minWidth: '120px', wordBreak: 'break-word' }}
         >
           <Descriptions.Item label="Tổ chức">
             {system.org_name || '-'}
@@ -387,13 +392,13 @@ const SystemDetail = () => {
           <Descriptions.Item label="Nhóm hệ thống">
             {system.system_group ? getSystemGroupText(system.system_group) : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="Thời gian hoàn thành">
+          <Descriptions.Item label="Thời gian mong muốn hoàn thành">
             {system.target_completion_date ? new Date(system.target_completion_date).toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' }) : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="Đã vận hành?">
             {renderBooleanField(system.is_go_live !== false)}
           </Descriptions.Item>
-          <Descriptions.Item label="Ngày vận hành">
+          <Descriptions.Item label="Thời gian đưa vào vận hành">
             {system.go_live_date ? new Date(system.go_live_date).toLocaleDateString('vi-VN') : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="Ghi chú" span={2}>
@@ -413,10 +418,15 @@ const SystemDetail = () => {
       children: (
         <Descriptions
           bordered
-          column={{ xs: 1, sm: 2, md: 2 }}
+          column={{ xs: 1, sm: 1, md: 1, lg: 2 }}
           size={isMobile ? 'small' : 'default'}
-          labelStyle={{ width: '180px', fontWeight: 500 }}
-          contentStyle={{ minWidth: '150px' }}
+          labelStyle={{
+            width: isMobile ? 'auto' : '180px',
+            maxWidth: '200px',
+            fontWeight: 500,
+            wordBreak: 'break-word'
+          }}
+          contentStyle={{ minWidth: '120px', wordBreak: 'break-word' }}
         >
           <Descriptions.Item label="Mục tiêu nghiệp vụ" span={2}>
             {renderArrayField(system.business_objectives, 'Chưa có mục tiêu')}
@@ -470,10 +480,15 @@ const SystemDetail = () => {
       children: (
         <Descriptions
           bordered
-          column={{ xs: 1, sm: 2, md: 2 }}
+          column={{ xs: 1, sm: 1, md: 1, lg: 2 }}
           size={isMobile ? 'small' : 'default'}
-          labelStyle={{ width: '180px', fontWeight: 500 }}
-          contentStyle={{ minWidth: '150px' }}
+          labelStyle={{
+            width: isMobile ? 'auto' : '180px',
+            maxWidth: '200px',
+            fontWeight: 500,
+            wordBreak: 'break-word'
+          }}
+          contentStyle={{ minWidth: '120px', wordBreak: 'break-word' }}
         >
           <Descriptions.Item label="Ngôn ngữ lập trình">
             {renderArrayField(system.programming_language, 'Chưa xác định')}
@@ -579,9 +594,10 @@ const SystemDetail = () => {
       children: (
         <Descriptions
           bordered
-          column={{ xs: 1, sm: 1, md: 2 }}
+          column={{ xs: 1, sm: 1, md: 1, lg: 2 }}
           size={isMobile ? 'small' : 'default'}
-          labelStyle={{ width: isMobile ? 'auto' : '180px', minWidth: '140px', whiteSpace: 'nowrap' }}
+          labelStyle={{ width: isMobile ? 'auto' : '180px', maxWidth: '200px', fontWeight: 500, wordBreak: 'break-word' }}
+          contentStyle={{ minWidth: '100px', wordBreak: 'break-word' }}
         >
           <Descriptions.Item label="Nguồn dữ liệu" span={2}>
             {renderArrayField(dataInfo.data_sources, 'Chưa có nguồn dữ liệu')}
@@ -663,9 +679,10 @@ const SystemDetail = () => {
       children: (
         <Descriptions
           bordered
-          column={{ xs: 1, sm: 1, md: 2 }}
+          column={{ xs: 1, sm: 1, md: 1, lg: 2 }}
           size={isMobile ? 'small' : 'default'}
-          labelStyle={{ width: isMobile ? 'auto' : '160px', minWidth: '130px', whiteSpace: 'nowrap' }}
+          labelStyle={{ width: isMobile ? 'auto' : '160px', maxWidth: '180px', fontWeight: 500, wordBreak: 'break-word' }}
+          contentStyle={{ minWidth: '100px', wordBreak: 'break-word' }}
         >
           <Descriptions.Item label="Có tích hợp?">
             {renderBooleanField(integ.has_integration)}
@@ -773,9 +790,10 @@ const SystemDetail = () => {
       children: (
         <Descriptions
           bordered
-          column={{ xs: 1, sm: 1, md: 2 }}
+          column={{ xs: 1, sm: 1, md: 1, lg: 2 }}
           size={isMobile ? 'small' : 'default'}
-          labelStyle={{ width: isMobile ? 'auto' : '160px', minWidth: '130px', whiteSpace: 'nowrap' }}
+          labelStyle={{ width: isMobile ? 'auto' : '160px', maxWidth: '180px', fontWeight: 500, wordBreak: 'break-word' }}
+          contentStyle={{ minWidth: '100px', wordBreak: 'break-word' }}
         >
           <Descriptions.Item label="Phương thức xác thực" span={2}>
             {renderArrayField(system.authentication_method || sec.authentication_method, 'Chưa xác định')}
@@ -809,9 +827,10 @@ const SystemDetail = () => {
       children: (
         <Descriptions
           bordered
-          column={{ xs: 1, sm: 1, md: 2 }}
+          column={{ xs: 1, sm: 1, md: 1, lg: 2 }}
           size={isMobile ? 'small' : 'default'}
-          labelStyle={{ width: isMobile ? 'auto' : '160px', minWidth: '130px', whiteSpace: 'nowrap' }}
+          labelStyle={{ width: isMobile ? 'auto' : '160px', maxWidth: '180px', fontWeight: 500, wordBreak: 'break-word' }}
+          contentStyle={{ minWidth: '100px', wordBreak: 'break-word' }}
         >
           <Descriptions.Item label="Vị trí triển khai">
             {renderValue(ops.deployment_location || infra.deployment_location)}
@@ -854,9 +873,10 @@ const SystemDetail = () => {
       children: (
         <Descriptions
           bordered
-          column={{ xs: 1, sm: 1, md: 2 }}
+          column={{ xs: 1, sm: 1, md: 1, lg: 2 }}
           size={isMobile ? 'small' : 'default'}
-          labelStyle={{ width: isMobile ? 'auto' : '160px', minWidth: '130px', whiteSpace: 'nowrap' }}
+          labelStyle={{ width: isMobile ? 'auto' : '160px', maxWidth: '180px', fontWeight: 500, wordBreak: 'break-word' }}
+          contentStyle={{ minWidth: '100px', wordBreak: 'break-word' }}
         >
           <Descriptions.Item label="Loại hình phát triển">
             {renderValue(ops.dev_type)}
@@ -926,9 +946,10 @@ const SystemDetail = () => {
       children: assess && Object.keys(assess).length > 0 ? (
         <Descriptions
           bordered
-          column={{ xs: 1, sm: 1, md: 2 }}
+          column={{ xs: 1, sm: 1, md: 1, lg: 2 }}
           size={isMobile ? 'small' : 'default'}
-          labelStyle={{ width: isMobile ? 'auto' : '180px', minWidth: '140px', whiteSpace: 'nowrap' }}
+          labelStyle={{ width: isMobile ? 'auto' : '180px', maxWidth: '200px', fontWeight: 500, wordBreak: 'break-word' }}
+          contentStyle={{ minWidth: '100px', wordBreak: 'break-word' }}
         >
           <Descriptions.Item label="Điểm phù hợp tích hợp" span={2}>
             {renderTranslatedArrayField(assess.integration_readiness, getIntegrationReadinessText, 'Chưa đánh giá')}

@@ -60,6 +60,7 @@ import {
   QuestionCircleOutlined,
   LinkOutlined,
   UnorderedListOutlined,
+  RightCircleOutlined,
 } from '@ant-design/icons';
 import {
   PieChart,
@@ -85,6 +86,7 @@ import * as XLSX from 'xlsx';
 import ReactMarkdown from 'react-markdown';
 import api from '../config/api';
 import { shadows, borderRadius, spacing } from '../theme/tokens';
+import AIDataModal from '../components/AIDataModal';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -375,19 +377,12 @@ interface AIThinking {
 // AI Processing phases for progressive UI
 type AIProcessingPhase = 'idle' | 'working' | 'complete';
 
-// Tasks to be added progressively (with delays between each)
-const PROGRESSIVE_TASKS = [
-  { id: 1, name: 'Phân tích yêu cầu', delay: 0 },
-  { id: 2, name: 'Xây dựng truy vấn', delay: 800 },
-  { id: 3, name: 'Thực thi truy vấn', delay: 1200 },
-  { id: 4, name: 'Phân tích kết quả', delay: 1000 },
-  { id: 5, name: 'Tổng hợp báo cáo', delay: 800 },
-];
-
 interface AIResponseContent {
   greeting?: string;
   main_answer: string;
   details?: string | null;
+  strategic_insight?: string;
+  recommended_action?: string;
   chart_type?: 'bar' | 'pie' | 'table' | 'number';
   chart_config?: {
     x_field?: string;
@@ -456,8 +451,6 @@ const StrategicDashboard = () => {
   const [aiQueryResponse, setAiQueryResponse] = useState<AIQueryResponse | null>(null);
   const [aiQueryHistory, setAiQueryHistory] = useState<string[]>([]);
   const [dataModalVisible, setDataModalVisible] = useState(false);
-  const [dataCurrentPage, setDataCurrentPage] = useState(1);
-  const DATA_PAGE_SIZE = 10;
 
   // Progressive AI loading state (Claude Code style)
   const [aiProcessingPhase, setAiProcessingPhase] = useState<AIProcessingPhase>('idle');
@@ -523,7 +516,7 @@ const StrategicDashboard = () => {
     fetchTabData();
   }, [activeTab, investmentStats, integrationStats, optimizationStats, monitoringStats, insightsStats, roadmapStats]);
 
-  // AI Query handler with progressive loading (Claude Code style)
+  // AI Query handler with SSE streaming for real-time progress
   const handleAIQuery = useCallback(async () => {
     if (!aiQuery.trim()) {
       message.warning('Vui lòng nhập câu hỏi');
@@ -535,81 +528,95 @@ const StrategicDashboard = () => {
     setAiQueryLoading(true);
     setAiQueryResponse(null); // Clear previous response
 
-    // Reset progress states - start with empty backlog
+    // Reset progress states
     setAiProcessingPhase('working');
-    setAiProgressTasks([]); // Start empty, will append progressively
+    setAiProgressTasks([]);
 
-    // Progressive task simulation - append tasks one by one
-    let simulationComplete = false;
-    const simulateProgress = async () => {
-      for (let i = 0; i < PROGRESSIVE_TASKS.length; i++) {
-        if (simulationComplete) break;
+    // Get token from localStorage or sessionStorage
+    const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+    if (!token) {
+      message.error('Vui lòng đăng nhập lại');
+      setAiQueryLoading(false);
+      setAiProcessingPhase('idle');
+      return;
+    }
 
-        const task = PROGRESSIVE_TASKS[i];
+    // Create EventSource for SSE
+    const queryString = encodeURIComponent(currentQuery);
+    const sseUrl = `${window.location.protocol}//${window.location.hostname}/api/systems/ai_query_stream/?query=${queryString}&token=${token}`;
 
-        // Wait before adding this task (except first one)
-        if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, task.delay));
-        }
+    const eventSource = new EventSource(sseUrl);
 
-        if (simulationComplete) break;
+    // Track which phases we've seen
+    const seenPhases = new Set<number>();
 
-        // Add new task as in_progress, mark previous as completed
+    eventSource.addEventListener('phase_start', (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        const phaseId = data.phase;
+        seenPhases.add(phaseId);
+
+        // Mark previous tasks as completed, add new in-progress task
         setAiProgressTasks(prev => {
-          const updated = prev.map(t => ({ ...t, status: 'completed' as const }));
-          return [...updated, { id: task.id, name: task.name, status: 'in_progress' as const }];
+          const completed = prev.map(t => ({ ...t, status: 'completed' as const }));
+          return [...completed, { id: phaseId, name: data.name, status: 'in_progress' as const }];
         });
+      } catch (err) {
+        console.error('Error parsing phase_start:', err);
       }
-    };
+    });
 
-    // Start simulation in parallel with actual API call
-    const simulationPromise = simulateProgress();
+    eventSource.addEventListener('phase_complete', (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        const phaseId = data.phase;
 
-    try {
-      const response = await api.post('/systems/ai_query/', { query: currentQuery });
+        // Mark this phase as completed
+        setAiProgressTasks(prev => prev.map(t =>
+          t.id === phaseId ? { ...t, status: 'completed' as const } : t
+        ));
+      } catch (err) {
+        console.error('Error parsing phase_complete:', err);
+      }
+    });
 
-      // Signal simulation to stop
-      simulationComplete = true;
+    eventSource.addEventListener('complete', (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
 
-      // Wait a bit for simulation to settle
-      await simulationPromise;
-
-      // Replace simulated tasks with actual AI planning tasks if available
-      if (response.data.thinking?.tasks && response.data.thinking.tasks.length > 0) {
-        // Use actual AI tasks - mark all as completed
-        setAiProgressTasks(response.data.thinking.tasks.map((t: AIThinkingTask) => ({
-          ...t,
-          status: 'completed' as const
-        })));
-      } else {
-        // Fallback: mark simulated tasks as complete
+        // Mark all tasks as completed
         setAiProgressTasks(prev => prev.map(t => ({ ...t, status: 'completed' as const })));
+        setAiProcessingPhase('complete');
+
+        // Small delay before showing result
+        setTimeout(() => {
+          setAiQueryResponse(data);
+          setAiQueryHistory(prev => [currentQuery, ...prev.filter(q => q !== currentQuery)].slice(0, 10));
+          setAiQueryLoading(false);
+          eventSource.close();
+        }, 400);
+      } catch (err) {
+        console.error('Error parsing complete:', err);
       }
-      setAiProcessingPhase('complete');
+    });
 
-      // Small delay before showing result
-      await new Promise(resolve => setTimeout(resolve, 400));
-
-      setAiQueryResponse(response.data);
-      setAiQueryHistory(prev => [currentQuery, ...prev.filter(q => q !== currentQuery)].slice(0, 10));
-    } catch (error: any) {
-      console.error('AI Query failed:', error);
-      simulationComplete = true;
+    eventSource.addEventListener('error', (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        message.error(data.error || 'Lỗi khi xử lý câu hỏi');
+      } catch {
+        message.error('Lỗi kết nối đến máy chủ');
+      }
+      setAiQueryLoading(false);
       setAiProcessingPhase('idle');
       setAiProgressTasks([]);
-      if (error.response?.status === 503) {
-        message.error('Dịch vụ AI tạm thời không khả dụng');
-      } else if (error.response?.status === 504) {
-        message.error('Yêu cầu AI timeout, vui lòng thử lại');
-      } else {
-        message.error('Không thể xử lý câu hỏi');
-      }
-    } finally {
-      setAiQueryLoading(false);
-      setTimeout(() => {
-        setAiProcessingPhase('idle');
-      }, 500);
-    }
+      eventSource.close();
+    });
+
+    // Cleanup on unmount
+    return () => {
+      eventSource.close();
+    };
   }, [aiQuery]);
 
   const generateAlerts = (data: StrategicStats | null) => {
@@ -1628,6 +1635,45 @@ const StrategicDashboard = () => {
                                     <Text type="secondary" style={{ fontSize: 13 }}>{aiQueryResponse.response.details}</Text>
                                   </div>
                                 )}
+
+                                {/* Strategic Insight - Yellow background */}
+                                {aiQueryResponse.response?.strategic_insight && (
+                                  <div style={{
+                                    marginTop: 12,
+                                    padding: '12px 16px',
+                                    background: 'linear-gradient(135deg, #fff7e6 0%, #fffbe6 100%)',
+                                    borderRadius: 8,
+                                    border: '1px solid #ffd591',
+                                  }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
+                                      <BulbOutlined style={{ color: '#fa8c16', fontSize: 16, marginRight: 8 }} />
+                                      <Text strong style={{ color: '#d46b08', fontSize: 13 }}>Insight chiến lược:</Text>
+                                    </div>
+                                    <Text style={{ fontSize: 14, lineHeight: 1.6, display: 'block' }}>
+                                      {aiQueryResponse.response.strategic_insight}
+                                    </Text>
+                                  </div>
+                                )}
+
+                                {/* Recommended Action - Blue background */}
+                                {aiQueryResponse.response?.recommended_action && (
+                                  <div style={{
+                                    marginTop: 12,
+                                    padding: '12px 16px',
+                                    background: 'linear-gradient(135deg, #e6f7ff 0%, #f0f5ff 100%)',
+                                    borderRadius: 8,
+                                    border: '1px solid #91caff',
+                                  }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
+                                      <RightCircleOutlined style={{ color: '#1890ff', fontSize: 16, marginRight: 8 }} />
+                                      <Text strong style={{ color: '#0958d9', fontSize: 13 }}>Đề xuất hành động:</Text>
+                                    </div>
+                                    <Text style={{ fontSize: 14, lineHeight: 1.6, display: 'block' }}>
+                                      {aiQueryResponse.response.recommended_action}
+                                    </Text>
+                                  </div>
+                                )}
+
                                 {/* System List Table with Clickable Links */}
                                 {aiQueryResponse.data && aiQueryResponse.data.rows.length > 0 &&
                                  aiQueryResponse.data.columns.some((col: string) =>
@@ -1845,7 +1891,6 @@ const StrategicDashboard = () => {
                                           type="primary"
                                           size="small"
                                           onClick={() => {
-                                            setDataCurrentPage(1);
                                             setDataModalVisible(true);
                                           }}
                                           style={{ marginTop: 8, borderRadius: 16 }}
@@ -3806,85 +3851,12 @@ const StrategicDashboard = () => {
         />
       </Modal>
 
-      {/* AI Data Full View Modal */}
-      <Modal
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <DatabaseOutlined style={{ color: '#722ed1' }} />
-            <span>Kết quả truy vấn AI ({aiQueryResponse?.data?.total_rows || 0} kết quả)</span>
-          </div>
-        }
-        open={dataModalVisible}
-        onCancel={() => setDataModalVisible(false)}
-        width={900}
-        footer={[
-          <Button key="close" onClick={() => setDataModalVisible(false)}>
-            Đóng
-          </Button>,
-        ]}
-      >
-        {aiQueryResponse?.data && (
-          <>
-            {/* Data Table with Pagination */}
-            <Table
-              dataSource={aiQueryResponse.data.rows.map((row, idx) => ({
-                key: idx,
-                ...row,
-              }))}
-              columns={aiQueryResponse.data.columns.map(col => {
-                // Check if this column is a system name column
-                const isSystemNameCol = ['name', 'system_name', 'tên hệ thống', 'ten_he_thong', 'hệ thống'].includes(col.toLowerCase());
-                const hasIdColumn = aiQueryResponse.data?.columns.some(c =>
-                  ['id', 'system_id', 'ma_he_thong'].includes(c.toLowerCase())
-                );
-
-                return {
-                  title: col,
-                  dataIndex: col,
-                  key: col,
-                  ellipsis: true,
-                  render: (text: any, record: any) => {
-                    // Make system names clickable
-                    if (isSystemNameCol && text && hasIdColumn) {
-                      const idCol = aiQueryResponse.data?.columns.find(c =>
-                        ['id', 'system_id', 'ma_he_thong'].includes(c.toLowerCase())
-                      );
-                      const systemId = idCol ? record[idCol] : null;
-                      if (systemId) {
-                        return (
-                          <a
-                            href={`/systems/${systemId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: '#1890ff' }}
-                          >
-                            {text}
-                          </a>
-                        );
-                      }
-                    }
-                    // Format numbers
-                    if (typeof text === 'number') {
-                      return text.toLocaleString();
-                    }
-                    return text ?? '-';
-                  },
-                };
-              })}
-              pagination={{
-                current: dataCurrentPage,
-                pageSize: DATA_PAGE_SIZE,
-                total: aiQueryResponse.data.rows.length,
-                onChange: (page) => setDataCurrentPage(page),
-                showSizeChanger: false,
-                showTotal: (total, range) => `${range[0]}-${range[1]} / ${total} kết quả`,
-              }}
-              size="small"
-              scroll={{ x: 800 }}
-            />
-          </>
-        )}
-      </Modal>
+      {/* AI Data Full View Modal - Enhanced with search, filter, sort, export */}
+      <AIDataModal
+        visible={dataModalVisible}
+        onClose={() => setDataModalVisible(false)}
+        data={aiQueryResponse?.data || null}
+      />
     </div>
   );
 };

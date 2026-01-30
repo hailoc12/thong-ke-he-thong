@@ -453,19 +453,35 @@ class System(models.Model):
         """
         Auto-generate system code in format: SYS-{ORG_CODE}-{YYYY}-{XXXX}
         Example: SYS-SKHCN-HN-2026-0001
+
+        Uses MAX of existing system_code numbers to avoid duplicates
+        when systems are deleted or there are gaps in the sequence.
         """
         from django.utils import timezone
+        import re
 
         org_code = self.org.code if hasattr(self.org, 'code') else f"ORG{self.org.id}"
         year = timezone.now().year
+        prefix = f"SYS-{org_code}-{year}-"
 
-        # Count systems created this year for this organization
-        count = System.objects.filter(
+        # Find max system_code number for this org and year
+        existing_codes = System.objects.filter(
             org=self.org,
-            created_at__year=year
-        ).count() + 1
+            system_code__startswith=prefix
+        ).values_list('system_code', flat=True)
 
-        return f"SYS-{org_code}-{year}-{count:04d}"
+        max_num = 0
+        pattern = re.compile(rf'^SYS-{re.escape(org_code)}-{year}-(\d+)$')
+
+        for code in existing_codes:
+            match = pattern.match(code)
+            if match:
+                num = int(match.group(1))
+                if num > max_num:
+                    max_num = num
+
+        next_num = max_num + 1
+        return f"SYS-{org_code}-{year}-{next_num:04d}"
 
     def save(self, *args, **kwargs):
         """Override save to auto-generate system_code if not provided"""

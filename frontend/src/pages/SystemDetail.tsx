@@ -35,7 +35,7 @@ import {
 } from '@ant-design/icons';
 import api from '../config/api';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 const SystemDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -145,6 +145,133 @@ const SystemDetail = () => {
     return map[type] || type;
   };
 
+  // Translation maps for technical codes
+  const getSystemGroupText = (group: string) => {
+    const map: Record<string, string> = {
+      business_app: 'Ứng dụng nghiệp vụ',
+      portal: 'Cổng thông tin',
+      data_platform: 'Nền tảng dữ liệu',
+      infrastructure: 'Hạ tầng kỹ thuật',
+      integration: 'Tích hợp',
+      security: 'An toàn thông tin',
+      other: 'Khác',
+    };
+    return map[group] || group;
+  };
+
+  const getRequirementTypeText = (type: string) => {
+    const map: Record<string, string> = {
+      upgrade: 'Nâng cấp',
+      new: 'Phát triển mới',
+      maintain: 'Duy trì bảo trì',
+      replace: 'Thay thế',
+      retire: 'Ngưng hoạt động',
+      integrate: 'Tích hợp',
+    };
+    return map[type] || type;
+  };
+
+  const getIntegrationReadinessText = (item: string) => {
+    const map: Record<string, string> = {
+      easy_to_standardize: 'Dễ chuẩn hóa',
+      good_api: 'API tốt',
+      clear_data_source: 'Nguồn dữ liệu rõ ràng',
+      modern_tech: 'Công nghệ hiện đại',
+      good_documentation: 'Tài liệu đầy đủ',
+      stable_system: 'Hệ thống ổn định',
+      active_support: 'Hỗ trợ tích cực',
+    };
+    return map[item] || item;
+  };
+
+  const getBlockerText = (item: string) => {
+    const map: Record<string, string> = {
+      outdated_tech: 'Công nghệ lỗi thời',
+      no_api: 'Không có API',
+      no_documentation: 'Thiếu tài liệu',
+      vendor_lock: 'Phụ thuộc vendor',
+      complex_integration: 'Tích hợp phức tạp',
+      security_concern: 'Vấn đề bảo mật',
+      resource_constraint: 'Thiếu nguồn lực',
+      legacy_data: 'Dữ liệu cũ phức tạp',
+    };
+    return map[item] || item;
+  };
+
+  const getHostingPlatformText = (platform: string) => {
+    const map: Record<string, string> = {
+      on_premise: 'Tại chỗ (On-premise)',
+      cloud: 'Đám mây (Cloud)',
+      hybrid: 'Kết hợp (Hybrid)',
+      managed: 'Thuê ngoài quản lý',
+    };
+    return map[platform] || platform;
+  };
+
+  const getArchitectureTypeText = (type: string) => {
+    const map: Record<string, string> = {
+      monolithic: 'Nguyên khối (Monolithic)',
+      modular: 'Phân chia module',
+      microservices: 'Vi dịch vụ (Microservices)',
+      serverless: 'Không máy chủ (Serverless)',
+      soa: 'Kiến trúc hướng dịch vụ (SOA)',
+    };
+    return map[type] || type;
+  };
+
+  const getContainerizationText = (type: string) => {
+    const map: Record<string, string> = {
+      none: 'Không sử dụng',
+      docker: 'Docker',
+      kubernetes: 'Kubernetes',
+      docker_compose: 'Docker Compose',
+      openshift: 'OpenShift',
+    };
+    return map[type] || type;
+  };
+
+  const getApiStyleText = (style: string) => {
+    const map: Record<string, string> = {
+      rest: 'REST API',
+      soap: 'SOAP',
+      graphql: 'GraphQL',
+      grpc: 'gRPC',
+      websocket: 'WebSocket',
+    };
+    return map[style] || style;
+  };
+
+  // Render long text with expand/collapse
+  const renderLongText = (text: string | null | undefined, rows: number = 2) => {
+    if (!text) return <Text type="secondary">-</Text>;
+    return (
+      <Paragraph
+        ellipsis={{ rows, expandable: true, symbol: 'Xem thêm' }}
+        style={{ marginBottom: 0 }}
+      >
+        {text}
+      </Paragraph>
+    );
+  };
+
+  // Render translated array field
+  const renderTranslatedArrayField = (
+    data: any[],
+    translator: (item: string) => string,
+    emptyText: string = 'Chưa có dữ liệu'
+  ) => {
+    if (!data || data.length === 0) {
+      return <Text type="secondary">{emptyText}</Text>;
+    }
+    return (
+      <Space wrap size={[4, 4]}>
+        {data.map((item, index) => (
+          <Tag key={index} color="blue">{translator(item)}</Tag>
+        ))}
+      </Space>
+    );
+  };
+
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '50px' }}>
@@ -180,7 +307,12 @@ const SystemDetail = () => {
         </span>
       ),
       children: (
-        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2 }} size={isMobile ? 'small' : 'default'}>
+        <Descriptions
+          bordered
+          column={{ xs: 1, sm: 1, md: 2 }}
+          size={isMobile ? 'small' : 'default'}
+          labelStyle={{ width: isMobile ? 'auto' : '180px', minWidth: '140px', whiteSpace: 'nowrap' }}
+        >
           <Descriptions.Item label="Tổ chức" span={2}>
             {system.org_name || '-'}
           </Descriptions.Item>
@@ -196,7 +328,7 @@ const SystemDetail = () => {
             </Descriptions.Item>
           )}
           <Descriptions.Item label="Mô tả" span={2}>
-            {renderValue(system.purpose || system.description)}
+            {renderLongText(system.purpose || system.description, 3)}
           </Descriptions.Item>
           <Descriptions.Item label="Trạng thái">
             {getStatusTag(system.status)}
@@ -204,21 +336,36 @@ const SystemDetail = () => {
           <Descriptions.Item label="Mức độ quan trọng">
             {getCriticalityTag(system.criticality_level)}
           </Descriptions.Item>
-          <Descriptions.Item label="Phạm vi sử dụng">
+          {system.completion_percentage !== undefined && system.completion_percentage !== null && (
+            <Descriptions.Item label="Tỷ lệ hoàn thành">
+              <Tag color={system.completion_percentage >= 80 ? 'success' : system.completion_percentage >= 50 ? 'warning' : 'default'}>
+                {system.completion_percentage.toFixed(1)}%
+              </Tag>
+            </Descriptions.Item>
+          )}
+          <Descriptions.Item label="Phạm vi">
             {system.scope ? getScopeText(system.scope) : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="Nhu cầu">
-            {renderValue(system.requirement_type)}
+            {system.requirement_type ? getRequirementTypeText(system.requirement_type) : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="Thời gian mong muốn hoàn thành">
+          <Descriptions.Item label="Thời gian hoàn thành">
             {system.target_completion_date ? new Date(system.target_completion_date).toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' }) : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="Nhóm hệ thống">
-            {renderValue(system.system_group)}
+            {system.system_group ? getSystemGroupText(system.system_group) : '-'}
           </Descriptions.Item>
+          <Descriptions.Item label="Đã vận hành?">
+            {renderBooleanField(system.is_go_live !== false)}
+          </Descriptions.Item>
+          {system.is_go_live !== false && (
+            <Descriptions.Item label="Ngày vận hành">
+              {system.go_live_date ? new Date(system.go_live_date).toLocaleDateString('vi-VN') : '-'}
+            </Descriptions.Item>
+          )}
           {system.additional_notes_tab1 && (
-            <Descriptions.Item label="Ghi chú bổ sung" span={2}>
-              {system.additional_notes_tab1}
+            <Descriptions.Item label="Ghi chú" span={2}>
+              {renderLongText(system.additional_notes_tab1)}
             </Descriptions.Item>
           )}
         </Descriptions>
@@ -233,7 +380,12 @@ const SystemDetail = () => {
         </span>
       ),
       children: (
-        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2 }} size={isMobile ? 'small' : 'default'}>
+        <Descriptions
+          bordered
+          column={{ xs: 1, sm: 1, md: 2 }}
+          size={isMobile ? 'small' : 'default'}
+          labelStyle={{ width: isMobile ? 'auto' : '180px', minWidth: '140px', whiteSpace: 'nowrap' }}
+        >
           <Descriptions.Item label="Mục tiêu nghiệp vụ" span={2}>
             {renderArrayField(system.business_objectives, 'Chưa có mục tiêu')}
           </Descriptions.Item>
@@ -286,30 +438,61 @@ const SystemDetail = () => {
         </span>
       ),
       children: (
-        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2 }} size={isMobile ? 'small' : 'default'}>
+        <Descriptions
+          bordered
+          column={{ xs: 1, sm: 1, md: 2 }}
+          size={isMobile ? 'small' : 'default'}
+          labelStyle={{ width: isMobile ? 'auto' : '160px', minWidth: '130px', whiteSpace: 'nowrap' }}
+        >
           <Descriptions.Item label="Ngôn ngữ lập trình" span={2}>
             {renderArrayField(system.programming_language, 'Chưa xác định')}
           </Descriptions.Item>
-          <Descriptions.Item label="Framework/Thư viện" span={2}>
+          <Descriptions.Item label="Framework" span={2}>
             {renderArrayField(system.framework, 'Chưa xác định')}
           </Descriptions.Item>
           <Descriptions.Item label="Cơ sở dữ liệu">
             {renderValue(arch.database_name || system.database_name)}
           </Descriptions.Item>
           <Descriptions.Item label="Nền tảng triển khai">
-            {renderValue(system.hosting_platform)}
+            {system.hosting_platform ? getHostingPlatformText(system.hosting_platform) : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="Backend Technology" span={2}>
+          <Descriptions.Item label="Backend" span={2}>
             {renderArrayField(arch.backend_tech, 'Chưa xác định')}
           </Descriptions.Item>
-          <Descriptions.Item label="Frontend Technology" span={2}>
+          <Descriptions.Item label="Frontend" span={2}>
             {renderArrayField(arch.frontend_tech, 'Chưa xác định')}
           </Descriptions.Item>
+          <Descriptions.Item label="Mobile App" span={2}>
+            {renderArrayField(arch.mobile_app, 'Không có')}
+          </Descriptions.Item>
           <Descriptions.Item label="Loại kiến trúc" span={2}>
-            {renderArrayField(arch.architecture_type, 'Chưa xác định')}
+            {renderTranslatedArrayField(arch.architecture_type, getArchitectureTypeText, 'Chưa xác định')}
+          </Descriptions.Item>
+          <Descriptions.Item label="Sơ đồ kiến trúc">
+            {renderBooleanField(arch.has_architecture_diagram)}
+          </Descriptions.Item>
+          {arch.architecture_description && (
+            <Descriptions.Item label="Mô tả kiến trúc" span={2}>
+              {renderLongText(arch.architecture_description, 3)}
+            </Descriptions.Item>
+          )}
+          <Descriptions.Item label="Loại CSDL">
+            {renderValue(arch.database_type)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Mô hình CSDL">
+            {renderValue(arch.database_model)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Tài liệu data model">
+            {renderBooleanField(arch.has_data_model_doc)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Loại hosting">
+            {renderValue(arch.hosting_type)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Cloud Provider">
+            {renderValue(arch.cloud_provider)}
           </Descriptions.Item>
           <Descriptions.Item label="Container hóa" span={2}>
-            {renderArrayField(arch.containerization, 'Chưa có')}
+            {renderTranslatedArrayField(arch.containerization, getContainerizationText, 'Không sử dụng')}
           </Descriptions.Item>
           <Descriptions.Item label="Multi-tenant">
             {renderBooleanField(arch.is_multi_tenant)}
@@ -319,11 +502,11 @@ const SystemDetail = () => {
           </Descriptions.Item>
           {arch.layered_architecture_details && (
             <Descriptions.Item label="Chi tiết phân lớp" span={2}>
-              {arch.layered_architecture_details}
+              {renderLongText(arch.layered_architecture_details, 2)}
             </Descriptions.Item>
           )}
           <Descriptions.Item label="API Style" span={2}>
-            {renderArrayField(arch.api_style, 'Chưa xác định')}
+            {renderTranslatedArrayField(arch.api_style, getApiStyleText, 'Chưa xác định')}
           </Descriptions.Item>
           <Descriptions.Item label="Messaging/Queue" span={2}>
             {renderArrayField(arch.messaging_queue, 'Không có')}
@@ -334,7 +517,7 @@ const SystemDetail = () => {
           <Descriptions.Item label="Search Engine">
             {renderValue(arch.search_engine)}
           </Descriptions.Item>
-          <Descriptions.Item label="Reporting/BI Tool">
+          <Descriptions.Item label="Reporting/BI">
             {renderValue(arch.reporting_bi_tool)}
           </Descriptions.Item>
           <Descriptions.Item label="Source Repository">
@@ -353,8 +536,8 @@ const SystemDetail = () => {
             {renderValue(arch.automated_testing_tools)}
           </Descriptions.Item>
           {arch.additional_notes && (
-            <Descriptions.Item label="Ghi chú bổ sung" span={2}>
-              {arch.additional_notes}
+            <Descriptions.Item label="Ghi chú" span={2}>
+              {renderLongText(arch.additional_notes)}
             </Descriptions.Item>
           )}
         </Descriptions>
@@ -369,7 +552,12 @@ const SystemDetail = () => {
         </span>
       ),
       children: (
-        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2 }} size={isMobile ? 'small' : 'default'}>
+        <Descriptions
+          bordered
+          column={{ xs: 1, sm: 1, md: 2 }}
+          size={isMobile ? 'small' : 'default'}
+          labelStyle={{ width: isMobile ? 'auto' : '180px', minWidth: '140px', whiteSpace: 'nowrap' }}
+        >
           <Descriptions.Item label="Nguồn dữ liệu" span={2}>
             {renderArrayField(dataInfo.data_sources, 'Chưa có nguồn dữ liệu')}
           </Descriptions.Item>
@@ -378,6 +566,24 @@ const SystemDetail = () => {
           </Descriptions.Item>
           <Descriptions.Item label="Phân loại dữ liệu" span={2}>
             {renderArrayField(system.data_classification_type || dataInfo.data_classification_type, 'Chưa xác định')}
+          </Descriptions.Item>
+          <Descriptions.Item label="Có API?">
+            {renderBooleanField(dataInfo.has_api)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Số lượng API Endpoints">
+            {dataInfo.api_endpoints_count || '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Chia sẻ dữ liệu với hệ thống" span={2}>
+            {renderArrayField(dataInfo.shared_with_systems, 'Không có')}
+          </Descriptions.Item>
+          <Descriptions.Item label="Có tiêu chuẩn dữ liệu?">
+            {renderBooleanField(dataInfo.has_data_standard)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Có dữ liệu cá nhân?">
+            {renderBooleanField(dataInfo.has_personal_data)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Có dữ liệu nhạy cảm?">
+            {renderBooleanField(dataInfo.has_sensitive_data)}
           </Descriptions.Item>
           <Descriptions.Item label="Khối lượng dữ liệu" span={2}>
             {renderValue(dataInfo.data_volume)}
@@ -438,7 +644,36 @@ const SystemDetail = () => {
         </span>
       ),
       children: (
-        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2 }} size={isMobile ? 'small' : 'default'}>
+        <Descriptions
+          bordered
+          column={{ xs: 1, sm: 1, md: 2 }}
+          size={isMobile ? 'small' : 'default'}
+          labelStyle={{ width: isMobile ? 'auto' : '160px', minWidth: '130px', whiteSpace: 'nowrap' }}
+        >
+          <Descriptions.Item label="Có tích hợp?">
+            {renderBooleanField(integ.has_integration)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Số lượng tích hợp">
+            {integ.integration_count || '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Loại tích hợp" span={2}>
+            {renderArrayField(integ.integration_types, 'Chưa xác định')}
+          </Descriptions.Item>
+          <Descriptions.Item label="Hệ thống nội bộ kết nối" span={2}>
+            {renderArrayField(integ.connected_internal_systems, 'Không có')}
+          </Descriptions.Item>
+          <Descriptions.Item label="Hệ thống bên ngoài kết nối" span={2}>
+            {renderArrayField(integ.connected_external_systems, 'Không có')}
+          </Descriptions.Item>
+          <Descriptions.Item label="Có sơ đồ tích hợp?">
+            {renderBooleanField(integ.has_integration_diagram)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Mô tả tích hợp" span={2}>
+            {renderValue(integ.integration_description)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Sử dụng API chuẩn?">
+            {renderBooleanField(integ.uses_standard_api)}
+          </Descriptions.Item>
           <Descriptions.Item label="Số API cung cấp">
             {integ.api_provided_count || '-'}
           </Descriptions.Item>
@@ -490,11 +725,14 @@ const SystemDetail = () => {
                   <Card key={idx} size="small" style={{ marginTop: 8 }}>
                     <Space direction="vertical" size="small">
                       <Text strong>Kết nối #{idx + 1}</Text>
-                      <Text>Nguồn: {conn.source_system || '-'}</Text>
-                      <Text>Đích: {conn.target_system || '-'}</Text>
-                      <Text>Dữ liệu: {conn.data_objects || '-'}</Text>
-                      <Text>Phương thức: {conn.integration_method || '-'}</Text>
+                      <Text>Hệ thống nguồn: {conn.source_system || '-'}</Text>
+                      <Text>Hệ thống đích: {conn.target_system || '-'}</Text>
+                      <Text>Đối tượng dữ liệu trao đổi: {conn.data_objects || '-'}</Text>
+                      <Text>Phương thức tích hợp: {conn.integration_method || '-'}</Text>
                       <Text>Tần suất: {conn.frequency || '-'}</Text>
+                      <Text>Xử lý lỗi/Retry: {conn.error_handling || '-'}</Text>
+                      <Text>Có tài liệu API?: {conn.has_api_docs ? 'Có' : 'Không'}</Text>
+                      {conn.notes && <Text>Ghi chú: {conn.notes}</Text>}
                     </Space>
                   </Card>
                 ))}
@@ -518,7 +756,12 @@ const SystemDetail = () => {
         </span>
       ),
       children: (
-        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2 }} size={isMobile ? 'small' : 'default'}>
+        <Descriptions
+          bordered
+          column={{ xs: 1, sm: 1, md: 2 }}
+          size={isMobile ? 'small' : 'default'}
+          labelStyle={{ width: isMobile ? 'auto' : '160px', minWidth: '130px', whiteSpace: 'nowrap' }}
+        >
           <Descriptions.Item label="Phương thức xác thực" span={2}>
             {renderArrayField(system.authentication_method || sec.authentication_method, 'Chưa xác định')}
           </Descriptions.Item>
@@ -551,7 +794,12 @@ const SystemDetail = () => {
         </span>
       ),
       children: (
-        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2 }} size={isMobile ? 'small' : 'default'}>
+        <Descriptions
+          bordered
+          column={{ xs: 1, sm: 1, md: 2 }}
+          size={isMobile ? 'small' : 'default'}
+          labelStyle={{ width: isMobile ? 'auto' : '160px', minWidth: '130px', whiteSpace: 'nowrap' }}
+        >
           <Descriptions.Item label="Vị trí triển khai">
             {renderValue(ops.deployment_location || infra.deployment_location)}
           </Descriptions.Item>
@@ -593,7 +841,48 @@ const SystemDetail = () => {
         </span>
       ),
       children: (
-        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2 }} size={isMobile ? 'small' : 'default'}>
+        <Descriptions
+          bordered
+          column={{ xs: 1, sm: 1, md: 2 }}
+          size={isMobile ? 'small' : 'default'}
+          labelStyle={{ width: isMobile ? 'auto' : '160px', minWidth: '130px', whiteSpace: 'nowrap' }}
+        >
+          <Descriptions.Item label="Loại hình phát triển">
+            {renderValue(ops.dev_type)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Đơn vị phát triển">
+            {renderValue(ops.developer)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Quy mô đội ngũ phát triển">
+            {ops.dev_team_size || '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Trạng thái bảo hành">
+            {renderValue(ops.warranty_status)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Ngày kết thúc bảo hành">
+            {ops.warranty_end_date ? new Date(ops.warranty_end_date).toLocaleDateString('vi-VN') : '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Có hợp đồng bảo trì?">
+            {renderBooleanField(ops.has_maintenance_contract)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Ngày kết thúc bảo trì">
+            {ops.maintenance_end_date ? new Date(ops.maintenance_end_date).toLocaleDateString('vi-VN') : '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Đơn vị vận hành">
+            {renderValue(ops.operator)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Quy mô đội ngũ vận hành">
+            {ops.ops_team_size || '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Phụ thuộc vendor">
+            {renderValue(ops.vendor_dependency)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Có thể tự bảo trì?">
+            {renderBooleanField(ops.can_self_maintain)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Thời gian phản hồi sự cố (giờ)">
+            {ops.avg_incident_response_hours || '-'}
+          </Descriptions.Item>
           <Descriptions.Item label="Người chịu trách nhiệm">
             {renderValue(ops.business_owner || system.business_owner)}
           </Descriptions.Item>
@@ -626,16 +915,26 @@ const SystemDetail = () => {
         </span>
       ),
       children: assess && Object.keys(assess).length > 0 ? (
-        <Descriptions bordered column={{ xs: 1, sm: 1, md: 2 }} size={isMobile ? 'small' : 'default'}>
-          <Descriptions.Item label="Điểm phù hợp cho tích hợp" span={2}>
-            {renderArrayField(assess.integration_readiness, 'Chưa đánh giá')}
+        <Descriptions
+          bordered
+          column={{ xs: 1, sm: 1, md: 2 }}
+          size={isMobile ? 'small' : 'default'}
+          labelStyle={{ width: isMobile ? 'auto' : '180px', minWidth: '140px', whiteSpace: 'nowrap' }}
+        >
+          <Descriptions.Item label="Điểm phù hợp tích hợp" span={2}>
+            {renderTranslatedArrayField(assess.integration_readiness, getIntegrationReadinessText, 'Chưa đánh giá')}
           </Descriptions.Item>
           <Descriptions.Item label="Điểm vướng mắc" span={2}>
-            {renderArrayField(assess.blockers, 'Không có')}
+            {renderTranslatedArrayField(assess.blockers, getBlockerText, 'Không có')}
           </Descriptions.Item>
           <Descriptions.Item label="Đề xuất của đơn vị" span={2}>
-            {renderValue(assess.recommendation)}
+            {assess.recommendation ? getRequirementTypeText(assess.recommendation) : '-'}
           </Descriptions.Item>
+          {assess.recommendation_other && (
+            <Descriptions.Item label="Đề xuất khác" span={2}>
+              {renderLongText(assess.recommendation_other)}
+            </Descriptions.Item>
+          )}
         </Descriptions>
       ) : (
         <Empty description="Chưa có đánh giá" />
@@ -665,8 +964,18 @@ const SystemDetail = () => {
 
       <Card
         title={
-          <Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
-            {system.system_code} - {system.system_name}
+          <Title
+            level={isMobile ? 4 : 3}
+            style={{
+              margin: 0,
+              wordBreak: 'break-word',
+              lineHeight: 1.3,
+            }}
+          >
+            <Tag color="blue" style={{ fontSize: isMobile ? '12px' : '14px', marginRight: 8 }}>
+              {system.system_code}
+            </Tag>
+            {system.system_name}
           </Title>
         }
       >

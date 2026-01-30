@@ -374,9 +374,6 @@ interface AIThinking {
   sql_queries: string[];
 }
 
-// AI Processing phases for progressive UI
-type AIProcessingPhase = 'idle' | 'working' | 'complete';
-
 interface AIResponseContent {
   greeting?: string;
   main_answer: string;
@@ -453,7 +450,6 @@ const StrategicDashboard = () => {
   const [dataModalVisible, setDataModalVisible] = useState(false);
 
   // Progressive AI loading state (Claude Code style)
-  const [aiProcessingPhase, setAiProcessingPhase] = useState<AIProcessingPhase>('idle');
   const [aiProgressTasks, setAiProgressTasks] = useState<AIThinkingTask[]>([]);
 
   // Drill-down modal state
@@ -529,7 +525,6 @@ const StrategicDashboard = () => {
     setAiQueryResponse(null); // Clear previous response
 
     // Reset progress states
-    setAiProcessingPhase('working');
     setAiProgressTasks([]);
 
     // Get token from localStorage or sessionStorage
@@ -537,7 +532,6 @@ const StrategicDashboard = () => {
     if (!token) {
       message.error('Vui lòng đăng nhập lại');
       setAiQueryLoading(false);
-      setAiProcessingPhase('idle');
       return;
     }
 
@@ -599,7 +593,6 @@ const StrategicDashboard = () => {
 
         // Mark all tasks as completed
         setAiProgressTasks(prev => prev.map(t => ({ ...t, status: 'completed' as const })));
-        setAiProcessingPhase('complete');
 
         // Small delay before showing result
         setTimeout(() => {
@@ -621,7 +614,6 @@ const StrategicDashboard = () => {
         message.error('Lỗi kết nối đến máy chủ');
       }
       setAiQueryLoading(false);
-      setAiProcessingPhase('idle');
       // Don't clear progress tasks - keep them visible after completion
       // Tasks will be cleared when starting a new query
       eventSource.close();

@@ -241,6 +241,42 @@ const SystemDetail = () => {
     return map[style] || style;
   };
 
+  // Translation for integrated internal systems
+  const getIntegratedInternalSystemText = (system: string) => {
+    const map: Record<string, string> = {
+      document_management_system: 'Hệ thống quản lý văn bản',
+      hr_system: 'Hệ thống quản lý nhân sự',
+      finance_system: 'Hệ thống tài chính',
+      email_system: 'Hệ thống email',
+      portal_system: 'Cổng thông tin điện tử',
+      reporting_system: 'Hệ thống báo cáo',
+      crm_system: 'Hệ thống CRM',
+      erp_system: 'Hệ thống ERP',
+      data_warehouse: 'Kho dữ liệu',
+      other_internal: 'Hệ thống nội bộ khác',
+    };
+    return map[system] || system;
+  };
+
+  // Translation for integrated external systems
+  const getIntegratedExternalSystemText = (system: string) => {
+    const map: Record<string, string> = {
+      vneid: 'VNeID',
+      lgsp: 'LGSP (Nền tảng tích hợp, chia sẻ)',
+      customs: 'Hệ thống Hải quan',
+      social_insurance: 'BHXH (Bảo hiểm xã hội)',
+      tax_system: 'Hệ thống thuế',
+      national_population_db: 'CSDL quốc gia về dân cư',
+      national_business_db: 'CSDL quốc gia về ĐKKD',
+      ngsp: 'NGSP (Nền tảng tích hợp quốc gia)',
+      payment_gateway: 'Cổng thanh toán',
+      sms_gateway: 'Cổng SMS',
+      email_gateway: 'Cổng Email',
+      other_external: 'Hệ thống bên ngoài khác',
+    };
+    return map[system] || system;
+  };
+
   // Render long text with expand/collapse
   const renderLongText = (text: string | null | undefined, rows: number = 2) => {
     if (!text) return <Text type="secondary">-</Text>;
@@ -309,11 +345,12 @@ const SystemDetail = () => {
       children: (
         <Descriptions
           bordered
-          column={{ xs: 1, sm: 1, md: 2 }}
+          column={{ xs: 1, sm: 2, md: 2 }}
           size={isMobile ? 'small' : 'default'}
-          labelStyle={{ width: isMobile ? 'auto' : '180px', minWidth: '140px', whiteSpace: 'nowrap' }}
+          labelStyle={{ width: '180px', fontWeight: 500 }}
+          contentStyle={{ minWidth: '150px' }}
         >
-          <Descriptions.Item label="Tổ chức" span={2}>
+          <Descriptions.Item label="Tổ chức">
             {system.org_name || '-'}
           </Descriptions.Item>
           <Descriptions.Item label="Mã hệ thống">
@@ -322,11 +359,9 @@ const SystemDetail = () => {
           <Descriptions.Item label="Tên hệ thống">
             {system.system_name}
           </Descriptions.Item>
-          {system.system_name_en && (
-            <Descriptions.Item label="Tên tiếng Anh" span={2}>
-              {system.system_name_en}
-            </Descriptions.Item>
-          )}
+          <Descriptions.Item label="Tên tiếng Anh">
+            {system.system_name_en || '-'}
+          </Descriptions.Item>
           <Descriptions.Item label="Mô tả" span={2}>
             {renderLongText(system.purpose || system.description, 3)}
           </Descriptions.Item>
@@ -336,38 +371,34 @@ const SystemDetail = () => {
           <Descriptions.Item label="Mức độ quan trọng">
             {getCriticalityTag(system.criticality_level)}
           </Descriptions.Item>
-          {system.completion_percentage !== undefined && system.completion_percentage !== null && (
-            <Descriptions.Item label="Tỷ lệ hoàn thành">
+          <Descriptions.Item label="Tỷ lệ hoàn thành">
+            {system.completion_percentage !== undefined && system.completion_percentage !== null ? (
               <Tag color={system.completion_percentage >= 80 ? 'success' : system.completion_percentage >= 50 ? 'warning' : 'default'}>
                 {system.completion_percentage.toFixed(1)}%
               </Tag>
-            </Descriptions.Item>
-          )}
+            ) : '-'}
+          </Descriptions.Item>
           <Descriptions.Item label="Phạm vi">
             {system.scope ? getScopeText(system.scope) : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="Nhu cầu">
             {system.requirement_type ? getRequirementTypeText(system.requirement_type) : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="Thời gian hoàn thành">
-            {system.target_completion_date ? new Date(system.target_completion_date).toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' }) : '-'}
-          </Descriptions.Item>
           <Descriptions.Item label="Nhóm hệ thống">
             {system.system_group ? getSystemGroupText(system.system_group) : '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Thời gian hoàn thành">
+            {system.target_completion_date ? new Date(system.target_completion_date).toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' }) : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="Đã vận hành?">
             {renderBooleanField(system.is_go_live !== false)}
           </Descriptions.Item>
-          {system.is_go_live !== false && (
-            <Descriptions.Item label="Ngày vận hành">
-              {system.go_live_date ? new Date(system.go_live_date).toLocaleDateString('vi-VN') : '-'}
-            </Descriptions.Item>
-          )}
-          {system.additional_notes_tab1 && (
-            <Descriptions.Item label="Ghi chú" span={2}>
-              {renderLongText(system.additional_notes_tab1)}
-            </Descriptions.Item>
-          )}
+          <Descriptions.Item label="Ngày vận hành">
+            {system.go_live_date ? new Date(system.go_live_date).toLocaleDateString('vi-VN') : '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Ghi chú" span={2}>
+            {system.additional_notes_tab1 ? renderLongText(system.additional_notes_tab1) : '-'}
+          </Descriptions.Item>
         </Descriptions>
       ),
     },
@@ -382,9 +413,10 @@ const SystemDetail = () => {
       children: (
         <Descriptions
           bordered
-          column={{ xs: 1, sm: 1, md: 2 }}
+          column={{ xs: 1, sm: 2, md: 2 }}
           size={isMobile ? 'small' : 'default'}
-          labelStyle={{ width: isMobile ? 'auto' : '180px', minWidth: '140px', whiteSpace: 'nowrap' }}
+          labelStyle={{ width: '180px', fontWeight: 500 }}
+          contentStyle={{ minWidth: '150px' }}
         >
           <Descriptions.Item label="Mục tiêu nghiệp vụ" span={2}>
             {renderArrayField(system.business_objectives, 'Chưa có mục tiêu')}
@@ -421,11 +453,9 @@ const SystemDetail = () => {
               <Text type="secondary">Chưa xác định</Text>
             )}
           </Descriptions.Item>
-          {system.additional_notes_tab2 && (
-            <Descriptions.Item label="Ghi chú bổ sung" span={2}>
-              {system.additional_notes_tab2}
-            </Descriptions.Item>
-          )}
+          <Descriptions.Item label="Ghi chú bổ sung" span={2}>
+            {system.additional_notes_tab2 || '-'}
+          </Descriptions.Item>
         </Descriptions>
       ),
     },
@@ -440,14 +470,15 @@ const SystemDetail = () => {
       children: (
         <Descriptions
           bordered
-          column={{ xs: 1, sm: 1, md: 2 }}
+          column={{ xs: 1, sm: 2, md: 2 }}
           size={isMobile ? 'small' : 'default'}
-          labelStyle={{ width: isMobile ? 'auto' : '160px', minWidth: '130px', whiteSpace: 'nowrap' }}
+          labelStyle={{ width: '180px', fontWeight: 500 }}
+          contentStyle={{ minWidth: '150px' }}
         >
-          <Descriptions.Item label="Ngôn ngữ lập trình" span={2}>
+          <Descriptions.Item label="Ngôn ngữ lập trình">
             {renderArrayField(system.programming_language, 'Chưa xác định')}
           </Descriptions.Item>
-          <Descriptions.Item label="Framework" span={2}>
+          <Descriptions.Item label="Framework">
             {renderArrayField(system.framework, 'Chưa xác định')}
           </Descriptions.Item>
           <Descriptions.Item label="Cơ sở dữ liệu">
@@ -456,26 +487,24 @@ const SystemDetail = () => {
           <Descriptions.Item label="Nền tảng triển khai">
             {system.hosting_platform ? getHostingPlatformText(system.hosting_platform) : '-'}
           </Descriptions.Item>
-          <Descriptions.Item label="Backend" span={2}>
+          <Descriptions.Item label="Backend">
             {renderArrayField(arch.backend_tech, 'Chưa xác định')}
           </Descriptions.Item>
-          <Descriptions.Item label="Frontend" span={2}>
+          <Descriptions.Item label="Frontend">
             {renderArrayField(arch.frontend_tech, 'Chưa xác định')}
           </Descriptions.Item>
-          <Descriptions.Item label="Mobile App" span={2}>
+          <Descriptions.Item label="Mobile App">
             {renderArrayField(arch.mobile_app, 'Không có')}
           </Descriptions.Item>
-          <Descriptions.Item label="Loại kiến trúc" span={2}>
+          <Descriptions.Item label="Loại kiến trúc">
             {renderTranslatedArrayField(arch.architecture_type, getArchitectureTypeText, 'Chưa xác định')}
           </Descriptions.Item>
           <Descriptions.Item label="Sơ đồ kiến trúc">
             {renderBooleanField(arch.has_architecture_diagram)}
           </Descriptions.Item>
-          {arch.architecture_description && (
-            <Descriptions.Item label="Mô tả kiến trúc" span={2}>
-              {renderLongText(arch.architecture_description, 3)}
-            </Descriptions.Item>
-          )}
+          <Descriptions.Item label="Mô tả kiến trúc">
+            {arch.architecture_description ? renderLongText(arch.architecture_description, 3) : '-'}
+          </Descriptions.Item>
           <Descriptions.Item label="Loại CSDL">
             {renderValue(arch.database_type)}
           </Descriptions.Item>
@@ -491,7 +520,7 @@ const SystemDetail = () => {
           <Descriptions.Item label="Cloud Provider">
             {renderValue(arch.cloud_provider)}
           </Descriptions.Item>
-          <Descriptions.Item label="Container hóa" span={2}>
+          <Descriptions.Item label="Container hóa">
             {renderTranslatedArrayField(arch.containerization, getContainerizationText, 'Không sử dụng')}
           </Descriptions.Item>
           <Descriptions.Item label="Multi-tenant">
@@ -500,15 +529,13 @@ const SystemDetail = () => {
           <Descriptions.Item label="Phân lớp (Layered)">
             {renderBooleanField(arch.has_layered_architecture)}
           </Descriptions.Item>
-          {arch.layered_architecture_details && (
-            <Descriptions.Item label="Chi tiết phân lớp" span={2}>
-              {renderLongText(arch.layered_architecture_details, 2)}
-            </Descriptions.Item>
-          )}
-          <Descriptions.Item label="API Style" span={2}>
+          <Descriptions.Item label="Chi tiết phân lớp" span={2}>
+            {arch.layered_architecture_details ? renderLongText(arch.layered_architecture_details, 2) : '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="API Style">
             {renderTranslatedArrayField(arch.api_style, getApiStyleText, 'Chưa xác định')}
           </Descriptions.Item>
-          <Descriptions.Item label="Messaging/Queue" span={2}>
+          <Descriptions.Item label="Messaging/Queue">
             {renderArrayField(arch.messaging_queue, 'Không có')}
           </Descriptions.Item>
           <Descriptions.Item label="Cache System">
@@ -535,11 +562,9 @@ const SystemDetail = () => {
           <Descriptions.Item label="Testing Tools">
             {renderValue(arch.automated_testing_tools)}
           </Descriptions.Item>
-          {arch.additional_notes && (
-            <Descriptions.Item label="Ghi chú" span={2}>
-              {renderLongText(arch.additional_notes)}
-            </Descriptions.Item>
-          )}
+          <Descriptions.Item label="Ghi chú" span={2}>
+            {arch.additional_notes ? renderLongText(arch.additional_notes) : '-'}
+          </Descriptions.Item>
         </Descriptions>
       ),
     },
@@ -606,32 +631,24 @@ const SystemDetail = () => {
           <Descriptions.Item label="CSDL phụ/khác">
             {renderArrayField(dataInfo.secondary_databases, 'Không có')}
           </Descriptions.Item>
-          {dataInfo.data_retention_policy && (
-            <Descriptions.Item label="Chính sách lưu trữ dữ liệu" span={2}>
-              {dataInfo.data_retention_policy}
-            </Descriptions.Item>
-          )}
+          <Descriptions.Item label="Chính sách lưu trữ dữ liệu" span={2}>
+            {dataInfo.data_retention_policy || '-'}
+          </Descriptions.Item>
           <Descriptions.Item label="Data Catalog">
             {renderBooleanField(dataInfo.has_data_catalog)}
           </Descriptions.Item>
           <Descriptions.Item label="Master Data Management (MDM)">
             {renderBooleanField(dataInfo.has_mdm)}
           </Descriptions.Item>
-          {dataInfo.data_catalog_notes && (
-            <Descriptions.Item label="Ghi chú Data Catalog" span={2}>
-              {dataInfo.data_catalog_notes}
-            </Descriptions.Item>
-          )}
-          {dataInfo.mdm_notes && (
-            <Descriptions.Item label="Ghi chú MDM" span={2}>
-              {dataInfo.mdm_notes}
-            </Descriptions.Item>
-          )}
-          {dataInfo.additional_notes && (
-            <Descriptions.Item label="Ghi chú bổ sung" span={2}>
-              {dataInfo.additional_notes}
-            </Descriptions.Item>
-          )}
+          <Descriptions.Item label="Ghi chú Data Catalog" span={2}>
+            {dataInfo.data_catalog_notes || '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Ghi chú MDM" span={2}>
+            {dataInfo.mdm_notes || '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Ghi chú bổ sung" span={2}>
+            {dataInfo.additional_notes || '-'}
+          </Descriptions.Item>
         </Descriptions>
       ),
     },
@@ -695,11 +712,9 @@ const SystemDetail = () => {
           <Descriptions.Item label="Có Rate Limiting?">
             {renderBooleanField(integ.has_rate_limiting)}
           </Descriptions.Item>
-          {integ.api_documentation && (
-            <Descriptions.Item label="Tài liệu API" span={2}>
-              {integ.api_documentation}
-            </Descriptions.Item>
-          )}
+          <Descriptions.Item label="Tài liệu API" span={2}>
+            {integ.api_documentation || '-'}
+          </Descriptions.Item>
           <Descriptions.Item label="Chuẩn phiên bản API">
             {renderValue(integ.api_versioning_standard)}
           </Descriptions.Item>
@@ -707,10 +722,10 @@ const SystemDetail = () => {
             {renderBooleanField(integ.has_integration_monitoring)}
           </Descriptions.Item>
           <Descriptions.Item label="Hệ thống nội bộ tích hợp" span={2}>
-            {renderArrayField(system.integrated_internal_systems, 'Không có')}
+            {renderTranslatedArrayField(system.integrated_internal_systems, getIntegratedInternalSystemText, 'Không có')}
           </Descriptions.Item>
           <Descriptions.Item label="Hệ thống bên ngoài tích hợp" span={2}>
-            {renderArrayField(system.integrated_external_systems, 'Không có')}
+            {renderTranslatedArrayField(system.integrated_external_systems, getIntegratedExternalSystemText, 'Không có')}
           </Descriptions.Item>
           <Descriptions.Item label="API/Webservices" span={2}>
             {renderArrayField(system.api_list || integ.api_list, 'Chưa có API')}
@@ -718,8 +733,8 @@ const SystemDetail = () => {
           <Descriptions.Item label="Phương thức trao đổi dữ liệu" span={2}>
             {renderArrayField(system.data_exchange_method || integ.data_exchange_method, 'Chưa xác định')}
           </Descriptions.Item>
-          {Array.isArray(system.integration_connections) && system.integration_connections.length > 0 && (
-            <Descriptions.Item label="Danh sách tích hợp chi tiết" span={2}>
+          <Descriptions.Item label="Danh sách tích hợp chi tiết" span={2}>
+            {Array.isArray(system.integration_connections) && system.integration_connections.length > 0 ? (
               <Space direction="vertical" style={{ width: '100%' }}>
                 {system.integration_connections.map((conn: any, idx: number) => (
                   <Card key={idx} size="small" style={{ marginTop: 8 }}>
@@ -737,13 +752,13 @@ const SystemDetail = () => {
                   </Card>
                 ))}
               </Space>
-            </Descriptions.Item>
-          )}
-          {integ.additional_notes && (
-            <Descriptions.Item label="Ghi chú bổ sung" span={2}>
-              {integ.additional_notes}
-            </Descriptions.Item>
-          )}
+            ) : (
+              <Text type="secondary">Chưa có tích hợp chi tiết</Text>
+            )}
+          </Descriptions.Item>
+          <Descriptions.Item label="Ghi chú bổ sung" span={2}>
+            {integ.additional_notes || '-'}
+          </Descriptions.Item>
         </Descriptions>
       ),
     },
@@ -777,11 +792,9 @@ const SystemDetail = () => {
           <Descriptions.Item label="Có tài liệu ATTT?">
             {renderBooleanField(sec.has_security_documents)}
           </Descriptions.Item>
-          {sec.additional_notes && (
-            <Descriptions.Item label="Ghi chú bổ sung" span={2}>
-              {sec.additional_notes}
-            </Descriptions.Item>
-          )}
+          <Descriptions.Item label="Ghi chú bổ sung" span={2}>
+            {sec.additional_notes || '-'}
+          </Descriptions.Item>
         </Descriptions>
       ),
     },
@@ -824,11 +837,9 @@ const SystemDetail = () => {
           <Descriptions.Item label="Kế hoạch khôi phục thảm họa" span={2}>
             {renderValue(infra.disaster_recovery_plan || system.disaster_recovery_plan)}
           </Descriptions.Item>
-          {infra.additional_notes && (
-            <Descriptions.Item label="Ghi chú bổ sung" span={2}>
-              {infra.additional_notes}
-            </Descriptions.Item>
-          )}
+          <Descriptions.Item label="Ghi chú bổ sung" span={2}>
+            {infra.additional_notes || '-'}
+          </Descriptions.Item>
         </Descriptions>
       ),
     },
@@ -898,11 +909,9 @@ const SystemDetail = () => {
           <Descriptions.Item label="Mức độ hỗ trợ" span={2}>
             {renderValue(ops.support_level)}
           </Descriptions.Item>
-          {ops.additional_notes && (
-            <Descriptions.Item label="Ghi chú bổ sung" span={2}>
-              {ops.additional_notes}
-            </Descriptions.Item>
-          )}
+          <Descriptions.Item label="Ghi chú bổ sung" span={2}>
+            {ops.additional_notes || '-'}
+          </Descriptions.Item>
         </Descriptions>
       ),
     },
@@ -930,11 +939,9 @@ const SystemDetail = () => {
           <Descriptions.Item label="Đề xuất của đơn vị" span={2}>
             {assess.recommendation ? getRequirementTypeText(assess.recommendation) : '-'}
           </Descriptions.Item>
-          {assess.recommendation_other && (
-            <Descriptions.Item label="Đề xuất khác" span={2}>
-              {renderLongText(assess.recommendation_other)}
-            </Descriptions.Item>
-          )}
+          <Descriptions.Item label="Đề xuất khác" span={2}>
+            {assess.recommendation_other ? renderLongText(assess.recommendation_other) : '-'}
+          </Descriptions.Item>
         </Descriptions>
       ) : (
         <Empty description="Chưa có đánh giá" />

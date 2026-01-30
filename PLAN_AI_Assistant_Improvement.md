@@ -20,8 +20,9 @@
   - Tertiary row: SQL preview, result count, review status
 - [x] **2.5** Progress section persists sau khi complete
 - [x] **2.6** Vietnamese unit display cho data details
-- [x] **2.7** Admin access cho testing
+- [x] **2.7** Admin access cho testing (temporary)
 - [x] **2.8** Deploy & verify production
+- [x] **2.9** Remove admin from Strategic Dashboard access (only lanhdaobo)
 
 ### Phase 3: Executive Response Style (PENDING)
 - [ ] **3.1** Update Phase 2 prompt - Executive summary style

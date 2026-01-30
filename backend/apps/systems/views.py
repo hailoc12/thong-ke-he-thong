@@ -1924,8 +1924,11 @@ Trả về JSON với SQL đã sửa."""
             # SQL validation function
             def validate_and_execute_sql_internal(sql):
                 from django.db import connection
+                import re
                 sql_upper = sql.upper().strip()
-                if any(kw in sql_upper for kw in ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'CREATE', 'TRUNCATE']):
+                # Use word boundaries to avoid matching keywords within identifiers (e.g., "DELETE" in "IS_DELETED")
+                forbidden_pattern = r'\b(DROP|DELETE|UPDATE|INSERT|ALTER|CREATE|TRUNCATE)\b'
+                if re.search(forbidden_pattern, sql_upper):
                     return None, "Only SELECT queries allowed"
                 try:
                     with connection.cursor() as cursor:

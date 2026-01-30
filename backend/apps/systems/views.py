@@ -1899,7 +1899,10 @@ Trả về JSON với SQL đã sửa."""
                     # Use OpenAI Responses API for reasoning models (GPT-5 series)
                     # https://platform.openai.com/docs/guides/reasoning
                     import openai
-                    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+                    client = openai.OpenAI(
+                        api_key=OPENAI_API_KEY,
+                        timeout=60.0  # 60 second timeout
+                    )
 
                     # Build input array with system prompt and user messages
                     input_array = [{'role': 'developer', 'content': system_prompt}]
@@ -1914,7 +1917,10 @@ Trả về JSON với SQL đã sửa."""
                     return response.output_text
                 elif use_claude:
                     import anthropic
-                    client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
+                    client = anthropic.Anthropic(
+                        api_key=CLAUDE_API_KEY,
+                        timeout=60.0  # 60 second timeout
+                    )
                     response = client.messages.create(
                         model='claude-sonnet-4-20250514',
                         max_tokens=4096,
@@ -1965,6 +1971,15 @@ Lưu ý: Dùng is_deleted = false khi query bảng systems"""
 
             phase1_prompt = f"""Bạn là AI assistant chuyên phân tích dữ liệu hệ thống CNTT cho Bộ KH&CN.
 
+QUAN TRỌNG - NGỮ CẢNH:
+Người dùng đang HỎI VỀ DỮ LIỆU được khai báo trong database, KHÔNG phải hỏi về database engine/infrastructure.
+
+Ví dụ:
+- "Tổng dung lượng là bao nhiêu?" → Hỏi về SUM(storage_capacity) của các hệ thống được khai báo
+- "Có bao nhiêu hệ thống?" → Hỏi về số lượng systems trong bảng systems
+- "Tốc độ xử lý trung bình?" → Hỏi về AVG(processing_speed) của các hệ thống
+- KHÔNG phải hỏi về: database size, table count, PostgreSQL performance, etc.
+
 {schema_context}
 
 Phân tích câu hỏi và tạo SQL query. Trả về JSON:
@@ -2006,8 +2021,94 @@ CHỈ trả về JSON."""
                 yield f"event: complete\ndata: {json.dumps({'query': query, 'thinking': thinking, 'response': {'greeting': 'Báo cáo anh/chị,', 'main_answer': 'Không thể tạo truy vấn cho yêu cầu này.', 'follow_up_suggestions': []}, 'data': None})}\n\n"
                 return
 
-            # Execute SQL
-            yield f"event: phase_start\ndata: {json.dumps({'phase': 2, 'name': 'Truy vấn dữ liệu', 'description': 'Đang thực thi truy vấn SQL...'})}\n\n"
+            # Phase 1.5: Smart Data Details - Skip for simple queries
+            # Determine if query needs enhancement based on complexity
+            needs_enhancement = False
+            sql_upper = sql_query.upper()
+
+            # Skip Phase 1.5 if query is simple (single table COUNT/SUM without GROUP BY)
+            is_simple_count = 'COUNT(*)' in sql_upper and 'GROUP BY' not in sql_upper and 'JOIN' not in sql_upper
+            is_simple_sum = 'SUM(' in sql_upper and 'GROUP BY' not in sql_upper and 'JOIN' not in sql_upper
+
+            # Run Phase 1.5 for complex queries that benefit from context
+            has_group_by = 'GROUP BY' in sql_upper
+            has_order_by = 'ORDER BY' in sql_upper
+            has_filter = 'WHERE' in sql_upper and sql_upper.count('WHERE') > 1  # Multiple conditions
+
+            needs_enhancement = (has_group_by or has_order_by or has_filter) and not (is_simple_count or is_simple_sum)
+
+            if needs_enhancement:
+                yield f"event: phase_start\ndata: {json.dumps({'phase': 1.5, 'name': 'Phân tích nhu cầu dữ liệu', 'description': 'Đang phân tích dữ liệu bổ sung cần thiết cho quyết định...'})}\n\n"
+
+                phase15_prompt = f"""Bạn là AI chuyên về database và analytics cho lãnh đạo.
+
+QUAN TRỌNG - NGỮ CẢNH:
+User đang hỏi về DỮ LIỆU được khai báo trong database (các hệ thống CNTT), KHÔNG phải về database engine.
+- "Dung lượng" = storage_capacity của systems
+- "Tốc độ" = processing_speed của systems
+- "Số lượng" = COUNT(systems)
+KHÔNG liên quan đến: PostgreSQL size, table count, database performance metrics.
+
+SQL hiện tại:
+```sql
+{sql_query}
+```
+
+Câu hỏi gốc: "{query}"
+
+Schema context:
+{schema_context}
+
+NHIỆM VỤ:
+1. Phân tích: Lãnh đạo sẽ cần thêm thông tin gì để ra quyết định tốt hơn?
+2. Tăng cường SQL với:
+   - JOIN thêm bảng liên quan (organizations, system_security, system_assessment, etc.)
+   - SELECT thêm columns hữu ích (tên đơn vị, mức bảo mật, đánh giá, khuyến nghị)
+   - GIỮ NGUYÊN logic WHERE, GROUP BY, ORDER BY
+   - Đảm bảo SQL vẫn valid và không thay đổi câu trả lời chính
+
+3. Trả về JSON:
+{{
+    "analysis": "Lãnh đạo có thể cần xem thêm [thông tin gì] để [mục đích gì]",
+    "enhanced_sql": "SELECT ... với JOIN và columns bổ sung",
+    "added_info": ["Tên đơn vị: giúp định danh", "Mức bảo mật: đánh giá rủi ro"]
+}}
+
+CHỈ trả về JSON, không giải thích."""
+
+                try:
+                    phase15_content = call_ai_internal(phase15_prompt, [])
+
+                    # Parse JSON
+                    json_match = re.search(r'\{[\s\S]*\}', phase15_content)
+                    if json_match:
+                        phase15_data = json.loads(json_match.group())
+                        analysis = phase15_data.get('analysis', 'Đã phân tích nhu cầu dữ liệu bổ sung')
+                        enhanced_sql = phase15_data.get('enhanced_sql', sql_query)
+                        added_info = phase15_data.get('added_info', [])
+
+                        # Use enhanced SQL if valid (basic check)
+                        if enhanced_sql and 'SELECT' in enhanced_sql.upper() and 'FROM' in enhanced_sql.upper():
+                            sql_query = enhanced_sql
+                            thinking['enhanced_sql'] = True
+                            thinking['data_analysis'] = analysis
+                            thinking['added_fields'] = added_info
+
+                        yield f"event: phase_complete\ndata: {json.dumps({'phase': 1.5, 'analysis': analysis, 'enhanced': True, 'added_info': added_info})}\n\n"
+                    else:
+                        # Fallback: use original SQL
+                        yield f"event: phase_complete\ndata: {json.dumps({'phase': 1.5, 'analysis': 'Sử dụng SQL gốc', 'enhanced': False})}\n\n"
+
+                except Exception as e:
+                    logger.error(f"Phase 1.5 error: {e}")
+                    # Non-critical error, continue with original SQL
+                    yield f"event: phase_complete\ndata: {json.dumps({'phase': 1.5, 'analysis': 'Sử dụng SQL gốc', 'enhanced': False})}\n\n"
+            else:
+                # Skip Phase 1.5 for simple queries
+                logger.info(f"Skipping Phase 1.5 for simple query: {sql_query[:100]}")
+
+            # Phase 2: Execute SQL (now using enhanced SQL if available)
+            yield f"event: phase_start\ndata: {json.dumps({'phase': 2, 'name': 'Truy vấn dữ liệu', 'description': 'Đang thực thi truy vấn SQL tăng cường...'})}\n\n"
 
             query_result, sql_error = validate_and_execute_sql_internal(sql_query)
 

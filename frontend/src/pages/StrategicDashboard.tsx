@@ -365,7 +365,20 @@ interface RoadmapStats {
 interface AIThinkingTask {
   id: number;
   name: string;
+  description?: string;
   status: 'pending' | 'in_progress' | 'completed';
+
+  // Detailed information captured during execution
+  thinking?: Record<string, any>;
+  sql?: string;
+  sqlPreview?: string;
+  resultCount?: number;
+  reviewPassed?: boolean;
+
+  // Timing information
+  startTime?: number;
+  endTime?: number;
+  duration?: string;
 }
 
 interface AIThinking {
@@ -550,25 +563,66 @@ const StrategicDashboard = () => {
         const phaseId = data.phase;
         seenPhases.add(phaseId);
 
-        // Mark previous tasks as completed, add new in-progress task
+        // Mark previous tasks as completed with end time and duration
         setAiProgressTasks(prev => {
-          const completed = prev.map(t => ({ ...t, status: 'completed' as const }));
-          return [...completed, { id: phaseId, name: data.name, status: 'in_progress' as const }];
+          const now = Date.now();
+          const completed = prev.map(t => {
+            const updated = { ...t, status: 'completed' as const, endTime: now };
+            if (t.startTime) {
+              updated.duration = ((now - t.startTime) / 1000).toFixed(1) + 's';
+            }
+            return updated;
+          });
+          
+          // Add new in-progress task with start time and description
+          return [...completed, { 
+            id: phaseId, 
+            name: data.name, 
+            description: data.description,
+            status: 'in_progress' as const,
+            startTime: now
+          }];
         });
       } catch (err) {
         console.error('Error parsing phase_start:', err);
       }
     });
 
-    eventSource.addEventListener('phase_complete', (e: MessageEvent) => {
+        eventSource.addEventListener('phase_complete', (e: MessageEvent) => {
       try {
         const data = JSON.parse(e.data);
         const phaseId = data.phase;
+        const now = Date.now();
 
-        // Mark this phase as completed
-        setAiProgressTasks(prev => prev.map(t =>
-          t.id === phaseId ? { ...t, status: 'completed' as const } : t
-        ));
+        setAiProgressTasks(prev => prev.map(t => {
+          if (t.id === phaseId) {
+            const updated = { ...t, status: 'completed' as const, endTime: now };
+            
+            // Add phase-specific details
+            if (data.phase === 1) {
+              // SQL Generation phase
+              updated.thinking = data.thinking;
+              updated.sql = data.sql;
+              updated.sqlPreview = data.sql ? 
+                (data.sql.length > 80 ? data.sql.substring(0, 80) + '...' : data.sql) 
+                : undefined;
+            } else if (data.phase === 2) {
+              // Data Query phase
+              updated.resultCount = data.total_rows;
+            } else if (data.phase === 4) {
+              // Self-Review phase
+              updated.reviewPassed = data.review_passed;
+            }
+            
+            // Calculate duration
+            if (t.startTime) {
+              updated.duration = ((now - t.startTime) / 1000).toFixed(1) + 's';
+            }
+            
+            return updated;
+          }
+          return t;
+        }));
       } catch (err) {
         console.error('Error parsing phase_complete:', err);
       }
@@ -3324,33 +3378,85 @@ const StrategicDashboard = () => {
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ duration: 0.2 }}
                                     style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 10,
-                                      padding: '6px 10px',
-                                      background: task.status === 'in_progress' ? 'rgba(114, 46, 209, 0.1)' : 'transparent',
-                                      borderRadius: 6,
-                                      transition: 'background 0.2s ease',
+                                      padding: '10px 12px',
+                                      background: task.status === 'in_progress' ? 'rgba(114, 46, 209, 0.08)' : 'rgba(0, 0, 0, 0.02)',
+                                      borderRadius: 8,
+                                      border: task.status === 'in_progress' ? '1px solid rgba(114, 46, 209, 0.2)' : '1px solid transparent',
+                                      transition: 'all 0.2s ease',
                                     }}
                                   >
-                                    {task.status === 'completed' ? (
-                                      <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 15 }} />
-                                    ) : (
-                                      <SyncOutlined spin style={{ color: '#722ed1', fontSize: 15 }} />
+                                    {/* Primary Row: Icon + Name + Duration */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: task.description || task.status === 'completed' ? 6 : 0 }}>
+                                      {task.status === 'completed' ? (
+                                        <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 14, flexShrink: 0 }} />
+                                      ) : (
+                                        <SyncOutlined spin style={{ color: '#722ed1', fontSize: 14, flexShrink: 0 }} />
+                                      )}
+                                      <Text
+                                        style={{
+                                          fontSize: 13,
+                                          flex: 1,
+                                          textDecoration: task.status === 'completed' ? 'line-through' : 'none',
+                                          color: task.status === 'completed' ? '#8c8c8c' : '#262626',
+                                          fontWeight: task.status === 'in_progress' ? 500 : 400,
+                                        }}
+                                      >
+                                        {task.name}
+                                      </Text>
+                                      {task.duration && (
+                                        <Tag color={task.status === 'completed' ? 'success' : 'processing'} style={{ fontSize: 11, margin: 0, padding: '0 6px', height: 18 }}>
+                                          {task.duration}
+                                        </Tag>
+                                      )}
+                                      {task.status === 'in_progress' && !task.duration && (
+                                        <Spin size="small" />
+                                      )}
+                                    </div>
+
+                                    {/* Secondary Row: Description for in-progress tasks */}
+                                    {task.description && task.status === 'in_progress' && (
+                                      <div style={{ marginLeft: 22, marginTop: 4 }}>
+                                        <Text style={{ fontSize: 12, color: '#595959' }}>
+                                          {task.description}
+                                        </Text>
+                                      </div>
                                     )}
-                                    <Text
-                                      style={{
-                                        fontSize: 13,
-                                        flex: 1,
-                                        textDecoration: task.status === 'completed' ? 'line-through' : 'none',
-                                        color: task.status === 'completed' ? '#8c8c8c' : '#262626',
-                                        fontWeight: task.status === 'in_progress' ? 500 : 400,
-                                      }}
-                                    >
-                                      {task.name}
-                                    </Text>
-                                    {task.status === 'in_progress' && (
-                                      <Spin size="small" />
+
+                                    {/* Tertiary Row: Phase-specific details for completed tasks */}
+                                    {task.status === 'completed' && (
+                                      <div style={{ marginLeft: 22, marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        {/* SQL Preview for Phase 1 */}
+                                        {task.sqlPreview && (
+                                          <div style={{ 
+                                            background: '#f6f6f6', 
+                                            padding: '6px 8px', 
+                                            borderRadius: 4,
+                                            border: '1px solid #e8e8e8',
+                                            fontSize: 11,
+                                            fontFamily: 'Monaco, Consolas, monospace',
+                                            color: '#d73a49',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                          }}>
+                                            {task.sqlPreview}
+                                          </div>
+                                        )}
+
+                                        {/* Result Count for Phase 2 */}
+                                        {task.resultCount !== undefined && (
+                                          <Tag color="blue" style={{ fontSize: 11, width: 'fit-content' }}>
+                                            Found {task.resultCount} rows
+                                          </Tag>
+                                        )}
+
+                                        {/* Review Status for Phase 4 */}
+                                        {task.reviewPassed !== undefined && (
+                                          <Tag color={task.reviewPassed ? 'success' : 'warning'} style={{ fontSize: 11, width: 'fit-content' }}>
+                                            {task.reviewPassed ? '✓ Review Passed' : '⚠ Review Issues Found'}
+                                          </Tag>
+                                        )}
+                                      </div>
                                     )}
                                   </motion.div>
                                 ))}

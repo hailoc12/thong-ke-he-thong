@@ -375,6 +375,11 @@ interface AIThinkingTask {
   resultCount?: number;
   reviewPassed?: boolean;
 
+  // Phase 1.5: Smart Data Details
+  dataAnalysis?: string;
+  enhanced?: boolean;
+  addedInfo?: string[];
+
   // Timing information
   startTime?: number;
   endTime?: number;
@@ -553,12 +558,14 @@ const StrategicDashboard = () => {
     const sseUrl = `${window.location.protocol}//${window.location.hostname}/api/systems/ai_query_stream/?query=${queryString}&token=${token}`;
 
     const eventSource = new EventSource(sseUrl);
+    console.log('[AI DEBUG] EventSource created:', sseUrl);
 
     // Track which phases we've seen
     const seenPhases = new Set<number>();
 
     eventSource.addEventListener('phase_start', (e: MessageEvent) => {
       try {
+        console.log('[AI DEBUG] phase_start event received:', e.data);
         const data = JSON.parse(e.data);
         const phaseId = data.phase;
         seenPhases.add(phaseId);
@@ -590,6 +597,7 @@ const StrategicDashboard = () => {
 
         eventSource.addEventListener('phase_complete', (e: MessageEvent) => {
       try {
+        console.log('[AI DEBUG] phase_complete event received:', e.data);
         const data = JSON.parse(e.data);
         const phaseId = data.phase;
         const now = Date.now();
@@ -603,9 +611,14 @@ const StrategicDashboard = () => {
               // SQL Generation phase
               updated.thinking = data.thinking;
               updated.sql = data.sql;
-              updated.sqlPreview = data.sql ? 
-                (data.sql.length > 80 ? data.sql.substring(0, 80) + '...' : data.sql) 
+              updated.sqlPreview = data.sql ?
+                (data.sql.length > 80 ? data.sql.substring(0, 80) + '...' : data.sql)
                 : undefined;
+            } else if (data.phase === 1.5) {
+              // Smart Data Details phase
+              updated.dataAnalysis = data.analysis;
+              updated.enhanced = data.enhanced;
+              updated.addedInfo = data.added_info;
             } else if (data.phase === 2) {
               // Data Query phase
               updated.resultCount = data.total_rows;
@@ -643,6 +656,7 @@ const StrategicDashboard = () => {
 
     eventSource.addEventListener('complete', (e: MessageEvent) => {
       try {
+        console.log('[AI DEBUG] *** COMPLETE EVENT RECEIVED ***', e.data);
         const data = JSON.parse(e.data);
 
         // Mark all tasks as completed
@@ -650,7 +664,9 @@ const StrategicDashboard = () => {
 
         // Small delay before showing result
         setTimeout(() => {
+          console.log('[AI DEBUG] Setting aiQueryResponse state:', data);
           setAiQueryResponse(data);
+          console.log('[AI DEBUG] Setting aiQueryLoading to false');
           setAiQueryHistory(prev => [currentQuery, ...prev.filter(q => q !== currentQuery)].slice(0, 10));
           setAiQueryLoading(false);
           eventSource.close();
@@ -662,6 +678,7 @@ const StrategicDashboard = () => {
 
     eventSource.addEventListener('error', (e: MessageEvent) => {
       try {
+        console.log('[AI DEBUG] ERROR event received:', e.data);
         const data = JSON.parse(e.data);
         message.error(data.error || 'Lỗi khi xử lý câu hỏi');
       } catch {
@@ -1610,6 +1627,174 @@ const StrategicDashboard = () => {
                         </div>
                       </div>
 
+                      {/* Enhanced Progress Section - BEFORE AI Response */}
+                      {aiProgressTasks.length > 0 && (
+                        <div style={{ marginBottom: 16 }}>
+                          <Card
+                            size="small"
+                            style={{
+                              background: 'linear-gradient(135deg, #f9f0ff 0%, #efdbff 100%)',
+                              borderRadius: 12,
+                              border: '2px solid #d3adf7',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                              <div style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #722ed1 0%, #1890ff 100%)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}>
+                                <RobotOutlined style={{ color: 'white', fontSize: 16 }} />
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ marginBottom: 10 }}>
+                                  <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                    TIẾN ĐỘ ({aiProgressTasks.filter(t => t.status === 'completed').length}/{aiProgressTasks.length})
+                                  </Text>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  {aiProgressTasks.map((task) => (
+                                    <motion.div
+                                      key={task.id}
+                                      initial={{ opacity: 0, x: -10 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ duration: 0.2 }}
+                                      style={{
+                                        padding: '10px 12px',
+                                        background: task.status === 'in_progress' ? 'rgba(114, 46, 209, 0.08)' : 'rgba(0, 0, 0, 0.02)',
+                                        borderRadius: 8,
+                                        border: task.status === 'in_progress' ? '1px solid rgba(114, 46, 209, 0.2)' : '1px solid transparent',
+                                        transition: 'all 0.2s ease',
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: task.description || task.status === 'completed' ? 6 : 0 }}>
+                                        {task.status === 'completed' ? (
+                                          <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 14, flexShrink: 0 }} />
+                                        ) : (
+                                          <SyncOutlined spin style={{ color: '#722ed1', fontSize: 14, flexShrink: 0 }} />
+                                        )}
+                                        <Text
+                                          style={{
+                                            fontSize: 13,
+                                            flex: 1,
+                                            textDecoration: task.status === 'completed' ? 'line-through' : 'none',
+                                            color: task.status === 'completed' ? '#8c8c8c' : '#262626',
+                                            fontWeight: task.status === 'in_progress' ? 500 : 400,
+                                          }}
+                                        >
+                                          {task.name}
+                                        </Text>
+                                        {task.duration && (
+                                          <Tag color={task.status === 'completed' ? 'success' : 'processing'} style={{ fontSize: 11, margin: 0, padding: '0 6px', height: 18 }}>
+                                            {task.duration}
+                                          </Tag>
+                                        )}
+                                        {task.status === 'in_progress' && !task.duration && (
+                                          <Spin size="small" />
+                                        )}
+                                      </div>
+
+                                      {task.description && task.status === 'in_progress' && (
+                                        <div style={{ marginLeft: 22, marginTop: 4 }}>
+                                          <Text style={{ fontSize: 12, color: '#595959' }}>
+                                            {task.description}
+                                          </Text>
+                                        </div>
+                                      )}
+
+                                      {task.status === 'completed' && (
+                                        <div style={{ marginLeft: 22, marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                          {task.sqlPreview && (
+                                            <div style={{
+                                              background: '#f6f6f6',
+                                              padding: '6px 8px',
+                                              borderRadius: 4,
+                                              border: '1px solid #e8e8e8',
+                                              fontSize: 11,
+                                              fontFamily: 'Monaco, Consolas, monospace',
+                                              color: '#d73a49',
+                                              overflow: 'hidden',
+                                              textOverflow: 'ellipsis',
+                                              whiteSpace: 'nowrap'
+                                            }}>
+                                              {task.sqlPreview}
+                                            </div>
+                                          )}
+
+                                          {task.dataAnalysis && (
+                                            <div style={{
+                                              background: '#e6f7ff',
+                                              padding: '8px 10px',
+                                              borderRadius: 6,
+                                              border: '1px solid #91d5ff',
+                                              marginTop: 4,
+                                            }}>
+                                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                                                <BulbOutlined style={{ color: '#1890ff', fontSize: 12, marginTop: 2 }} />
+                                                <div style={{ flex: 1 }}>
+                                                  <Text style={{ fontSize: 11, color: '#096dd9', display: 'block', marginBottom: 4 }}>
+                                                    <strong>Phân tích:</strong> {task.dataAnalysis}
+                                                  </Text>
+                                                  {task.addedInfo && task.addedInfo.length > 0 && (
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                                                      {task.addedInfo.map((info, idx) => (
+                                                        <Tag key={idx} color="cyan" style={{ fontSize: 10, margin: 0 }}>
+                                                          {info}
+                                                        </Tag>
+                                                      ))}
+                                                    </div>
+                                                  )}
+                                                  {task.enhanced && (
+                                                    <Tag color="processing" style={{ fontSize: 10, marginTop: 4 }}>
+                                                      ✓ SQL đã được tăng cường
+                                                    </Tag>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {task.resultCount !== undefined && (
+                                            <Tag color="blue" style={{ fontSize: 11, width: 'fit-content' }}>
+                                              Tìm thấy {task.resultCount} dòng
+                                            </Tag>
+                                          )}
+
+                                          {task.reviewPassed !== undefined && (
+                                            <Tag color={task.reviewPassed ? 'success' : 'warning'} style={{ fontSize: 11, width: 'fit-content' }}>
+                                              {task.reviewPassed ? '✓ Đã kiểm tra' : '⚠ Phát hiện vấn đề'}
+                                            </Tag>
+                                          )}
+                                        </div>
+                                      )}
+                                    </motion.div>
+                                  ))}
+
+                                  {aiProgressTasks.length === 0 && (
+                                    <div style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 10,
+                                      padding: '6px 10px',
+                                    }}>
+                                      <Spin size="small" />
+                                      <Text style={{ color: '#722ed1', fontSize: 13 }}>
+                                        Đang khởi tạo...
+                                      </Text>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
+                        </div>
+                      )}
+
                       {/* AI Response Bubble */}
                       <div style={{
                         display: 'flex',
@@ -1648,40 +1833,6 @@ const StrategicDashboard = () => {
                             />
                           ) : (
                             <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                              {/* AI Planning Tasks - Green Tags Style */}
-                              {aiQueryResponse.thinking?.tasks && aiQueryResponse.thinking.tasks.length > 0 && (
-                                <div style={{
-                                  padding: '10px 12px',
-                                  background: 'linear-gradient(135deg, #f6ffed 0%, #e6fffb 50%, #f0f5ff 100%)',
-                                  borderRadius: 8,
-                                  border: '1px solid #b7eb8f',
-                                  marginBottom: 8,
-                                }}>
-                                  <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 14 }} />
-                                    <Text strong style={{ fontSize: 12, color: '#389e0d' }}>
-                                      AI đã phân tích qua {aiQueryResponse.thinking.tasks.length} bước:
-                                    </Text>
-                                  </div>
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                    {aiQueryResponse.thinking.tasks.map((task, idx) => (
-                                      <Tag
-                                        key={task.id}
-                                        color="green"
-                                        style={{
-                                          borderRadius: 10,
-                                          padding: '2px 8px',
-                                          fontSize: 11,
-                                          margin: 0,
-                                        }}
-                                      >
-                                        <CheckCircleOutlined style={{ marginRight: 3, fontSize: 10 }} />
-                                        {idx + 1}. {task.name}
-                                      </Tag>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
 
                               {/* Main Answer - Highlighted with Markdown */}
                               <div style={{
@@ -2037,102 +2188,6 @@ const StrategicDashboard = () => {
                             </Space>
                           )}
                         </motion.div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Progressive Loading State - Claude Code Style */}
-                  {(aiQueryLoading || (aiQueryResponse && aiProgressTasks.length > 0)) && (
-                    <div style={{
-                      display: 'flex',
-                      gap: 12,
-                      padding: '20px 0',
-                    }}>
-                      <div style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #722ed1 0%, #1890ff 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}>
-                        <RobotOutlined style={{ color: 'white', fontSize: 16 }} />
-                      </div>
-                      <div style={{
-                        background: 'white',
-                        borderRadius: 16,
-                        padding: '16px 20px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                        flex: 1,
-                        maxWidth: 420,
-                        minHeight: 80,
-                      }}>
-                        {/* Backlog Header with counter */}
-                        {aiProgressTasks.length > 0 && (
-                          <div style={{ marginBottom: 10 }}>
-                            <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                              TIẾN ĐỘ ({aiProgressTasks.filter(t => t.status === 'completed').length}/{aiProgressTasks.length})
-                            </Text>
-                          </div>
-                        )}
-
-                        {/* Tasks - append progressively */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {aiProgressTasks.map((task) => (
-                            <motion.div
-                              key={task.id}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.2 }}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 10,
-                                padding: '8px 12px',
-                                background: task.status === 'in_progress' ? '#f6f0ff' : 'transparent',
-                                borderRadius: 8,
-                                transition: 'background 0.2s ease',
-                              }}
-                            >
-                              {task.status === 'completed' ? (
-                                <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 16 }} />
-                              ) : (
-                                <SyncOutlined spin style={{ color: '#722ed1', fontSize: 16 }} />
-                              )}
-                              <Text
-                                style={{
-                                  fontSize: 13,
-                                  flex: 1,
-                                  textDecoration: task.status === 'completed' ? 'line-through' : 'none',
-                                  color: task.status === 'completed' ? '#8c8c8c' : '#262626',
-                                  fontWeight: task.status === 'in_progress' ? 500 : 400,
-                                }}
-                              >
-                                {task.name}
-                              </Text>
-                              {task.status === 'in_progress' && (
-                                <Spin size="small" />
-                              )}
-                            </motion.div>
-                          ))}
-
-                          {/* Show initial loading if no tasks yet */}
-                          {aiProgressTasks.length === 0 && (
-                            <div style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 10,
-                              padding: '8px 12px',
-                            }}>
-                              <Spin size="small" />
-                              <Text style={{ color: '#722ed1', fontSize: 13 }}>
-                                Đang khởi tạo...
-                              </Text>
-                            </div>
-                          )}
-                        </div>
                       </div>
                     </div>
                   )}

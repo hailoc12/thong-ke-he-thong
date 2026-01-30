@@ -1961,7 +1961,8 @@ Trả về JSON với SQL đã sửa."""
             schema_context = """Database Schema:
 - organizations: id, name, organization_type, code
 - systems: id, system_name, status, criticality_level, org_id, hosting_platform, has_encryption, is_deleted,
-  storage_capacity, data_volume, server_configuration, backup_plan, disaster_recovery_plan,
+  storage_capacity (text), data_volume (text), data_volume_gb (decimal),
+  server_configuration, backup_plan, disaster_recovery_plan,
   programming_language, framework, database_name,
   users_total, users_mau, users_dau, total_accounts,
   api_provided_count, api_consumed_count,
@@ -1973,7 +1974,10 @@ Trả về JSON với SQL đã sửa."""
 - system_integration: system_id, has_api_gateway, integration_level
 - system_security: system_id, auth_methods, encryption_type, has_security_audit
 
-Lưu ý: Dùng is_deleted = false khi query bảng systems"""
+Lưu ý:
+- Dùng is_deleted = false khi query bảng systems
+- storage_capacity, data_volume là TEXT (100GB, 1TB) - dùng để hiển thị
+- data_volume_gb là NUMERIC (decimal) - dùng để tính SUM/AVG"""
 
             phase1_prompt = f"""Bạn là AI assistant chuyên phân tích dữ liệu hệ thống CNTT cho Bộ KH&CN.
 
@@ -1981,10 +1985,10 @@ QUAN TRỌNG - NGỮ CẢNH:
 Người dùng đang HỎI VỀ DỮ LIỆU được khai báo trong database, KHÔNG phải hỏi về database engine/infrastructure.
 
 Ví dụ:
-- "Tổng dung lượng là bao nhiêu?" → Hỏi về SUM(storage_capacity) của các hệ thống được khai báo
-- "Có bao nhiêu hệ thống?" → Hỏi về số lượng systems trong bảng systems
-- "Tốc độ xử lý trung bình?" → Hỏi về AVG(processing_speed) của các hệ thống
-- KHÔNG phải hỏi về: database size, table count, PostgreSQL performance, etc.
+- "Tổng dung lượng CSDL?" → Hỏi về SUM(data_volume_gb) của các hệ thống (dùng _gb field cho tính toán)
+- "Có bao nhiêu hệ thống?" → Hỏi về COUNT(*) trong bảng systems
+- "Dung lượng trung bình?" → Hỏi về AVG(data_volume_gb)
+- KHÔNG phải hỏi về: PostgreSQL database size, table count, database performance metrics
 
 {schema_context}
 
@@ -2050,9 +2054,9 @@ CHỈ trả về JSON."""
 
 QUAN TRỌNG - NGỮ CẢNH:
 User đang hỏi về DỮ LIỆU được khai báo trong database (các hệ thống CNTT), KHÔNG phải về database engine.
-- "Dung lượng" = storage_capacity của systems
-- "Tốc độ" = processing_speed của systems
+- "Dung lượng CSDL" = data_volume_gb (numeric, dùng cho SUM/AVG)
 - "Số lượng" = COUNT(systems)
+- storage_capacity, data_volume là TEXT fields - chỉ dùng để hiển thị
 KHÔNG liên quan đến: PostgreSQL size, table count, database performance metrics.
 
 SQL hiện tại:

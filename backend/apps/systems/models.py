@@ -175,6 +175,14 @@ class System(models.Model):
         verbose_name=_('Data Volume'),
         help_text='e.g., 100GB, 1TB, 10TB'
     )
+    data_volume_gb = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_('Data Volume (GB)'),
+        help_text='Numeric value in GB for calculations'
+    )
 
     # ======================================================================
     # SECTION 5: System Integration

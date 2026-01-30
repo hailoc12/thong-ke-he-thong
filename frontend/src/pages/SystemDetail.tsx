@@ -81,7 +81,7 @@ const SystemDetail = () => {
   };
 
   const renderArrayField = (data: any[], emptyText: string = 'Chưa có dữ liệu') => {
-    if (!data || data.length === 0) {
+    if (!data || !Array.isArray(data) || data.length === 0) {
       return <Text type="secondary">{emptyText}</Text>;
     }
     return (
@@ -260,7 +260,7 @@ const SystemDetail = () => {
     translator: (item: string) => string,
     emptyText: string = 'Chưa có dữ liệu'
   ) => {
-    if (!data || data.length === 0) {
+    if (!data || !Array.isArray(data) || data.length === 0) {
       return <Text type="secondary">{emptyText}</Text>;
     }
     return (
@@ -411,7 +411,7 @@ const SystemDetail = () => {
             {system.num_organizations ? system.num_organizations.toLocaleString() : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="Đối tượng sử dụng" span={2}>
-            {system.user_types && system.user_types.length > 0 ? (
+            {Array.isArray(system.user_types) && system.user_types.length > 0 ? (
               <Space wrap>
                 {system.user_types.map((type: string, index: number) => (
                   <Tag key={index} color="purple">{getUserTypeText(type)}</Tag>
@@ -718,7 +718,7 @@ const SystemDetail = () => {
           <Descriptions.Item label="Phương thức trao đổi dữ liệu" span={2}>
             {renderArrayField(system.data_exchange_method || integ.data_exchange_method, 'Chưa xác định')}
           </Descriptions.Item>
-          {system.integration_connections && system.integration_connections.length > 0 && (
+          {Array.isArray(system.integration_connections) && system.integration_connections.length > 0 && (
             <Descriptions.Item label="Danh sách tích hợp chi tiết" span={2}>
               <Space direction="vertical" style={{ width: '100%' }}>
                 {system.integration_connections.map((conn: any, idx: number) => (

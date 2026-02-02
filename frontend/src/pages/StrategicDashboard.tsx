@@ -716,7 +716,7 @@ const StrategicDashboard = () => {
                 mode: aiMode
               });
               setCurrentConversation(conv);
-              setConversations(prev => [conv, ...prev.filter(c => c !== null)]);
+              setConversations(prev => [conv!, ...prev]);
             }
 
             // Add user message

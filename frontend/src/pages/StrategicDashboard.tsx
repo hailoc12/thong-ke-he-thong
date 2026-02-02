@@ -24,6 +24,7 @@ import {
   Radio,
   Drawer,
   List,
+  Tooltip,
 } from 'antd';
 
 const { Panel } = Collapse;
@@ -509,6 +510,7 @@ const StrategicDashboard = () => {
   const [conversationSidebarVisible, setConversationSidebarVisible] = useState(false);
 
   // Conversation enhancements (P0 #1: Load full timeline, P1 #3: Search/filter)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [conversationHistory, setConversationHistory] = useState<Array<{
     role: 'user' | 'assistant';
     content: string;
@@ -520,7 +522,6 @@ const StrategicDashboard = () => {
 
   // Conversation title editing (P1 #6)
   const [editingConversationId, setEditingConversationId] = useState<number | null>(null);
-  const [editingTitle, setEditingTitle] = useState('');
 
   // Follow-up suggestion interaction (P2 #4, P1 #12)
   const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);

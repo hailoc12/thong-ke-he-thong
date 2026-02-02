@@ -18,12 +18,45 @@ interface AuthState {
 // Only lanhdaobo can access - admin cannot see this
 const LEADER_USERNAMES = ['lanhdaobo']; // REMOVED: admin (was only for testing)
 
+// Initialize auth state from storage synchronously
+const initializeAuthState = () => {
+  const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+  const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+
+  if (token && userStr) {
+    try {
+      const user = JSON.parse(userStr) as User;
+      return {
+        user,
+        isAuthenticated: true,
+        isAdmin: user.role === 'admin',
+        isLeader: LEADER_USERNAMES.includes(user.username),
+        isLoading: false,
+      };
+    } catch (error) {
+      // Invalid stored data, clear it
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('access_token');
+      sessionStorage.removeItem('refresh_token');
+      sessionStorage.removeItem('user');
+    }
+  }
+
+  return {
+    user: null,
+    isAuthenticated: false,
+    isAdmin: false,
+    isLeader: false,
+    isLoading: false,
+  };
+};
+
+const initialState = initializeAuthState();
+
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  isAuthenticated: false,
-  isAdmin: false,
-  isLeader: false,
-  isLoading: false,
+  ...initialState,
   error: null,
 
   login: async (credentials: LoginRequest) => {

@@ -1704,3 +1704,145 @@ class AIMessage(models.Model):
     def __str__(self):
         content_preview = self.content[:50] + '...' if len(self.content) > 50 else self.content
         return f"{self.role}: {content_preview}"
+
+
+class AIRequestLog(models.Model):
+    """AI Request Log - Track all AI Assistant queries for analytics"""
+
+    MODE_CHOICES = [
+        ('quick', 'Quick Mode'),
+        ('deep', 'Deep Mode'),
+    ]
+
+    STATUS_CHOICES = [
+        ('success', 'Success'),
+        ('error', 'Error'),
+        ('timeout', 'Timeout'),
+    ]
+
+    RATING_CHOICES = [
+        (1, '1 - Rất tệ'),
+        (2, '2 - Tệ'),
+        (3, '3 - Bình thường'),
+        (4, '4 - Tốt'),
+        (5, '5 - Rất tốt'),
+    ]
+
+    # User who made the request
+    user = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='ai_requests',
+        verbose_name=_('User')
+    )
+
+    # Request details
+    query = models.TextField(verbose_name=_('Query'))
+
+    mode = models.CharField(
+        max_length=10,
+        choices=MODE_CHOICES,
+        verbose_name=_('Mode')
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='success',
+        verbose_name=_('Status')
+    )
+
+    # Task list (stored as JSON)
+    tasks = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name=_('Tasks'),
+        help_text='List of tasks performed'
+    )
+
+    # LLM requests (stored as JSON array)
+    llm_requests = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name=_('LLM Requests'),
+        help_text='Array of individual LLM request details'
+    )
+
+    # Timing
+    total_duration_ms = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_('Total Duration (ms)')
+    )
+
+    started_at = models.DateTimeField(verbose_name=_('Started At'))
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('Completed At')
+    )
+
+    # Cost tracking (in USD, stored as Decimal for precision)
+    total_cost_usd = models.DecimalField(
+        max_digits=10,
+        decimal_places=6,
+        null=True,
+        blank=True,
+        verbose_name=_('Total Cost (USD)')
+    )
+
+    # User feedback
+    user_rating = models.IntegerField(
+        null=True,
+        blank=True,
+        choices=RATING_CHOICES,
+        verbose_name=_('User Rating')
+    )
+
+    user_feedback = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('User Feedback')
+    )
+
+    # Error details
+    error_message = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name=_('Error Message')
+    )
+
+    # Conversation link (if part of a conversation)
+    conversation = models.ForeignKey(
+        AIConversation,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='requests',
+        verbose_name=_('Conversation')
+    )
+
+    # Created at
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Created At'))
+
+    class Meta:
+        db_table = 'ai_request_logs'
+        ordering = ['-started_at']
+        verbose_name = _('AI Request Log')
+        verbose_name_plural = _('AI Request Logs')
+        indexes = [
+            models.Index(fields=['user', '-started_at']),
+            models.Index(fields=['mode', '-started_at']),
+            models.Index(fields=['status', '-started_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.user} - {self.mode}: {self.query[:50]}"
+
+    def calculate_total_cost(self):
+        """Calculate total cost from llm_requests"""
+        if not self.llm_requests:
+            return 0
+        total = sum(req.get('estimated_cost_usd', 0) for req in self.llm_requests)
+        return total

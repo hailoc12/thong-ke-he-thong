@@ -14,9 +14,41 @@ import logging
 import time
 
 from apps.accounts.permissions import IsOrgUserOrAdmin, CanManageOrgSystems
-from .models import System, Attachment, AIConversation, AIMessage
+from .models import System, Attachment, AIConversation, AIMessage, AIRequestLog
 
 logger = logging.getLogger(__name__)
+
+# AI Model Cost Estimation (USD per 1M tokens)
+# Pricing as of 2025
+AI_MODEL_PRICING = {
+    # OpenAI Models
+    'gpt-5.2': {'input': 5.0, 'output': 15.0},  # Estimated pricing
+    'gpt-5': {'input': 5.0, 'output': 15.0},
+    'gpt-4o': {'input': 2.5, 'output': 10.0},
+    'gpt-4o-mini': {'input': 0.15, 'output': 0.60},
+    # Anthropic Models
+    'claude-sonnet-4-20250514': {'input': 3.0, 'output': 15.0},
+    'claude-3-5-sonnet-20241022': {'input': 3.0, 'output': 15.0},
+    'claude-3-opus-20240229': {'input': 15.0, 'output': 75.0},
+}
+
+
+def estimate_llm_cost(model_name: str, input_tokens: int, output_tokens: int) -> float:
+    """
+    Estimate cost for an LLM request in USD.
+
+    Args:
+        model_name: Name of the model
+        input_tokens: Number of input tokens
+        output_tokens: Number of output tokens
+
+    Returns:
+        Estimated cost in USD
+    """
+    pricing = AI_MODEL_PRICING.get(model_name, {'input': 1.0, 'output': 1.0})
+    input_cost = (input_tokens / 1_000_000) * pricing['input']
+    output_cost = (output_tokens / 1_000_000) * pricing['output']
+    return input_cost + output_cost
 from .serializers import (
     SystemListSerializer,
     SystemDetailSerializer,
@@ -1439,7 +1471,7 @@ GROUP BY o.id, o.name;
                     input_array.append({'role': msg['role'], 'content': msg['content']})
 
                 response = openai_client.responses.create(
-                    model='gpt-5',
+                    model='gpt-5.2',
                     reasoning={'effort': 'medium'},
                     input=input_array,
                     max_output_tokens=3000,
@@ -1899,6 +1931,7 @@ Trả về JSON với SQL đã sửa."""
         def event_stream():
             import re
             import requests
+            from django.utils import timezone
 
             # API Configuration
             CLAUDE_API_KEY = getattr(settings, 'CLAUDE_API_KEY', None)
@@ -1911,36 +1944,99 @@ Trả về JSON với SQL đã sửa."""
                 yield f"event: error\ndata: {json.dumps({'error': 'AI service not configured'})}\n\n"
                 return
 
-            # Helper function to call AI
-            def call_ai_internal(system_prompt, messages):
-                if use_openai:
-                    import openai
-                    client = openai.OpenAI(
-                        api_key=OPENAI_API_KEY,
-                        timeout=60.0
-                    )
-                    input_array = [{'role': 'developer', 'content': system_prompt}]
-                    input_array.extend(messages)
-                    response = client.responses.create(
-                        model='gpt-5',
-                        reasoning={'effort': 'medium'},
-                        input=input_array,
-                        max_output_tokens=16000,
-                    )
-                    return response.output_text
-                elif use_claude:
-                    import anthropic
-                    client = anthropic.Anthropic(
-                        api_key=CLAUDE_API_KEY,
-                        timeout=60.0
-                    )
-                    response = client.messages.create(
-                        model='claude-sonnet-4-20250514',
-                        max_tokens=4096,
-                        system=system_prompt,
-                        messages=messages
-                    )
-                    return response.content[0].text
+            # Create AI Request Log
+            request_log = AIRequestLog.objects.create(
+                user=user,
+                query=query,
+                mode='quick',
+                status='success',
+                started_at=timezone.now(),
+                llm_requests=[],
+                tasks=[]
+            )
+
+            # Helper function to call AI with logging
+            def call_ai_internal(system_prompt, messages, phase_name='Phase'):
+                start_time = time.time()
+                model_used = None
+                estimated_input_tokens = 0
+                estimated_output_tokens = 0
+                estimated_cost = 0.0
+
+                try:
+                    if use_openai:
+                        import openai
+                        client = openai.OpenAI(
+                            api_key=OPENAI_API_KEY,
+                            timeout=45.0
+                        )
+                        input_array = [{'role': 'developer', 'content': system_prompt}]
+                        input_array.extend(messages)
+
+                        # Estimate input tokens (rough estimate: 1 token ≈ 4 chars)
+                        input_text = system_prompt + ''.join(m.get('content', '') for m in messages)
+                        estimated_input_tokens = len(input_text) // 4
+
+                        # Use GPT-5.2 with low reasoning effort for quick mode
+                        response = client.responses.create(
+                            model='gpt-5.2',
+                            reasoning={'effort': 'low'},
+                            input=input_array,
+                            max_output_tokens=8192,
+                        )
+                        model_used = 'gpt-5.2'
+                        result = response.output_text
+
+                        # Estimate output tokens
+                        estimated_output_tokens = len(result) // 4
+
+                    elif use_claude:
+                        import anthropic
+                        client = anthropic.Anthropic(
+                            api_key=CLAUDE_API_KEY,
+                            timeout=45.0
+                        )
+
+                        input_text = system_prompt + ''.join(m.get('content', '') for m in messages)
+                        estimated_input_tokens = len(input_text) // 4
+
+                        response = client.messages.create(
+                            model='claude-sonnet-4-20250514',
+                            max_tokens=4096,
+                            system=system_prompt,
+                            messages=messages
+                        )
+                        model_used = 'claude-sonnet-4-20250514'
+                        result = response.content[0].text
+
+                        estimated_output_tokens = len(result) // 4
+
+                    # Calculate duration and cost
+                    duration_ms = int((time.time() - start_time) * 1000)
+                    estimated_cost = estimate_llm_cost(model_used, estimated_input_tokens, estimated_output_tokens)
+
+                    # Log this LLM request
+                    llm_request = {
+                        'phase': phase_name,
+                        'model': model_used,
+                        'duration_ms': duration_ms,
+                        'estimated_input_tokens': estimated_input_tokens,
+                        'estimated_output_tokens': estimated_output_tokens,
+                        'estimated_cost_usd': round(estimated_cost, 6),
+                        'timestamp': start_time
+                    }
+
+                    # Update request log's llm_requests
+                    current_requests = request_log.llm_requests or []
+                    current_requests.append(llm_request)
+                    request_log.llm_requests = current_requests
+                    request_log.save(update_fields=['llm_requests'])
+
+                    return result
+
+                except Exception as e:
+                    logger.error(f"AI call error in {phase_name}: {e}")
+                    raise
 
             # SQL validation function
             def validate_and_execute_sql_internal(sql):
@@ -2002,7 +2098,7 @@ Trả về JSON:
 CHỈ trả về JSON."""
 
             try:
-                phase1_content = call_ai_internal(quick_prompt, [{'role': 'user', 'content': query}])
+                phase1_content = call_ai_internal(quick_prompt, [{'role': 'user', 'content': query}], 'SQL Generation + Answer')
                 json_match = re.search(r'\{[\s\S]*\}', phase1_content)
                 if json_match:
                     phase1_data = json.loads(json_match.group())
@@ -2015,6 +2111,12 @@ CHỈ trả về JSON."""
 
             except Exception as e:
                 logger.error(f"Quick mode phase 1 error: {e}")
+                # Update request log with error status
+                request_log.status = 'error'
+                request_log.error_message = str(e)
+                request_log.completed_at = timezone.now()
+                request_log.total_duration_ms = int((request_log.completed_at - request_log.started_at).total_seconds() * 1000)
+                request_log.save(update_fields=['status', 'error_message', 'completed_at', 'total_duration_ms'])
                 yield f"event: error\ndata: {json.dumps({'error': 'Lỗi xử lý', 'detail': str(e)})}\n\n"
                 return
 
@@ -2049,6 +2151,16 @@ CHỈ trả về JSON."""
                 'mode': 'quick'
             }
 
+            # Update request log with completion data
+            request_log.completed_at = timezone.now()
+            request_log.total_duration_ms = int((request_log.completed_at - request_log.started_at).total_seconds() * 1000)
+            request_log.total_cost_usd = request_log.calculate_total_cost()
+            request_log.tasks = [
+                {'name': 'SQL Generation & Answer', 'status': 'completed'},
+                {'name': 'SQL Execution', 'status': 'completed'},
+            ]
+            request_log.save(update_fields=['completed_at', 'total_duration_ms', 'total_cost_usd', 'tasks'])
+
             yield f"event: complete\ndata: {json.dumps(final_response, ensure_ascii=False, default=str)}\n\n"
 
         response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
@@ -2066,6 +2178,8 @@ CHỈ trả về JSON."""
         def event_stream():
             import re
             import requests
+            import threading
+            import time
 
             # API Configuration
             CLAUDE_API_KEY = getattr(settings, 'CLAUDE_API_KEY', None)
@@ -2078,15 +2192,28 @@ CHỈ trả về JSON."""
                 yield f"event: error\ndata: {json.dumps({'error': 'AI service not configured'})}\n\n"
                 return
 
-            # Helper function to call AI
+            # Keep-alive event to prevent connection timeout
+            stop_keep_alive = threading.Event()
+            def send_keep_alive():
+                while not stop_keep_alive.is_set():
+                    time.sleep(10)  # Send every 10 seconds
+                    if not stop_keep_alive.is_set():
+                        yield f"event: keep_alive\ndata: {json.dumps({'timestamp': time.time()})}\n\n"
+
+            # Start keep-alive thread
+            keep_alive_thread = threading.Thread(target=lambda: list(send_keep_alive()))
+            keep_alive_thread.daemon = True
+            keep_alive_thread.start()
+
+            # Helper function to call AI with reduced timeout
             def call_ai_internal(system_prompt, messages):
                 if use_openai:
-                    # Use OpenAI Responses API for reasoning models (GPT-5 series)
+                    # Use OpenAI Responses API for reasoning models (GPT-5.2)
                     # https://platform.openai.com/docs/guides/reasoning
                     import openai
                     client = openai.OpenAI(
                         api_key=OPENAI_API_KEY,
-                        timeout=60.0  # 60 second timeout
+                        timeout=45.0  # Reduced from 60s to 45s for faster fail
                     )
 
                     # Build input array with system prompt and user messages
@@ -2094,7 +2221,7 @@ CHỈ trả về JSON."""
                     input_array.extend(messages)
 
                     response = client.responses.create(
-                        model='gpt-5',
+                        model='gpt-5.2',
                         reasoning={'effort': 'medium'},
                         input=input_array,
                         max_output_tokens=16000,
@@ -2400,6 +2527,9 @@ Trả về JSON: {{"is_consistent": true/false, "issues": []}}"""
 
             thinking['review_passed'] = is_consistent
             yield f"event: phase_complete\ndata: {json.dumps({'phase': 4, 'review_passed': is_consistent})}\n\n"
+
+            # Stop keep-alive before final result
+            stop_keep_alive.set()
 
             # Final result
             final_response = {
@@ -3062,6 +3192,8 @@ class AIConversationViewSet(viewsets.ModelViewSet):
     """
     serializer_class = AIConversationSerializer
     permission_classes = [IsAuthenticated]
+    # Disable pagination to return plain array
+    pagination_class = None
 
     def get_queryset(self):
         """Only return conversations for current user"""

@@ -11,6 +11,7 @@ from .models import (
     SystemInfrastructure,
     SystemSecurity,
     Attachment,
+    AIRequestLog,
 )
 
 
@@ -264,3 +265,89 @@ class AttachmentAdmin(admin.ModelAdmin):
             obj.file_size = obj.file.size
 
         super().save_model(request, obj, form, change)
+
+
+@admin.register(AIRequestLog)
+class AIRequestLogAdmin(admin.ModelAdmin):
+    """Admin interface for AI Request Logs - SUPERUSER ONLY"""
+
+    list_display = [
+        'id',
+        'user',
+        'query_preview',
+        'mode',
+        'status',
+        'total_duration_display',
+        'total_cost_display',
+        'llm_requests_count',
+        'started_at',
+        'completed_at',
+    ]
+
+    list_filter = ['mode', 'status', 'started_at']
+    search_fields = ['query', 'error_message']
+    readonly_fields = [
+        'user', 'query', 'mode', 'tasks', 'llm_requests',
+        'total_duration_ms', 'total_cost_usd', 'started_at',
+        'completed_at', 'created_at'
+    ]
+    date_hierarchy = 'started_at'
+
+    fieldsets = (
+        ('Request Information', {
+            'fields': ('user', 'query', 'mode', 'status')
+        }),
+        ('Performance', {
+            'fields': ('total_duration_ms', 'total_cost_usd', 'started_at', 'completed_at')
+        }),
+        ('Details', {
+            'fields': ('tasks', 'llm_requests', 'error_message'),
+            'classes': ['collapse'],
+        }),
+        ('User Feedback', {
+            'fields': ('user_rating', 'user_feedback'),
+        }),
+        ('Conversation', {
+            'fields': ('conversation',),
+            'classes': ['collapse'],
+        }),
+    )
+
+    def query_preview(self, obj):
+        """Show truncated query"""
+        return obj.query[:60] + '...' if len(obj.query) > 60 else obj.query
+    query_preview.short_description = 'Query'
+
+    def total_duration_display(self, obj):
+        """Show duration in seconds"""
+        if obj.total_duration_ms:
+            return f"{obj.total_duration_ms / 1000:.1f}s"
+        return "-"
+    total_duration_display.short_description = 'Duration'
+
+    def total_cost_display(self, obj):
+        """Show cost formatted"""
+        if obj.total_cost_usd:
+            return f"${obj.total_cost_usd:.6f}"
+        return "-"
+    total_cost_display.short_description = 'Cost'
+
+    def llm_requests_count(self, obj):
+        """Count LLM requests"""
+        if obj.llm_requests:
+            return len(obj.llm_requests)
+        return 0
+    llm_requests_count.short_description = 'LLM Calls'
+
+    def has_module_permission(self, request, obj=None):
+        """Only superusers can access AI logs"""
+        return request.user and request.user.is_superuser
+
+    # Disable all modification permissions
+    has_add_permission = lambda self, request: False
+    has_change_permission = lambda self, request, obj=None: False
+    has_delete_permission = lambda self, request, obj=None: request.user and request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        """Only superusers can view AI logs"""
+        return request.user and request.user.is_superuser

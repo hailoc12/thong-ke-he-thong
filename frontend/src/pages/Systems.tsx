@@ -28,6 +28,7 @@ const Systems = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<string>('all');
+  const [totalSystemsCount, setTotalSystemsCount] = useState(0);
 
   useEffect(() => {
     const handleResize = () => {
@@ -41,7 +42,19 @@ const Systems = () => {
   useEffect(() => {
     fetchOrganizations();
     fetchSystems();
+    fetchTotalCount();
   }, []);
+
+  const fetchTotalCount = async () => {
+    try {
+      const response = await api.get<ApiResponse<System>>('/systems/', {
+        params: { page_size: 1 },
+      });
+      setTotalSystemsCount(response.data.count || 0);
+    } catch (error) {
+      console.error('Failed to fetch total count:', error);
+    }
+  };
 
   const fetchOrganizations = async () => {
     try {
@@ -418,10 +431,10 @@ const Systems = () => {
             >
               <Space direction="vertical">
                 <Radio value="all">
-                  Xuất tất cả hệ thống ({pagination.total} hệ thống)
+                  Xuất tất cả hệ thống ({totalSystemsCount} hệ thống)
                 </Radio>
                 <Radio value="filtered" disabled={!searchQuery && selectedOrg === 'all'}>
-                  Chỉ xuất kết quả lọc hiện tại
+                  Chỉ xuất kết quả lọc hiện tại ({pagination.total} hệ thống)
                   {(searchQuery || selectedOrg !== 'all') && (
                     <span style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 4 }}>
                       ({[

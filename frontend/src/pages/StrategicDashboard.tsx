@@ -2448,7 +2448,7 @@ const StrategicDashboard = () => {
                                       icon={<ReloadOutlined />}
                                       onClick={() => {
                                         // Regenerate contextual suggestions
-                                        const contextual = generateContextualSuggestions(aiQuery, aiQueryResponse);
+                                        generateContextualSuggestions(aiQuery, aiQueryResponse);
                                         setSelectedSuggestion(null);
                                       }}
                                       style={{ padding: '0 4px' }}
@@ -2851,7 +2851,6 @@ const StrategicDashboard = () => {
                             }
                           }
                           setEditingConversationId(null);
-                          setEditingTitle('');
                         }}
                         onPressEnter={async (e) => {
                           const newTitle = e.currentTarget.value.trim();
@@ -2870,7 +2869,6 @@ const StrategicDashboard = () => {
                             }
                           }
                           setEditingConversationId(null);
-                          setEditingTitle('');
                         }}
                         onClick={(e) => e.stopPropagation()}
                       />
@@ -2885,7 +2883,6 @@ const StrategicDashboard = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditingConversationId(conv.id);
-                              setEditingTitle(conv.title);
                             }}
                           />
                         </Tooltip>

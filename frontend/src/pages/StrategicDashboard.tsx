@@ -25,6 +25,7 @@ import {
   Drawer,
   List,
   Tooltip,
+  Pagination,
 } from 'antd';
 
 const { Panel } = Collapse;
@@ -70,6 +71,12 @@ import {
   SearchOutlined,
   CheckOutlined,
   ReloadOutlined,
+  SoundOutlined,
+  FilePdfOutlined,
+  EyeInvisibleOutlined,
+  FormOutlined,
+  UndoOutlined,
+  BulbOutlined as LightBulbOutlined,
 } from '@ant-design/icons';
 import {
   PieChart,
@@ -520,6 +527,26 @@ const StrategicDashboard = () => {
   const [conversationSearch, setConversationSearch] = useState('');
   const [conversationFilterMode, setConversationFilterMode] = useState<'all' | 'quick' | 'deep'>('all');
 
+  // P2 #25: Pagination for conversations
+  const [conversationPage, setConversationPage] = useState(1);
+  const CONVERSATIONS_PER_PAGE = 15;
+
+  // P3 #32: Dark mode
+  const [aiDarkMode, setAiDarkMode] = useState(false);
+
+  // P3 #30: SQL preview
+  const [showSql, setShowSql] = useState(false);
+
+  // P3 #28: Voice input
+  const [isListening, setIsListening] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
+
+  // P3 #29: Query templates visibility
+  const [showTemplates, setShowTemplates] = useState(false);
+
+  // P2 #27: Last failed query for retry
+  const [lastFailedQuery, setLastFailedQuery] = useState<string | null>(null);
+
   // Conversation title editing (P1 #6)
   const [editingConversationId, setEditingConversationId] = useState<number | null>(null);
 
@@ -850,6 +877,9 @@ const StrategicDashboard = () => {
         });
         message.error('Lỗi kết nối đến máy chủ');
       }
+
+      // P2 #27: Save failed query for retry
+      setLastFailedQuery(currentQuery);
       setAiQueryLoading(false);
       // Don't clear progress tasks - keep them visible after completion
       // Tasks will be cleared when starting a new query
@@ -948,6 +978,17 @@ const StrategicDashboard = () => {
       return matchSearch && matchMode;
     });
   }, [conversations, conversationSearch, conversationFilterMode]);
+
+  // P2 #25: Paginated conversations
+  const paginatedConversations = useMemo(() => {
+    const startIndex = (conversationPage - 1) * CONVERSATIONS_PER_PAGE;
+    return filteredConversations.slice(startIndex, startIndex + CONVERSATIONS_PER_PAGE);
+  }, [filteredConversations, conversationPage]);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setConversationPage(1);
+  }, [conversationSearch, conversationFilterMode]);
 
   const generateAlerts = (data: StrategicStats | null) => {
     const newAlerts: Array<{ type: 'critical' | 'warning' | 'info'; message: string }> = [];
@@ -2118,12 +2159,30 @@ const StrategicDashboard = () => {
                           }}
                         >
                           {(aiQueryResponse.error || aiQueryResponse.ai_response?.error) ? (
-                            <Alert
-                              type="error"
-                              message={aiQueryResponse.error || aiQueryResponse.ai_response?.error}
-                              showIcon
-                              style={{ border: 'none', background: 'transparent', padding: 0 }}
-                            />
+                            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                              <Alert
+                                type="error"
+                                message={aiQueryResponse.error || aiQueryResponse.ai_response?.error}
+                                showIcon
+                                style={{ border: 'none', background: 'transparent', padding: 0 }}
+                              />
+                              {/* P2 #27: Retry button for failed queries */}
+                              {lastFailedQuery && (
+                                <Button
+                                  type="primary"
+                                  size="small"
+                                  icon={<UndoOutlined />}
+                                  onClick={() => {
+                                    setAiQuery(lastFailedQuery);
+                                    setLastFailedQuery(null);
+                                    setTimeout(() => handleAIQuery(), 100);
+                                  }}
+                                  style={{ marginTop: 8 }}
+                                >
+                                  Thử lại
+                                </Button>
+                              )}
+                            </Space>
                           ) : (
                             <Space direction="vertical" size={12} style={{ width: '100%' }}>
 
@@ -2158,6 +2217,84 @@ const StrategicDashboard = () => {
                                     {aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả'}
                                   </ReactMarkdown>
                                 </div>
+
+                                {/* P3: Action Buttons */}
+                                <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                  {/* P3 #30: SQL Preview Toggle */}
+                                  {aiQueryResponse.ai_response?.sql && (
+                                    <Button
+                                      size="small"
+                                      type="default"
+                                      icon={showSql ? <EyeInvisibleOutlined /> : <CodeOutlined />}
+                                      onClick={() => setShowSql(!showSql)}
+                                      style={{ fontSize: 12 }}
+                                    >
+                                      {showSql ? 'Ẩn SQL' : 'Xem SQL'}
+                                    </Button>
+                                  )}
+
+                                  {/* P3 #31: PDF Export */}
+                                  <Button
+                                    size="small"
+                                    type="default"
+                                    icon={<FilePdfOutlined />}
+                                    onClick={() => {
+                                      // Simple PDF export using window.print
+                                      const printContent = `
+                                        <h1>AI Assistant - ${aiQueryResponse.query}</h1>
+                                        <h2>Câu trả lời</h2>
+                                        <p>${aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || ''}</p>
+                                        ${aiQueryResponse.ai_response?.sql ? `<h3>SQL Query</h3><pre>${aiQueryResponse.ai_response.sql}</pre>` : ''}
+                                        ${aiQueryResponse.data ? `<h3>Dữ liệu (${aiQueryResponse.data.total_rows} kết quả)</h3>` : ''}
+                                      `;
+                                      const printWindow = window.open('', '_blank');
+                                      if (printWindow) {
+                                        printWindow.document.write(printContent);
+                                        printWindow.document.close();
+                                        printWindow.print();
+                                      }
+                                    }}
+                                    style={{ fontSize: 12 }}
+                                  >
+                                    Xuất PDF
+                                  </Button>
+
+                                  {/* P3 #32: Dark Mode Toggle */}
+                                  <Button
+                                    size="small"
+                                    type="default"
+                                    icon={<LightBulbOutlined />}
+                                    onClick={() => setAiDarkMode(!aiDarkMode)}
+                                    style={{ fontSize: 12 }}
+                                  >
+                                    {aiDarkMode ? 'Sáng' : 'Tối'}
+                                  </Button>
+                                </div>
+
+                                {/* P3 #30: SQL Preview Content */}
+                                {showSql && aiQueryResponse.ai_response?.sql && (
+                                  <div style={{
+                                    marginTop: 12,
+                                    padding: '12px',
+                                    background: '#f5f5f5',
+                                    borderRadius: 6,
+                                    border: '1px solid #d9d9d9',
+                                  }}>
+                                    <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 6 }}>
+                                      <CodeOutlined /> SQL Query:
+                                    </Text>
+                                    <pre style={{
+                                      margin: 0,
+                                      fontSize: 12,
+                                      overflow: 'auto',
+                                      maxHeight: 200,
+                                      fontFamily: 'Monaco, Consolas, monospace',
+                                    }}>
+                                      {aiQueryResponse.ai_response.sql}
+                                    </pre>
+                                  </div>
+                                )}
+
                                 {/* Details */}
                                 {aiQueryResponse.response?.details && (
                                   <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
@@ -2625,6 +2762,105 @@ const StrategicDashboard = () => {
                         boxShadow: 'none',
                       }}
                     />
+
+                    {/* P3 #29: Query Templates */}
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          <FormOutlined /> Câu hỏi mẫu:
+                        </Text>
+                        <Button
+                          type="text"
+                          size="small"
+                          onClick={() => setShowTemplates(!showTemplates)}
+                          style={{ fontSize: 11, padding: 0 }}
+                        >
+                          {showTemplates ? 'Ẩn' : 'Hiện'}
+                        </Button>
+                      </div>
+                      {showTemplates && (
+                        <Space wrap size={[6, 6]}>
+                          {[
+                            'Có bao nhiêu hệ thống đang hoạt động?',
+                            'Top 5 hệ thống tốn kém nhất?',
+                            'Đơn vị nào có nhiều hệ thống nhất?',
+                            'Hệ thống nào hết hạn bảo mật?',
+                          ].map((template, idx) => (
+                            <Tag
+                              key={idx}
+                              style={{
+                                cursor: 'pointer',
+                                fontSize: 12,
+                                borderRadius: 8,
+                                background: '#f0f5ff',
+                                border: '1px solid #adc6ff',
+                              }}
+                              onClick={() => setAiQuery(template)}
+                            >
+                              {template}
+                            </Tag>
+                          ))}
+                        </Space>
+                      )}
+                    </div>
+
+                    {/* P3 #28: Voice Input */}
+                    <div style={{ marginTop: 8 }}>
+                      <Button
+                        type={isListening ? 'primary' : 'default'}
+                        danger={isListening}
+                        icon={<SoundOutlined />}
+                        onClick={() => {
+                          if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                            message.warning('Trình duyệt không hỗ trợ nhập giọng nói');
+                            return;
+                          }
+
+                          if (isListening) {
+                            if (recognition) {
+                              recognition.stop();
+                            }
+                            setIsListening(false);
+                          } else {
+                            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                            const newRecognition = new SpeechRecognition();
+                            newRecognition.lang = 'vi-VN';
+                            newRecognition.continuous = false;
+                            newRecognition.interimResults = false;
+
+                            newRecognition.onstart = () => {
+                              setIsListening(true);
+                              message.loading('Đang nghe...', 0);
+                            };
+
+                            newRecognition.onresult = (event: any) => {
+                              const transcript = event.results[0][0].transcript;
+                              setAiQuery(transcript);
+                              message.destroy();
+                              message.success('Đã nhận dạng: ' + transcript);
+                            };
+
+                            newRecognition.onerror = () => {
+                              message.destroy();
+                              message.error('Không thể nhận dạng giọng nói');
+                              setIsListening(false);
+                            };
+
+                            newRecognition.onend = () => {
+                              setIsListening(false);
+                              message.destroy();
+                            };
+
+                            setRecognition(newRecognition);
+                            newRecognition.start();
+                          }
+                        }}
+                        style={{ width: '100%' }}
+                      >
+                        {isListening ? 'Đang nghe...' : '🎤 Nhập bằng giọng nói'}
+                      </Button>
+                    </div>
+
                     <div style={{ marginTop: 8, textAlign: 'center' }}>
                       <Text type="secondary" style={{ fontSize: 11 }}>
                         💡 Mẹo: Nhấn Enter để gửi nhanh
@@ -2770,8 +3006,9 @@ const StrategicDashboard = () => {
             </div>
           </div>
         ) : (
+          <>
           <List
-            dataSource={filteredConversations}
+            dataSource={paginatedConversations}
             renderItem={(conv) => (
               <List.Item
                 key={conv.id}
@@ -2934,6 +3171,21 @@ const StrategicDashboard = () => {
               </List.Item>
             )}
           />
+          {/* P2 #25: Pagination for conversations */}
+          {filteredConversations.length > CONVERSATIONS_PER_PAGE && (
+            <div style={{ padding: '16px 20px', borderTop: '1px solid #f0f0f0' }}>
+              <Pagination
+                current={conversationPage}
+                pageSize={CONVERSATIONS_PER_PAGE}
+                total={filteredConversations.length}
+                onChange={setConversationPage}
+                size="small"
+                showSizeChanger={false}
+                showTotal={(total) => `${total} cuộc trò chuyện`}
+              />
+            </div>
+          )}
+          </>
         )}
       </Drawer>
 

@@ -2163,10 +2163,7 @@ CHỈ trả về JSON."""
                 return result
 
             # Process answer to replace any template variables
-            logger.info(f"AI answer: {answer}")
-            logger.info(f"Query result: {query_result}")
             processed_answer = replace_template_vars(answer, query_result)
-            logger.info(f"Processed answer: {processed_answer}")
 
             # Final result (no Phase 3, no Phase 4 for quick mode)
             final_response = {

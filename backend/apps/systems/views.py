@@ -2134,13 +2134,39 @@ CHỈ trả về JSON."""
 
             yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': query_result.get('total_rows', 0)})}\n\n"
 
+            # Replace template variables in answer with actual data
+            # AI might return "{{column_name}}" which needs to be replaced with actual values
+            def replace_template_vars(text, data):
+                """Replace {{column_name}} templates with actual data from query result"""
+                if not text:
+                    return text
+
+                # Get first row for template replacement
+                first_row = data.get('rows', [{}])[0] if data.get('rows') else {}
+
+                # Replace all {{column_name}} patterns with actual values
+                import re
+                def replace_match(match):
+                    var_name = match.group(1)  # Get column name from {{var_name}}
+                    value = first_row.get(var_name)
+                    if value is not None:
+                        return str(value)
+                    return match.group(0)  # Keep original if not found
+
+                # Replace {{variable}} patterns
+                result = re.sub(r'\{\{(\w+)\}\}', replace_match, text)
+                return result
+
+            # Apply template replacement to the answer
+            processed_answer = replace_template_vars(answer, query_result)
+
             # Final result (no Phase 3, no Phase 4 for quick mode)
             final_response = {
                 'query': query,
                 'thinking': {'plan': 'Quick analysis', 'tasks': []},
                 'response': {
                     'greeting': '',
-                    'main_answer': answer or f'Tìm thấy **{query_result.get("total_rows", 0)}** kết quả.',
+                    'main_answer': processed_answer or answer or f'Tìm thấy **{query_result.get("total_rows", 0)}** kết quả.',
                     'follow_up_suggestions': [
                         'Xem chi tiết dữ liệu',
                         'Phân tích sâu với chế độ chuyên sâu'

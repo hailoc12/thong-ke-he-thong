@@ -2157,6 +2157,8 @@ CHỈ trả về JSON."""
                 result = re.sub(r'\{\{(\w+)\}\}', replace_match, text)
                 # Then replace [variable] patterns (markdown-style placeholders from AI)
                 result = re.sub(r'\[(\w+)\]', replace_match, result)
+                # Finally replace {variable} patterns (single braces - actual AI output)
+                result = re.sub(r'\{(\w+)\}', replace_match, result)
 
                 return result
 
@@ -2545,6 +2547,8 @@ CHỈ trả về JSON."""
                     result = re.sub(r'\{\{(\w+)\}\}', replace_match, text)
                     # Then replace [variable] patterns (markdown-style placeholders from AI)
                     result = re.sub(r'\[(\w+)\]', replace_match, result)
+                    # Finally replace {variable} patterns (single braces - actual AI output)
+                    result = re.sub(r'\{(\w+)\}', replace_match, result)
 
                     return result
 

@@ -16,7 +16,7 @@ interface AuthState {
 
 // List of usernames that can access Strategic Dashboard
 // Only lanhdaobo can access - admin cannot see this
-const LEADER_USERNAMES = ['lanhdaobo', 'admin']; // TEMP: Added admin for testing
+const LEADER_USERNAMES = ['lanhdaobo']; // REMOVED: admin (was only for testing)
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,

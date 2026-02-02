@@ -86,6 +86,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   checkAuth: async () => {
+    // Set loading to true to prevent premature redirects
+    set({ isLoading: true });
+
     // Check both localStorage (remember_me=true) and sessionStorage (remember_me=false)
     const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
     const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -105,6 +108,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             isAdmin: user.role === 'admin',
             isLeader: LEADER_USERNAMES.includes(user.username),
             user,
+            isLoading: false,
           });
         } catch (apiError: any) {
           // Token validation failed - will be handled by interceptor
@@ -115,7 +119,8 @@ export const useAuthStore = create<AuthState>((set) => ({
             isAuthenticated: false,
             isAdmin: false,
             isLeader: false,
-            user: null
+            user: null,
+            isLoading: false,
           });
         }
       } catch (error) {
@@ -130,7 +135,8 @@ export const useAuthStore = create<AuthState>((set) => ({
           isAuthenticated: false,
           isAdmin: false,
           isLeader: false,
-          user: null
+          user: null,
+          isLoading: false,
         });
       }
     } else {
@@ -138,7 +144,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         isAuthenticated: false,
         isAdmin: false,
         isLeader: false,
-        user: null
+        user: null,
+        isLoading: false,
       });
     }
   },

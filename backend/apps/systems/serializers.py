@@ -12,6 +12,8 @@ from .models import (
     SystemSecurity,
     Attachment,
     SystemIntegrationConnection,  # P0.8 Phase 1 - Section 5
+    AIConversation,
+    AIMessage,
 )
 from apps.organizations.models import Organization
 

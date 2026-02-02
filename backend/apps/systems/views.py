@@ -3091,6 +3091,8 @@ class AIConversationViewSet(viewsets.ModelViewSet):
             "response_data": {}  // optional, for assistant messages
         }
         """
+        from django.utils import timezone
+
         conversation = self.get_object()
 
         # Verify ownership

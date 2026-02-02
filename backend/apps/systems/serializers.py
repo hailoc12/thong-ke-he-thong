@@ -628,7 +628,8 @@ class AIConversationCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating new conversation"""
     class Meta:
         model = AIConversation
-        fields = ['title', 'mode']
+        fields = ['id', 'title', 'mode']  # FIXED: Added 'id' to fields
+        read_only_fields = ['id']  # id is read-only, auto-generated
         extra_kwargs = {
             'title': {'required': False, 'default': 'Cuộc trò chuyện mới'}
         }

@@ -26,12 +26,23 @@ def parse_volume_to_gb(volume_text):
     - "1.5TB" -> 1536
     - "500MB" -> 0.5
     - "2PB" -> 2097152
+    - "under_1gb" -> 0.5
+    - "over_100tb" -> 102400
     """
     if not volume_text or not isinstance(volume_text, str):
         return None
 
     # Clean text
     volume_text = volume_text.strip().upper()
+
+    # Handle special format strings
+    special_formats = {
+        'UNDER_1GB': Decimal('0.5'),        # Less than 1GB -> estimate 0.5GB
+        'OVER_100TB': Decimal('102400'),    # More than 100TB -> estimate 100TB
+    }
+
+    if volume_text in special_formats:
+        return special_formats[volume_text]
 
     # Extract number and unit
     match = re.match(r'([0-9.]+)\s*(B|KB|MB|GB|TB|PB)?', volume_text)

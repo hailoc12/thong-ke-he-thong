@@ -24,8 +24,9 @@ import {
   Col,
   message,
   Spin,
+  Input,
 } from 'antd';
-import { EditOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
+import { EditOutlined, EyeOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../config/api';
@@ -105,6 +106,7 @@ const SystemCompletionList = () => {
   const orgFilter = searchParams.get('org') || 'all';
   const statusFilter = searchParams.get('status') || 'all';
   const completionFilter = searchParams.get('completion') || 'all';
+  const searchQuery = searchParams.get('search') || '';
 
   useEffect(() => {
     fetchOrganizations();
@@ -112,7 +114,7 @@ const SystemCompletionList = () => {
 
   useEffect(() => {
     fetchCompletionData();
-  }, [orgFilter, statusFilter, completionFilter]);
+  }, [orgFilter, statusFilter, completionFilter, searchQuery]);
 
   const fetchOrganizations = async () => {
     try {
@@ -132,6 +134,7 @@ const SystemCompletionList = () => {
       const params = new URLSearchParams();
       if (orgFilter !== 'all') params.append('org', orgFilter);
       if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (searchQuery) params.append('search', searchQuery);
 
       // Map completion filter to min/max
       if (completionFilter === '0-25') {
@@ -176,7 +179,7 @@ const SystemCompletionList = () => {
 
   const handleFilterChange = (filterName: string, value: string) => {
     const params = new URLSearchParams(searchParams);
-    if (value === 'all') {
+    if (value === 'all' || value === '') {
       params.delete(filterName);
     } else {
       params.set(filterName, value);
@@ -322,6 +325,16 @@ const SystemCompletionList = () => {
         <Row gutter={[8, 8]} align="middle">
           <Col xs={24} sm={24} md={18} lg={18}>
             <Space wrap size={isMobile ? 'small' : 'middle'} style={{ width: '100%' }}>
+              <Input.Search
+                placeholder={isMobile ? 'Tìm HT...' : 'Tìm hệ thống...'}
+                value={searchQuery}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+                onSearch={(value) => handleFilterChange('search', value)}
+                style={{ width: isMobile ? '100%' : 220 }}
+                size={isMobile ? 'small' : 'middle'}
+                allowClear
+              />
+
               <Select
                 style={{ width: isMobile ? '100%' : 220, minWidth: isMobile ? 'unset' : 180 }}
                 placeholder="Đơn vị"

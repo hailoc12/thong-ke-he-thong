@@ -2544,6 +2544,7 @@ Trả về JSON: {{"is_consistent": true/false, "issues": []}}"""
         Query params:
         - org: Filter by organization ID
         - status: Filter by system status
+        - search: Search by system name or code
         - completion_min: Min completion % (0-100)
         - completion_max: Max completion % (0-100)
         - ordering: Sort field (e.g., 'completion_percentage', '-system_name')
@@ -2561,6 +2562,14 @@ Trả về JSON: {{"is_consistent": true/false, "issues": []}}"""
         status_filter = request.query_params.get('status')
         if status_filter:
             queryset = queryset.filter(status=status_filter)
+
+        # Apply search filter
+        search_query = request.query_params.get('search')
+        if search_query:
+            queryset = queryset.filter(
+                Q(system_name__icontains=search_query) |
+                Q(system_code__icontains=search_query)
+            )
 
         # Get all systems with completion data
         systems_data = []

@@ -11,7 +11,7 @@ interface AuthState {
   error: string | null;
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => void;
-  checkAuth: () => void;
+  checkAuth: () => Promise<void>;
 }
 
 // List of usernames that can access Strategic Dashboard
@@ -85,7 +85,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   },
 
-  checkAuth: () => {
+  checkAuth: async () => {
     // Check both localStorage (remember_me=true) and sessionStorage (remember_me=false)
     const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
     const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -93,12 +93,31 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr) as User;
-        set({
-          isAuthenticated: true,
-          isAdmin: user.role === 'admin',
-          isLeader: LEADER_USERNAMES.includes(user.username),
-          user,
-        });
+
+        // Validate token by making a lightweight API call
+        try {
+          // Try to fetch current user to verify token is valid
+          await api.get('/users/me/');
+
+          // Token is valid, set authenticated state
+          set({
+            isAuthenticated: true,
+            isAdmin: user.role === 'admin',
+            isLeader: LEADER_USERNAMES.includes(user.username),
+            user,
+          });
+        } catch (apiError: any) {
+          // Token validation failed - will be handled by interceptor
+          // If token refresh succeeds, next API call will work
+          // If token refresh fails, interceptor will clear storage and redirect to login
+          // For now, don't set authenticated state
+          set({
+            isAuthenticated: false,
+            isAdmin: false,
+            isLeader: false,
+            user: null
+          });
+        }
       } catch (error) {
         // Invalid user data, clear everything
         localStorage.removeItem('access_token');

@@ -71,9 +71,9 @@ class SystemViewSet(viewsets.ModelViewSet):
         'org', 'status', 'criticality_level', 'form_level', 'system_group',
         'programming_language', 'framework', 'database_name', 'hosting_platform'
     ]
-    # Search only by system code and system name
+    # Search by system code, system name, and organization name
     search_fields = [
-        'system_code', 'system_name'
+        'system_code', 'system_name', 'org__name'
     ]
     ordering_fields = ['created_at', 'updated_at', 'system_code', 'system_name', 'go_live_date']
     ordering = ['-created_at']

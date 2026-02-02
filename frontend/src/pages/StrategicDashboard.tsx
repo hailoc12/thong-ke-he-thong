@@ -65,6 +65,10 @@ import {
   PlusOutlined,
   DeleteOutlined,
   RightCircleOutlined,
+  EditOutlined,
+  SearchOutlined,
+  CheckOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import {
   PieChart,
@@ -475,7 +479,27 @@ const StrategicDashboard = () => {
   const [aiQuery, setAiQuery] = useState('');
   const [aiQueryLoading, setAiQueryLoading] = useState(false);
   const [aiQueryResponse, setAiQueryResponse] = useState<AIQueryResponse | null>(null);
-  const [aiQueryHistory, setAiQueryHistory] = useState<string[]>([]);
+
+  // Query history with localStorage persistence (P0 #3: Fix history lost on refresh)
+  const HISTORY_STORAGE_KEY = 'ai_query_history';
+  const [aiQueryHistory, setAiQueryHistory] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(HISTORY_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Persist query history to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(aiQueryHistory));
+    } catch (e) {
+      console.warn('Failed to save query history:', e);
+    }
+  }, [aiQueryHistory]);
+
   const [aiMode, setAiMode] = useState<'quick' | 'deep'>('quick');  // AI mode: quick or deep
   const [dataModalVisible, setDataModalVisible] = useState(false);
 
@@ -483,6 +507,24 @@ const StrategicDashboard = () => {
   const [conversations, setConversations] = useState<AIConversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<AIConversation | null>(null);
   const [conversationSidebarVisible, setConversationSidebarVisible] = useState(false);
+
+  // Conversation enhancements (P0 #1: Load full timeline, P1 #3: Search/filter)
+  const [conversationHistory, setConversationHistory] = useState<Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    timestamp: string;
+    responseData?: AIQueryResponse;
+  }>>([]);
+  const [conversationSearch, setConversationSearch] = useState('');
+  const [conversationFilterMode, setConversationFilterMode] = useState<'all' | 'quick' | 'deep'>('all');
+
+  // Conversation title editing (P1 #6)
+  const [editingConversationId, setEditingConversationId] = useState<number | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+
+  // Follow-up suggestion interaction (P2 #4, P1 #12)
+  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
+  const [hoveredSuggestion, setHoveredSuggestion] = useState<string | null>(null);
 
   // Progressive AI loading state (Claude Code style)
   const [aiProgressTasks, setAiProgressTasks] = useState<AIThinkingTask[]>([]);
@@ -709,8 +751,11 @@ const StrategicDashboard = () => {
 
             // Create new conversation if needed
             if (!conv || !conv.id) {
+              // P0 #2: Use smart title generation
+              const smartTitle = generateSmartTitle(currentQuery, data);
+
               conv = await createConversation({
-                title: currentQuery.substring(0, 50) + (currentQuery.length > 50 ? '...' : ''),
+                title: smartTitle,
                 mode: aiMode
               });
               setCurrentConversation(conv);
@@ -753,8 +798,55 @@ const StrategicDashboard = () => {
       try {
         console.log('[AI DEBUG] ERROR event received:', e.data);
         const data = JSON.parse(e.data);
-        message.error(data.error || 'Lỗi khi xử lý câu hỏi');
+
+        // P0 #5: Specific error messages with actions
+        const errorMsg = data.error || 'Lỗi khi xử lý câu hỏi';
+        let errorDetail = '';
+        let errorAction = '';
+
+        // Determine specific error handling based on error message
+        if (errorMsg.includes('Chỉ Lãnh đạo Bộ')) {
+          errorDetail = 'Tính năng AI Assistant chỉ dành cho Lãnh đạo Bộ';
+          errorAction = 'Vui lòng liên hệ quản trị viên để được phân quyền';
+        } else if (errorMsg.includes('token') || errorMsg.includes('401') || errorMsg.includes('403')) {
+          errorDetail = 'Phiên đăng nhập đã hết hạn';
+          errorAction = 'Vui lòng đăng nhập lại';
+        } else if (errorMsg.includes('Invalid token')) {
+          errorDetail = 'Phiên làm việc không hợp lệ';
+          errorAction = 'Vui lòng tải lại trang';
+        } else if (errorMsg.includes('AI service')) {
+          errorDetail = 'Không thể kết nối đến dịch vụ AI';
+          errorAction = 'Vui lòng thử lại sau vài giây';
+        } else if (errorMsg.includes('timeout')) {
+          errorDetail = 'Yêu cầu xử lý quá lâu';
+          errorAction = 'Thử với câu hỏi ngắn gọn hơn';
+        } else {
+          errorDetail = errorMsg;
+          errorAction = 'Vui lòng thử lại';
+        }
+
+        // Show detailed error message
+        Modal.error({
+          title: 'Lỗi khi xử lý câu hỏi',
+          content: (
+            <div>
+              <p style={{ marginBottom: 8 }}>{errorDetail}</p>
+              {errorAction && (
+                <p style={{ color: '#8c8c8c', fontSize: 12 }}>💡 {errorAction}</p>
+              )}
+            </div>
+          ),
+          okText: 'Đã hiểu',
+        });
+
+        // Also show message for quick feedback
+        message.error(errorDetail);
       } catch {
+        Modal.error({
+          title: 'Lỗi kết nối',
+          content: 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.',
+          okText: 'Đã hiểu',
+        });
         message.error('Lỗi kết nối đến máy chủ');
       }
       setAiQueryLoading(false);
@@ -768,6 +860,93 @@ const StrategicDashboard = () => {
       eventSource.close();
     };
   }, [aiQuery]);
+
+  // Utility: Clear query history (P2 #10)
+  const clearQueryHistory = useCallback(() => {
+    setAiQueryHistory([]);
+    message.success('Đã xóa lịch sử câu hỏi');
+  }, []);
+
+  // Utility: Generate smart conversation title (P0 #2)
+  const generateSmartTitle = useCallback((query: string, responseData?: AIQueryResponse): string => {
+    // Short queries keep as-is
+    if (query.length < 40) {
+      return query;
+    }
+
+    // Extract context from response data
+    const hasOrg = responseData?.data?.columns?.some((c: string) => c.includes('org'));
+    const hasSystem = responseData?.data?.columns?.some((c: string) => c.includes('system'));
+    const hasCost = responseData?.data?.columns?.some((c: string) => c.toLowerCase().includes('cost') || c.toLowerCase().includes('chi_phi'));
+
+    // Generate contextual suffix
+    let suffix = '';
+    if (hasOrg && hasSystem) suffix = ' - Hệ thống & Đơn vị';
+    else if (hasOrg) suffix = ' - Theo đơn vị';
+    else if (hasSystem) suffix = ' - Hệ thống';
+    else if (hasCost) suffix = ' - Chi phí';
+
+    // Truncate query and add suffix
+    const truncated = query.substring(0, 35);
+    return truncated + '...' + suffix;
+  }, []);
+
+  // Utility: Generate contextual follow-up suggestions (P1 #11)
+  const generateContextualSuggestions = useCallback((
+    currentQuery: string,
+    responseData?: AIQueryResponse
+  ): string[] => {
+    const suggestions: string[] = [];
+
+    // Extract keywords from query
+    const keywords = currentQuery.toLowerCase();
+    const hasOrg = keywords.includes('đơn vị') || keywords.includes('tổ chức');
+    const hasSystem = keywords.includes('hệ thống');
+    const hasCost = keywords.includes('chi phí') || keywords.includes('ngân sách') || keywords.includes('đầu tư');
+    const hasRisk = keywords.includes('rủi ro') || keywords.includes('bảo mật');
+
+    // Generate contextual suggestions
+    if (hasSystem && responseData?.data?.rows && responseData.data.rows.length > 5) {
+      suggestions.push('Top 5 kết quả quan trọng nhất?');
+      suggestions.push('Lọc theo điều kiện cụ thể?');
+    }
+
+    if (hasOrg) {
+      suggestions.push('So sánh giữa các đơn vị?');
+      suggestions.push('Chi tiết từng đơn vị cụ thể?');
+    }
+
+    if (hasCost) {
+      suggestions.push('Phân tích chi phí theo thời gian?');
+      suggestions.push('Đơn vị có chi phí cao nhất?');
+    }
+
+    if (hasRisk) {
+      suggestions.push('Các biện pháp giảm thiểu rủi ro?');
+      suggestions.push('Đánh giá mức độ nghiêm trọng?');
+    }
+
+    // Add generic suggestions if needed
+    if (suggestions.length < 3) {
+      suggestions.push(
+        'Phân tích chuyên sâu hơn?',
+        'So sánh với giai đoạn trước?',
+        'Đề xuất giải pháp cụ thể?'
+      );
+    }
+
+    return suggestions.slice(0, 4);
+  }, []);
+
+  // Utility: Filter conversations (P1 #3)
+  const filteredConversations = useMemo(() => {
+    return conversations.filter(conv => {
+      const matchSearch = conv.title.toLowerCase().includes(conversationSearch.toLowerCase()) ||
+                         (conv.first_message && conv.first_message.toLowerCase().includes(conversationSearch.toLowerCase()));
+      const matchMode = conversationFilterMode === 'all' || conv.mode === conversationFilterMode;
+      return matchSearch && matchMode;
+    });
+  }, [conversations, conversationSearch, conversationFilterMode]);
 
   const generateAlerts = (data: StrategicStats | null) => {
     const newAlerts: Array<{ type: 'critical' | 'warning' | 'info'; message: string }> = [];
@@ -1646,7 +1825,7 @@ const StrategicDashboard = () => {
                     </Col>
                   </Row>
 
-                  {/* Quick suggestion chips */}
+                  {/* Quick suggestion chips - P1 #12: No auto-submit */}
                   <div style={{ marginTop: 12 }}>
                     <Space wrap size={[6, 6]}>
                       <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Thử hỏi:</Text>
@@ -1664,13 +1843,26 @@ const StrategicDashboard = () => {
                             color: 'white',
                             borderRadius: 12,
                             fontSize: 11,
+                            transition: 'all 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.3)';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
+                            e.currentTarget.style.transform = 'translateY(0)';
                           }}
                           onClick={() => {
+                            // Just fill input, don't auto-submit
                             setAiQuery(q);
+                            // Focus input
                             setTimeout(() => {
-                              const submitButton = document.querySelector('.ai-submit-btn') as HTMLButtonElement;
-                              if (submitButton) submitButton.click();
-                            }, 100);
+                              const inputElement = document.querySelector('.ai-query-input') as HTMLInputElement;
+                              if (inputElement) {
+                                inputElement.focus();
+                              }
+                            }, 50);
                           }}
                         >
                           {q}
@@ -2240,20 +2432,32 @@ const StrategicDashboard = () => {
                                 </div>
                               )}
 
-                              {/* Follow-up Suggestions - Truncated & Auto-send */}
+                              {/* Follow-up Suggestions - P1 #11: Contextual, P1 #12: No auto-submit, P2 #13: Visual feedback */}
                               <div>
-                                <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
-                                  <QuestionCircleOutlined style={{ marginRight: 6, color: '#722ed1' }} />
-                                  Câu hỏi gợi ý (nhấn để hỏi):
-                                </Text>
+                                <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 8 }}>
+                                  <Text type="secondary" style={{ fontSize: 12 }}>
+                                    <QuestionCircleOutlined style={{ marginRight: 6, color: '#722ed1' }} />
+                                    Gợi ý câu hỏi tiếp theo:
+                                  </Text>
+                                  {/* P2 #14: Refresh suggestions button */}
+                                  <Tooltip title="Làm mới gợi ý">
+                                    <Button
+                                      type="text"
+                                      size="small"
+                                      icon={<ReloadOutlined />}
+                                      onClick={() => {
+                                        // Regenerate contextual suggestions
+                                        const contextual = generateContextualSuggestions(aiQuery, aiQueryResponse);
+                                        setSelectedSuggestion(null);
+                                      }}
+                                      style={{ padding: '0 4px' }}
+                                    />
+                                  </Tooltip>
+                                </Space>
                                 <Space wrap size={[6, 6]}>
                                   {(aiQueryResponse.response?.follow_up_suggestions && aiQueryResponse.response.follow_up_suggestions.length > 0
                                     ? aiQueryResponse.response.follow_up_suggestions
-                                    : [
-                                        'Hệ thống nào cần ưu tiên nâng cấp?',
-                                        'Đơn vị nào có rủi ro CNTT cao?',
-                                        'Hiệu quả đầu tư CNTT của các đơn vị?',
-                                      ]
+                                    : generateContextualSuggestions(aiQuery, aiQueryResponse)
                                   ).map((suggestion, idx) => (
                                       <Tag
                                         key={idx}
@@ -2270,17 +2474,44 @@ const StrategicDashboard = () => {
                                           whiteSpace: 'normal',
                                           display: 'inline-block',
                                           maxWidth: '100%',
+                                          transition: 'all 0.2s',
+                                          // P2 #13: Visual feedback
+                                          transform: hoveredSuggestion === suggestion ? 'translateY(-2px)' : undefined,
+                                          boxShadow: hoveredSuggestion === suggestion
+                                            ? '0 4px 12px rgba(114, 46, 209, 0.2)'
+                                            : undefined,
+                                          opacity: selectedSuggestion === suggestion ? 0.6 : 1,
                                         }}
+                                        onMouseEnter={() => setHoveredSuggestion(suggestion)}
+                                        onMouseLeave={() => setHoveredSuggestion(null)}
                                         onClick={() => {
-                                          // Auto-send on click
+                                          // P1 #12: Just fill input, don't auto-submit
                                           setAiQuery(suggestion);
+                                          setSelectedSuggestion(suggestion);
+
+                                          // Focus input for immediate edit
                                           setTimeout(() => {
-                                            const submitButton = document.querySelector('.ai-submit-btn') as HTMLButtonElement;
-                                            if (submitButton) submitButton.click();
-                                          }, 100);
+                                            const inputElement = document.querySelector('.ai-query-input') as HTMLInputElement;
+                                            if (inputElement) {
+                                              inputElement.focus();
+                                              inputElement.setSelectionRange(inputElement.value.length, inputElement.value.length);
+                                            }
+                                          }, 50);
+
+                                          // Clear selection after animation
+                                          setTimeout(() => setSelectedSuggestion(null), 300);
                                         }}
                                       >
-                                        💡 {suggestion}
+                                        <Space size={4}>
+                                          {selectedSuggestion === suggestion ? (
+                                            <CheckOutlined style={{ fontSize: 10 }} />
+                                          ) : hoveredSuggestion === suggestion ? (
+                                            <BulbOutlined style={{ fontSize: 10 }} />
+                                          ) : (
+                                            <QuestionCircleOutlined style={{ fontSize: 10 }} />
+                                          )}
+                                          <span>{suggestion}</span>
+                                        </Space>
                                       </Tag>
                                     ))}
                                 </Space>
@@ -2356,16 +2587,23 @@ const StrategicDashboard = () => {
                       </Space>
                     </div>
                     <Input.Search
+                      className="ai-query-input"
                       placeholder="Ví dụ: 'Có bao nhiêu hệ thống?' hoặc 'Đơn vị nào có nhiều hệ thống nhất?'"
                       value={aiQuery}
                       onChange={(e) => setAiQuery(e.target.value)}
                       onSearch={handleAIQuery}
+                      // P0 #4: Accessibility improvements
+                      aria-label="Nhập câu hỏi cho AI"
+                      aria-describedby="ai-query-description"
+                      autoComplete="off"
+                      disabled={aiQueryLoading}
                       enterButton={
                         <Button
                           type="primary"
                           icon={<SendOutlined />}
                           loading={aiQueryLoading}
                           className="ai-submit-btn"
+                          aria-label={aiQueryLoading ? 'Đang xử lý...' : 'Gửi câu hỏi'}
                           style={{
                             background: 'linear-gradient(135deg, #722ed1 0%, #1890ff 100%)',
                             border: 'none',
@@ -2393,29 +2631,56 @@ const StrategicDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Recent Queries */}
-                  {aiQueryHistory.length > 0 && !aiQueryResponse && (
-                    <div style={{ marginTop: 12 }}>
-                      <Space wrap size={[6, 6]}>
-                        <HistoryOutlined style={{ color: '#8c8c8c' }} />
-                        <Text type="secondary" style={{ fontSize: 12 }}>Gần đây:</Text>
-                        {aiQueryHistory.slice(0, 4).map((q, idx) => (
-                          <Tag
-                            key={idx}
-                            style={{
-                              cursor: 'pointer',
-                              fontSize: 12,
-                              borderRadius: 8,
-                              background: 'white',
-                              border: '1px solid #d9d9d9',
-                            }}
-                            onClick={() => setAiQuery(q)}
-                          >
-                            {q.length > 30 ? q.substring(0, 30) + '...' : q}
-                          </Tag>
-                        ))}
-                      </Space>
-                    </div>
+                  {/* Recent Queries - P1 #9: Always show, collapsible */}
+                  {aiQueryHistory.length > 0 && (
+                    <Collapse
+                      ghost
+                      defaultActiveKey={!aiQueryResponse ? 'history' : undefined}
+                      style={{ marginTop: 12 }}
+                      items={[{
+                        key: 'history',
+                        label: (
+                          <Space>
+                            <HistoryOutlined style={{ color: '#8c8c8c' }} />
+                            <Text type="secondary" style={{ fontSize: 12 }}>Lịch sử gần đây</Text>
+                          </Space>
+                        ),
+                        children: (
+                          <Space wrap size={[6, 6]}>
+                            {aiQueryHistory.slice(0, 6).map((q, idx) => (
+                              <Tag
+                                key={idx}
+                                style={{
+                                  cursor: 'pointer',
+                                  fontSize: 12,
+                                  borderRadius: 8,
+                                  background: 'white',
+                                  border: '1px solid #d9d9d9',
+                                }}
+                                onClick={() => setAiQuery(q)}
+                              >
+                                {q.length > 30 ? q.substring(0, 30) + '...' : q}
+                              </Tag>
+                            ))}
+                            {/* P2 #10: Clear history button */}
+                            <Tag
+                              style={{
+                                cursor: 'pointer',
+                                fontSize: 12,
+                                borderRadius: 8,
+                                background: '#fff1f0',
+                                border: '1px solid #ffccc7',
+                                color: '#cf1322',
+                              }}
+                              onClick={clearQueryHistory}
+                            >
+                              <DeleteOutlined style={{ fontSize: 10, marginRight: 4 }} />
+                              Xóa hết
+                            </Tag>
+                          </Space>
+                        )
+                      }]}
+                    />
                   )}
                 </div>
               </div>
@@ -2428,9 +2693,37 @@ const StrategicDashboard = () => {
       {/* Conversation Sidebar Drawer */}
       <Drawer
         title={
-          <Space>
-            <MessageOutlined />
-            <span>Cuộc trò chuyện</span>
+          <Space direction="vertical" style={{ width: '100%' }} size={12}>
+            <Space>
+              <MessageOutlined />
+              <span style={{ fontWeight: 600 }}>Cuộc trò chuyện</span>
+            </Space>
+
+            {/* P1 #3: Search input */}
+            <Input
+              placeholder="Tìm kiếm..."
+              prefix={<SearchOutlined />}
+              value={conversationSearch}
+              onChange={(e) => setConversationSearch(e.target.value)}
+              allowClear
+              size="small"
+            />
+
+            {/* P1 #3: Filter by mode */}
+            <Radio.Group
+              value={conversationFilterMode}
+              onChange={(e) => setConversationFilterMode(e.target.value)}
+              size="small"
+              style={{ width: '100%' }}
+            >
+              <Radio.Button value="all" style={{ width: '33%', textAlign: 'center' }}>Tất cả</Radio.Button>
+              <Radio.Button value="quick" style={{ width: '33%', textAlign: 'center' }}>
+                <Tag color="green" style={{ margin: 0 }}>Nhanh</Tag>
+              </Radio.Button>
+              <Radio.Button value="deep" style={{ width: '34%', textAlign: 'center' }}>
+                <Tag color="blue" style={{ margin: 0 }}>Sâu</Tag>
+              </Radio.Button>
+            </Radio.Group>
           </Space>
         }
         placement="right"
@@ -2477,32 +2770,10 @@ const StrategicDashboard = () => {
           </div>
         ) : (
           <List
-            dataSource={conversations}
+            dataSource={filteredConversations}
             renderItem={(conv) => (
               <List.Item
                 key={conv.id}
-                onClick={async () => {
-                  try {
-                    const fullConv = await getConversation(conv.id);
-                    setCurrentConversation(fullConv);
-                    setConversationSidebarVisible(false);
-
-                    // Load messages into chat
-                    if (fullConv.messages && fullConv.messages.length > 0) {
-                      // Set the last response
-                      const lastAssistantMsg = fullConv.messages
-                        .filter(m => m.role === 'assistant')
-                        .pop();
-                      if (lastAssistantMsg?.response_data) {
-                        setAiQueryResponse(lastAssistantMsg.response_data);
-                      }
-                    }
-
-                    message.success(`Đã mở: ${conv.title}`);
-                  } catch (err) {
-                    message.error('Lỗi khi mở cuộc trò chuyện');
-                  }
-                }}
                 style={{
                   cursor: 'pointer',
                   padding: '16px 20px',
@@ -2510,47 +2781,158 @@ const StrategicDashboard = () => {
                   backgroundColor: currentConversation?.id === conv.id ? '#f0f5ff' : 'transparent'
                 }}
               >
-                <List.Item.Meta
-                  title={
-                    <Space direction="vertical" size={0}>
-                      <Text strong style={{ fontSize: 14 }}>
-                        {conv.title}
-                      </Text>
-                      <Space size={4}>
-                        <Tag color={conv.mode === 'quick' ? 'green' : 'blue'} style={{ fontSize: 10 }}>
-                          {conv.mode === 'quick' ? 'Nhanh' : 'Sâu'}
-                        </Tag>
-                        <Text type="secondary" style={{ fontSize: 11 }}>
-                          {conv.message_count} tin nhắn
-                        </Text>
-                      </Space>
-                    </Space>
-                  }
-                  description={
-                    <Text type="secondary" style={{ fontSize: 12 }} ellipsis>
-                      {conv.first_message || 'Không có tin nhắn'}
-                    </Text>
-                  }
-                />
-                <Button
-                  type="text"
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  onClick={async (e) => {
-                    e.stopPropagation();
+                <div style={{ width: '100%' }}
+                  onClick={async () => {
+                    if (editingConversationId === conv.id) return; // Don't load if editing
+
                     try {
-                      await deleteConversation(conv.id);
-                      setConversations(prev => prev.filter(c => c.id !== conv.id));
-                      if (currentConversation?.id === conv.id) {
-                        setCurrentConversation(null);
+                      const fullConv = await getConversation(conv.id);
+                      setCurrentConversation(fullConv);
+                      setConversationSidebarVisible(false);
+
+                      // P0 #1: Load full conversation timeline (not just last response)
+                      if (fullConv.messages && fullConv.messages.length > 0) {
+                        // Build conversation history for display
+                        const history = fullConv.messages.map(msg => ({
+                          role: msg.role as 'user' | 'assistant',
+                          content: msg.content,
+                          timestamp: msg.created_at,
+                          responseData: msg.response_data,
+                        }));
+                        setConversationHistory(history);
+
+                        // P1 #8: Sync query history with conversation
+                        const userQueries = fullConv.messages
+                          .filter(m => m.role === 'user')
+                          .map(m => m.content);
+                        setAiQueryHistory(prev => {
+                          const combined = [...userQueries, ...prev];
+                          return Array.from(new Set(combined)).slice(0, 10);
+                        });
+
+                        // Set the last response (keep existing behavior)
+                        const lastAssistantMsg = fullConv.messages
+                          .filter(m => m.role === 'assistant')
+                          .pop();
+                        if (lastAssistantMsg?.response_data) {
+                          setAiQueryResponse(lastAssistantMsg.response_data);
+                        }
                       }
-                      message.success('Đã xóa cuộc trò chuyện');
+
+                      message.success(`Đã mở: ${conv.title}`);
                     } catch (err) {
-                      message.error('Lỗi khi xóa');
+                      message.error('Lỗi khi mở cuộc trò chuyện');
                     }
                   }}
-                />
+                >
+                  <Space direction="vertical" style={{ width: '100%' }} size={4}>
+                    {/* P1 #6: Edit title or display title */}
+                    {editingConversationId === conv.id ? (
+                      <Input
+                        defaultValue={conv.title}
+                        size="small"
+                        autoFocus
+                        onBlur={async (e) => {
+                          const newTitle = e.target.value.trim();
+                          if (newTitle && newTitle !== conv.title) {
+                            try {
+                              // Call API to update title (backend supports this)
+                              await api.patch(`/ai-conversations/${conv.id}/`, { title: newTitle });
+                              setConversations(prev =>
+                                prev.map(c => c.id === conv.id ? { ...c, title: newTitle } : c)
+                              );
+                              if (currentConversation?.id === conv.id) {
+                                setCurrentConversation(prev => prev ? { ...prev, title: newTitle } : null);
+                              }
+                              message.success('Đã cập nhật tên');
+                            } catch (err) {
+                              message.error('Lỗi khi cập nhật tên');
+                            }
+                          }
+                          setEditingConversationId(null);
+                          setEditingTitle('');
+                        }}
+                        onPressEnter={async (e) => {
+                          const newTitle = e.currentTarget.value.trim();
+                          if (newTitle && newTitle !== conv.title) {
+                            try {
+                              await api.patch(`/ai-conversations/${conv.id}/`, { title: newTitle });
+                              setConversations(prev =>
+                                prev.map(c => c.id === conv.id ? { ...c, title: newTitle } : c)
+                              );
+                              if (currentConversation?.id === conv.id) {
+                                setCurrentConversation(prev => prev ? { ...prev, title: newTitle } : null);
+                              }
+                              message.success('Đã cập nhật tên');
+                            } catch (err) {
+                              message.error('Lỗi khi cập nhật tên');
+                            }
+                          }
+                          setEditingConversationId(null);
+                          setEditingTitle('');
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                        <Text strong style={{ fontSize: 14 }}>
+                          {conv.title}
+                        </Text>
+                        <Tooltip title="Đổi tên">
+                          <EditOutlined
+                            style={{ fontSize: 12, color: '#8c8c8c', cursor: 'pointer' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingConversationId(conv.id);
+                              setEditingTitle(conv.title);
+                            }}
+                          />
+                        </Tooltip>
+                      </Space>
+                    )}
+
+                    <Space size={4} style={{ width: '100%' }}>
+                      <Tag color={conv.mode === 'quick' ? 'green' : 'blue'} style={{ fontSize: 10 }}>
+                        {conv.mode === 'quick' ? 'Nhanh' : 'Sâu'}
+                      </Tag>
+                      <Text type="secondary" style={{ fontSize: 11 }}>
+                        {conv.message_count} tin nhắn
+                      </Text>
+                      {/* P1 #4: Show preview of last message */}
+                      {conv.first_message && (
+                        <Text type="secondary" style={{ fontSize: 11 }} ellipsis>
+                          • {conv.first_message.length > 30
+                            ? conv.first_message.substring(0, 30) + '...'
+                            : conv.first_message}
+                        </Text>
+                      )}
+                    </Space>
+                  </Space>
+
+                  {/* Delete button */}
+                  <Button
+                    type="text"
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        await deleteConversation(conv.id);
+                        setConversations(prev => prev.filter(c => c.id !== conv.id));
+                        if (currentConversation?.id === conv.id) {
+                          setCurrentConversation(null);
+                          setAiQueryResponse(null);
+                          setConversationHistory([]);
+                        }
+                        message.success('Đã xóa cuộc trò chuyện');
+                      } catch (err) {
+                        message.error('Lỗi khi xóa');
+                      }
+                    }}
+                    style={{ position: 'absolute', right: 20, top: 20 }}
+                  />
+                </div>
               </List.Item>
             )}
           />

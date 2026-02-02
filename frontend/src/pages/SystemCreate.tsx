@@ -1139,7 +1139,7 @@ const SystemCreate = () => {
         ...prev,
         [currentTab]: isValid,
       }));
-    }, 300);
+    }, 300) as any as number;
   }, [form, currentTab]);
 
   // Validate current tab whenever tab changes

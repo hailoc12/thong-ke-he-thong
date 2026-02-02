@@ -31,7 +31,7 @@ const initializeAuthState = () => {
         isAuthenticated: true,
         isAdmin: user.role === 'admin',
         isLeader: LEADER_USERNAMES.includes(user.username),
-        isLoading: false,
+        isLoading: true, // Set to true so ProtectedRoute waits for checkAuth() validation
       };
     } catch (error) {
       // Invalid stored data, clear it

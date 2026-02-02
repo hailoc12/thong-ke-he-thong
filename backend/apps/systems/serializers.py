@@ -576,3 +576,57 @@ class SystemCreateUpdateSerializer(serializers.ModelSerializer):
                 sec.save()
 
         return instance
+
+
+# ========================================
+# AI Conversation Serializers
+# ========================================
+
+class AIMessageSerializer(serializers.ModelSerializer):
+    """Serializer for AI messages"""
+    class Meta:
+        model = AIMessage
+        fields = ['id', 'role', 'content', 'response_data', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class AIConversationSerializer(serializers.ModelSerializer):
+    """Serializer for AI conversations with messages"""
+    messages = AIMessageSerializer(many=True, read_only=True)
+    message_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AIConversation
+        fields = [
+            'id', 'title', 'mode', 'first_message',
+            'message_count', 'created_at', 'updated_at', 'messages'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_message_count(self, obj):
+        return obj.messages.count()
+
+
+class AIConversationListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for conversation list"""
+    message_count = serializers.SerializerMethodField()
+    mode_display = serializers.CharField(source='get_mode_display', read_only=True)
+
+    class Meta:
+        model = AIConversation
+        fields = ['id', 'title', 'mode', 'mode_display', 'first_message',
+                  'message_count', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_message_count(self, obj):
+        return obj.messages.count()
+
+
+class AIConversationCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating new conversation"""
+    class Meta:
+        model = AIConversation
+        fields = ['title', 'mode']
+        extra_kwargs = {
+            'title': {'required': False, 'default': 'Cuộc trò chuyện mới'}
+        }

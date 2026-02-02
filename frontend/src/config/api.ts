@@ -82,3 +82,78 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+
+// ========================================
+// AI Conversation API
+// ========================================
+
+export interface AIMessage {
+  id: number;
+  role: 'user' | 'assistant';
+  content: string;
+  response_data?: any;
+  created_at: string;
+}
+
+export interface AIConversation {
+  id: number;
+  title: string;
+  mode: 'quick' | 'deep';
+  mode_display?: string;
+  first_message: string;
+  message_count: number;
+  created_at: string;
+  updated_at: string;
+  messages?: AIMessage[];
+}
+
+// Get all conversations for current user
+export const getConversations = async (): Promise<AIConversation[]> => {
+  const response = await api.get('/ai-conversations/');
+  return response.data;
+};
+
+// Create new conversation
+export const createConversation = async (data?: { title?: string; mode?: 'quick' | 'deep' }): Promise<AIConversation> => {
+  const response = await api.post('/ai-conversations/', data || {});
+  return response.data;
+};
+
+// Get conversation details with messages
+export const getConversation = async (id: number): Promise<AIConversation> => {
+  const response = await api.get(`/ai-conversations/${id}/`);
+  return response.data;
+};
+
+// Get messages for a conversation
+export const getConversationMessages = async (id: number): Promise<AIMessage[]> => {
+  const response = await api.get(`/ai-conversations/${id}/messages/`);
+  return response.data;
+};
+
+// Add message to conversation
+export const addConversationMessage = async (
+  conversationId: number,
+  role: 'user' | 'assistant',
+  content: string,
+  responseData?: any
+): Promise<AIMessage> => {
+  const response = await api.post(`/ai-conversations/${conversationId}/add_message/`, {
+    role,
+    content,
+    response_data: responseData
+  });
+  return response.data;
+};
+
+// Delete conversation
+export const deleteConversation = async (id: number): Promise<void> => {
+  await api.delete(`/ai-conversations/${id}/`);
+};
+
+// Update conversation title
+export const updateConversation = async (id: number, title: string): Promise<AIConversation> => {
+  const response = await api.patch(`/ai-conversations/${id}/`, { title });
+  return response.data;
+};

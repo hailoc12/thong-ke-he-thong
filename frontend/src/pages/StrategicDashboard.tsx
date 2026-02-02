@@ -21,6 +21,9 @@ import {
   Timeline,
   Collapse,
   Spin,
+  Radio,
+  Drawer,
+  List,
 } from 'antd';
 
 const { TextArea } = Input;
@@ -60,6 +63,10 @@ import {
   QuestionCircleOutlined,
   LinkOutlined,
   UnorderedListOutlined,
+  MessageOutlined,
+  PlusOutlined,
+  DeleteOutlined,
+  RightCircleOutlined,
   RightCircleOutlined,
 } from '@ant-design/icons';
 import {
@@ -84,7 +91,16 @@ import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
 import * as XLSX from 'xlsx';
 import ReactMarkdown from 'react-markdown';
-import api from '../config/api';
+import api, {
+  type AIMessage,
+  type AIConversation,
+  getConversations,
+  createConversation,
+  getConversation,
+  addConversationMessage,
+  deleteConversation,
+  updateConversation,
+} from '../config/api';
 import { shadows, borderRadius, spacing } from '../theme/tokens';
 import AIDataModal from '../components/AIDataModal';
 
@@ -465,7 +481,13 @@ const StrategicDashboard = () => {
   const [aiQueryLoading, setAiQueryLoading] = useState(false);
   const [aiQueryResponse, setAiQueryResponse] = useState<AIQueryResponse | null>(null);
   const [aiQueryHistory, setAiQueryHistory] = useState<string[]>([]);
+  const [aiMode, setAiMode] = useState<'quick' | 'deep'>('quick');  // AI mode: quick or deep
   const [dataModalVisible, setDataModalVisible] = useState(false);
+
+  // Conversation state
+  const [conversations, setConversations] = useState<AIConversation[]>([]);
+  const [currentConversation, setCurrentConversation] = useState<AIConversation | null>(null);
+  const [conversationSidebarVisible, setConversationSidebarVisible] = useState(false);
 
   // Progressive AI loading state (Claude Code style)
   const [aiProgressTasks, setAiProgressTasks] = useState<AIThinkingTask[]>([]);
@@ -555,7 +577,7 @@ const StrategicDashboard = () => {
 
     // Create EventSource for SSE
     const queryString = encodeURIComponent(currentQuery);
-    const sseUrl = `${window.location.protocol}//${window.location.hostname}/api/systems/ai_query_stream/?query=${queryString}&token=${token}`;
+    const sseUrl = `${window.location.protocol}//${window.location.hostname}/api/systems/ai_query_stream/?query=${queryString}&token=${token}&mode=${aiMode}`;
 
     const eventSource = new EventSource(sseUrl);
     console.log('[AI DEBUG] EventSource created:', sseUrl);
@@ -567,10 +589,34 @@ const StrategicDashboard = () => {
       try {
         console.log('[AI DEBUG] phase_start event received:', e.data);
         const data = JSON.parse(e.data);
+
+        // Quick mode: Simplified phase display
+        if (data.mode === 'quick') {
+          setAiProgressTasks(prev => {
+            const now = Date.now();
+            const completed = prev.map(t => {
+              const updated = { ...t, status: 'completed' as const, endTime: now };
+              if (t.startTime) {
+                updated.duration = ((now - t.startTime) / 1000).toFixed(1) + 's';
+              }
+              return updated;
+            });
+
+            return [...completed, {
+              id: data.phase,
+              name: data.name,
+              description: data.description,
+              status: 'in_progress' as const,
+              startTime: now
+            }];
+          });
+          return;
+        }
+
+        // Deep mode: Existing detailed phase tracking
         const phaseId = data.phase;
         seenPhases.add(phaseId);
 
-        // Mark previous tasks as completed with end time and duration
         setAiProgressTasks(prev => {
           const now = Date.now();
           const completed = prev.map(t => {
@@ -580,11 +626,10 @@ const StrategicDashboard = () => {
             }
             return updated;
           });
-          
-          // Add new in-progress task with start time and description
-          return [...completed, { 
-            id: phaseId, 
-            name: data.name, 
+
+          return [...completed, {
+            id: phaseId,
+            name: data.name,
             description: data.description,
             status: 'in_progress' as const,
             startTime: now
@@ -662,13 +707,46 @@ const StrategicDashboard = () => {
         // Mark all tasks as completed
         setAiProgressTasks(prev => prev.map(t => ({ ...t, status: 'completed' as const })));
 
+        // Save to conversation
+        const saveToConversation = async (conversation: AIConversation | null) => {
+          try {
+            let conv = conversation;
+
+            // Create new conversation if needed
+            if (!conv) {
+              conv = await createConversation({
+                title: currentQuery.substring(0, 50) + (currentQuery.length > 50 ? '...' : ''),
+                mode: aiMode
+              });
+              setCurrentConversation(conv);
+              setConversations(prev => [conv, ...prev]);
+            }
+
+            // Add user message
+            await addConversationMessage(conv.id, 'user', currentQuery);
+
+            // Add assistant response
+            await addConversationMessage(conv.id, 'assistant', data.response?.main_answer || '', data);
+
+            // Reload conversations to update list
+            const updatedConvs = await getConversations();
+            setConversations(updatedConvs);
+          } catch (err) {
+            console.error('Error saving to conversation:', err);
+          }
+        };
+
         // Small delay before showing result
-        setTimeout(() => {
+        setTimeout(async () => {
           console.log('[AI DEBUG] Setting aiQueryResponse state:', data);
           setAiQueryResponse(data);
           console.log('[AI DEBUG] Setting aiQueryLoading to false');
           setAiQueryHistory(prev => [currentQuery, ...prev.filter(q => q !== currentQuery)].slice(0, 10));
           setAiQueryLoading(false);
+
+          // Save to conversation
+          await saveToConversation(currentConversation);
+
           eventSource.close();
         }, 400);
       } catch (err) {
@@ -1233,18 +1311,41 @@ const StrategicDashboard = () => {
                   </Space>
                 </Col>
                 <Col>
-                  <Button
-                    type="default"
-                    onClick={() => setAiAssistantExpanded(!aiAssistantExpanded)}
-                    style={{
-                      background: 'rgba(255,255,255,0.2)',
-                      borderColor: 'rgba(255,255,255,0.3)',
-                      color: 'white',
-                      fontWeight: 500,
-                    }}
-                  >
-                    {aiAssistantExpanded ? '▲ Thu gọn' : '▼ Xem chi tiết'}
-                  </Button>
+                  <Space>
+                    <Button
+                      type="default"
+                      onClick={async () => {
+                        try {
+                          const convs = await getConversations();
+                          setConversations(convs);
+                          setConversationSidebarVisible(true);
+                        } catch (err) {
+                          message.error('Lỗi khi tải danh sách cuộc trò chuyện');
+                        }
+                      }}
+                      style={{
+                        background: 'rgba(255,255,255,0.2)',
+                        borderColor: 'rgba(255,255,255,0.3)',
+                        color: 'white',
+                        fontWeight: 500,
+                      }}
+                      icon={<MessageOutlined />}
+                    >
+                      Lịch sử
+                    </Button>
+                    <Button
+                      type="default"
+                      onClick={() => setAiAssistantExpanded(!aiAssistantExpanded)}
+                      style={{
+                        background: 'rgba(255,255,255,0.2)',
+                        borderColor: 'rgba(255,255,255,0.3)',
+                        color: 'white',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {aiAssistantExpanded ? '▲ Thu gọn' : '▼ Xem chi tiết'}
+                    </Button>
+                  </Space>
                 </Col>
               </Row>
 
@@ -2201,6 +2302,52 @@ const StrategicDashboard = () => {
                     border: '2px solid #d3adf7',
                     transition: 'all 0.3s ease',
                   }}>
+                    {/* Mode Selector */}
+                    <div style={{ marginBottom: 12 }}>
+                      <Radio.Group
+                        value={aiMode}
+                        onChange={(e) => setAiMode(e.target.value)}
+                        optionType="button"
+                        buttonStyle="solid"
+                        style={{ width: '100%' }}
+                      >
+                        <Radio.Button value="quick" style={{ width: '50%', textAlign: 'center' }}>
+                          <Space size={4}>
+                            <ThunderboltOutlined />
+                            <span>Hỏi đáp nhanh</span>
+                            <Tag color="green" style={{ marginLeft: 4, fontSize: 11 }}>4-6s</Tag>
+                          </Space>
+                        </Radio.Button>
+                        <Radio.Button value="deep" style={{ width: '50%', textAlign: 'center' }}>
+                          <Space size={4}>
+                            <FileTextOutlined />
+                            <span>Phân tích sâu</span>
+                            <Tag color="blue" style={{ marginLeft: 4, fontSize: 11 }}>12-20s</Tag>
+                          </Space>
+                        </Radio.Button>
+                      </Radio.Group>
+                    </div>
+
+                    {/* Mode-specific hint */}
+                    {aiMode === 'quick' && (
+                      <Alert
+                        message="Chế độ nhanh: Trả lời trực tiếp, phù hợp câu hỏi đơn giản"
+                        description="Ví dụ: Có bao nhiêu hệ thống? Những hệ thống nào dùng Java?"
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 12, fontSize: 12 }}
+                      />
+                    )}
+                    {aiMode === 'deep' && (
+                      <Alert
+                        message="Chế độ chuyên sâu: Báo cáo chiến lược với insight và đề xuất"
+                        description="Ví dụ: Đánh giá rủi ro bảo mật? Lộ trình chuyển đổi số?"
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 12, fontSize: 12 }}
+                      />
+                    )}
+
                     <div style={{ marginBottom: 8 }}>
                       <Space>
                         <RobotOutlined style={{ color: '#722ed1', fontSize: 16 }} />
@@ -2278,6 +2425,138 @@ const StrategicDashboard = () => {
           </Card>
         </motion.div>
       )}
+
+      {/* Conversation Sidebar Drawer */}
+      <Drawer
+        title={
+          <Space>
+            <MessageOutlined />
+            <span>Cuộc trò chuyện</span>
+          </Space>
+        }
+        placement="right"
+        width={350}
+        open={conversationSidebarVisible}
+        onClose={() => setConversationSidebarVisible(false)}
+        styles={{
+          body: { padding: 0 },
+        }}
+        extra={
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={async () => {
+              try {
+                const newConv = await createConversation({
+                  title: 'Cuộc trò chuyện mới',
+                  mode: aiMode
+                });
+                setCurrentConversation(newConv);
+                setConversations(prev => [newConv, ...prev]);
+                setConversationSidebarVisible(false);
+                message.success('Đã tạo cuộc trò chuyện mới');
+              } catch (err) {
+                message.error('Lỗi khi tạo cuộc trò chuyện');
+              }
+            }}
+          >
+            Mới
+          </Button>
+        }
+      >
+        {conversations.length === 0 ? (
+          <div style={{
+            padding: 40,
+            textAlign: 'center',
+            color: '#8c8c8c'
+          }}>
+            <MessageOutlined style={{ fontSize: 48, marginBottom: 16 }} />
+            <div>Chưa có cuộc trò chuyện nào</div>
+            <div style={{ fontSize: 12, marginTop: 8 }}>
+              Bắt đầu trò chuyện để lưu lịch sử
+            </div>
+          </div>
+        ) : (
+          <List
+            dataSource={conversations}
+            renderItem={(conv) => (
+              <List.Item
+                key={conv.id}
+                onClick={async () => {
+                  try {
+                    const fullConv = await getConversation(conv.id);
+                    setCurrentConversation(fullConv);
+                    setConversationSidebarVisible(false);
+
+                    // Load messages into chat
+                    if (fullConv.messages && fullConv.messages.length > 0) {
+                      // Set the last response
+                      const lastAssistantMsg = fullConv.messages
+                        .filter(m => m.role === 'assistant')
+                        .pop();
+                      if (lastAssistantMsg?.response_data) {
+                        setAiQueryResponse(lastAssistantMsg.response_data);
+                      }
+                    }
+
+                    message.success(`Đã mở: ${conv.title}`);
+                  } catch (err) {
+                    message.error('Lỗi khi mở cuộc trò chuyện');
+                  }
+                }}
+                style={{
+                  cursor: 'pointer',
+                  padding: '16px 20px',
+                  borderBottom: '1px solid #f0f0f0',
+                  backgroundColor: currentConversation?.id === conv.id ? '#f0f5ff' : 'transparent'
+                }}
+              >
+                <List.Item.Meta
+                  title={
+                    <Space direction="vertical" size={0}>
+                      <Text strong style={{ fontSize: 14 }}>
+                        {conv.title}
+                      </Text>
+                      <Space size={4}>
+                        <Tag color={conv.mode === 'quick' ? 'green' : 'blue'} style={{ fontSize: 10 }}>
+                          {conv.mode === 'quick' ? 'Nhanh' : 'Sâu'}
+                        </Tag>
+                        <Text type="secondary" style={{ fontSize: 11 }}>
+                          {conv.message_count} tin nhắn
+                        </Text>
+                      </Space>
+                    </Space>
+                  }
+                  description={
+                    <Text type="secondary" style={{ fontSize: 12 }} ellipsis>
+                      {conv.first_message || 'Không có tin nhắn'}
+                    </Text>
+                  }
+                />
+                <Button
+                  type="text"
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      await deleteConversation(conv.id);
+                      setConversations(prev => prev.filter(c => c.id !== conv.id));
+                      if (currentConversation?.id === conv.id) {
+                        setCurrentConversation(null);
+                      }
+                      message.success('Đã xóa cuộc trò chuyện');
+                    } catch (err) {
+                      message.error('Lỗi khi xóa');
+                    }
+                  }}
+                />
+              </List.Item>
+            )}
+          />
+        )}
+      </Drawer>
 
       {/* Main Tabs */}
       <Card

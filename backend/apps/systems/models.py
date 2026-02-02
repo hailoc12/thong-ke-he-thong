@@ -1608,3 +1608,99 @@ class SystemIntegrationConnection(models.Model):
 
     def __str__(self):
         return f"{self.source_system} → {self.target_system} ({self.get_integration_method_display()})"
+
+
+class AIConversation(models.Model):
+    """AI Assistant Conversation - Chat history for strategic dashboard"""
+
+    MODE_CHOICES = [
+        ('quick', 'Hỏi đáp nhanh'),
+        ('deep', 'Phân tích chuyên sâu'),
+    ]
+
+    # Link to user
+    user = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.CASCADE,
+        related_name='ai_conversations',
+        verbose_name=_('User')
+    )
+
+    # Conversation metadata
+    title = models.CharField(
+        max_length=255,
+        default='Cuộc trò chuyện mới',
+        verbose_name=_('Title')
+    )
+
+    mode = models.CharField(
+        max_length=10,
+        choices=MODE_CHOICES,
+        default='quick',
+        verbose_name=_('Mode')
+    )
+
+    # First message as preview
+    first_message = models.TextField(
+        blank=True,
+        verbose_name=_('First Message')
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'ai_conversations'
+        ordering = ['-updated_at']
+        verbose_name = _('AI Conversation')
+        verbose_name_plural = _('AI Conversations')
+
+    def __str__(self):
+        return f"{self.title} ({self.user.username})"
+
+
+class AIMessage(models.Model):
+    """AI Assistant Message - Individual messages in a conversation"""
+
+    ROLE_CHOICES = [
+        ('user', 'User'),
+        ('assistant', 'Assistant'),
+    ]
+
+    # Link to conversation
+    conversation = models.ForeignKey(
+        AIConversation,
+        on_delete=models.CASCADE,
+        related_name='messages',
+        verbose_name=_('Conversation')
+    )
+
+    role = models.CharField(
+        max_length=10,
+        choices=ROLE_CHOICES,
+        verbose_name=_('Role')
+    )
+
+    content = models.TextField(verbose_name=_('Content'))
+
+    # AI response data (for assistant messages)
+    response_data = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name=_('Response Data'),
+        help_text='Full AI response including thinking, data, etc.'
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'ai_messages'
+        ordering = ['created_at']
+        verbose_name = _('AI Message')
+        verbose_name_plural = _('AI Messages')
+
+    def __str__(self):
+        content_preview = self.content[:50] + '...' if len(self.content) > 50 else self.content
+        return f"{self.role}: {content_preview}"

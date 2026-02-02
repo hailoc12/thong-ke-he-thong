@@ -14,7 +14,7 @@ import logging
 import time
 
 from apps.accounts.permissions import IsOrgUserOrAdmin, CanManageOrgSystems
-from .models import System, Attachment
+from .models import System, Attachment, AIConversation, AIMessage
 
 logger = logging.getLogger(__name__)
 from .serializers import (
@@ -22,6 +22,10 @@ from .serializers import (
     SystemDetailSerializer,
     SystemCreateUpdateSerializer,
     AttachmentSerializer,
+    AIConversationSerializer,
+    AIConversationListSerializer,
+    AIConversationCreateSerializer,
+    AIMessageSerializer,
 )
 from .utils import calculate_system_completion_percentage
 
@@ -1876,6 +1880,189 @@ Trả về JSON với SQL đã sửa."""
             response['X-Accel-Buffering'] = 'no'
             return response
 
+        # Get mode parameter (default: 'quick' for faster perceived performance)
+        mode = request.query_params.get('mode', 'quick')  # 'quick' or 'deep'
+
+        if mode == 'quick':
+            return self._quick_answer_stream(query, user)
+        else:
+            return self._deep_analysis_stream(query, user)
+
+    def _quick_answer_stream(self, query, user):
+        """
+        Quick Mode: Single AI call + direct answer (~4-6s)
+
+        Stream:
+        - phase_start: "Phân tích nhanh"
+        - complete: SQL + answer + data (NO strategic insights, NO review)
+        """
+        def event_stream():
+            import re
+            import requests
+
+            # API Configuration
+            CLAUDE_API_KEY = getattr(settings, 'CLAUDE_API_KEY', None)
+            OPENAI_API_KEY = getattr(settings, 'OPENAI_API_KEY', None)
+
+            use_claude = bool(CLAUDE_API_KEY)
+            use_openai = bool(OPENAI_API_KEY)
+
+            if not use_claude and not use_openai:
+                yield f"event: error\ndata: {json.dumps({'error': 'AI service not configured'})}\n\n"
+                return
+
+            # Helper function to call AI
+            def call_ai_internal(system_prompt, messages):
+                if use_openai:
+                    import openai
+                    client = openai.OpenAI(
+                        api_key=OPENAI_API_KEY,
+                        timeout=60.0
+                    )
+                    input_array = [{'role': 'developer', 'content': system_prompt}]
+                    input_array.extend(messages)
+                    response = client.responses.create(
+                        model='gpt-5',
+                        reasoning={'effort': 'medium'},
+                        input=input_array,
+                        max_output_tokens=16000,
+                    )
+                    return response.output_text
+                elif use_claude:
+                    import anthropic
+                    client = anthropic.Anthropic(
+                        api_key=CLAUDE_API_KEY,
+                        timeout=60.0
+                    )
+                    response = client.messages.create(
+                        model='claude-sonnet-4-20250514',
+                        max_tokens=4096,
+                        system=system_prompt,
+                        messages=messages
+                    )
+                    return response.content[0].text
+
+            # SQL validation function
+            def validate_and_execute_sql_internal(sql):
+                from django.db import connection
+                sql_upper = sql.upper().strip()
+                forbidden_pattern = r'\b(DROP|DELETE|UPDATE|INSERT|ALTER|CREATE|TRUNCATE)\b'
+                if re.search(forbidden_pattern, sql_upper):
+                    return None, "Only SELECT queries allowed"
+                try:
+                    with connection.cursor() as cursor:
+                        cursor.execute(sql)
+                        columns = [col[0] for col in cursor.description] if cursor.description else []
+                        rows = cursor.fetchall()
+                        result = {
+                            'columns': columns,
+                            'rows': [dict(zip(columns, row)) for row in rows],
+                            'total_rows': len(rows)
+                        }
+                        return result, None
+                except Exception as e:
+                    return None, str(e)
+
+            # Schema context (abbreviated for quick mode)
+            schema_context = """Database Schema:
+- organizations: id, name, organization_type, code
+- systems: id, system_name, status, criticality_level, org_id, hosting_platform, has_encryption, is_deleted,
+  storage_capacity (text), data_volume (text), data_volume_gb (decimal),
+  programming_language, framework, database_name,
+  users_total, users_mau, users_dau, total_accounts,
+  api_provided_count, api_consumed_count
+- system_architecture: system_id, architecture_type, scalability_level
+- system_assessment: system_id, performance_rating, recommendation
+- system_security: system_id, auth_methods, encryption_type, has_security_audit
+
+Lưu ý:
+- Dùng is_deleted = false khi query bảng systems
+- data_volume_gb là NUMERIC - dùng để tính SUM/AVG"""
+
+            # Phase 1: Combined SQL Generation + Answer
+            yield f"event: phase_start\ndata: {json.dumps({'phase': 1, 'name': 'Phân tích nhanh', 'description': 'Đang tạo câu trả lời...', 'mode': 'quick'})}\n\n"
+
+            quick_prompt = f"""Bạn là AI assistant phân tích dữ liệu CNTT.
+
+{schema_context}
+
+Câu hỏi: {query}
+
+NHIỆM VỤ:
+1. Tạo SQL query để lấy dữ liệu
+2. Viết câu trả lời NGẮN GỌN (1-2 câu) với số liệu
+
+Trả về JSON:
+{{
+    "sql": "SELECT query here",
+    "answer": "Câu trả lời ngắn gọn với số liệu (VD: 'Có 25 hệ thống đang sử dụng Java')",
+    "chart_type": "bar|pie|table|null"
+}}
+
+CHỈ trả về JSON."""
+
+            try:
+                phase1_content = call_ai_internal(quick_prompt, [{'role': 'user', 'content': query}])
+                json_match = re.search(r'\{[\s\S]*\}', phase1_content)
+                if json_match:
+                    phase1_data = json.loads(json_match.group())
+                else:
+                    phase1_data = {'sql': None, 'answer': 'Không thể xử lý yêu cầu này.', 'chart_type': None}
+
+                sql_query = phase1_data.get('sql')
+                answer = phase1_data.get('answer')
+                chart_type = phase1_data.get('chart_type')
+
+            except Exception as e:
+                logger.error(f"Quick mode phase 1 error: {e}")
+                yield f"event: error\ndata: {json.dumps({'error': 'Lỗi xử lý', 'detail': str(e)})}\n\n"
+                return
+
+            if not sql_query:
+                yield f"event: complete\ndata: {json.dumps({'query': query, 'response': {'greeting': '', 'main_answer': answer or 'Không thể tạo truy vấn cho yêu cầu này.', 'follow_up_suggestions': []}, 'data': None, 'mode': 'quick'})}\n\n"
+                return
+
+            # Phase 2: Execute SQL
+            yield f"event: phase_start\ndata: {json.dumps({'phase': 2, 'name': 'Truy vấn dữ liệu', 'description': 'Đang lấy dữ liệu...', 'mode': 'quick'})}\n\n"
+
+            query_result, sql_error = validate_and_execute_sql_internal(sql_query)
+            if query_result is None:
+                yield f"event: error\ndata: {json.dumps({'error': 'Lỗi truy vấn dữ liệu', 'detail': sql_error})}\n\n"
+                return
+
+            yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': query_result.get('total_rows', 0)})}\n\n"
+
+            # Final result (no Phase 3, no Phase 4 for quick mode)
+            final_response = {
+                'query': query,
+                'thinking': {'plan': 'Quick analysis', 'tasks': []},
+                'response': {
+                    'greeting': '',
+                    'main_answer': answer or f'Tìm thấy **{query_result.get("total_rows", 0)}** kết quả.',
+                    'follow_up_suggestions': [
+                        'Xem chi tiết dữ liệu',
+                        'Phân tích sâu với chế độ chuyên sâu'
+                    ]
+                },
+                'data': query_result,
+                'chart_type': chart_type,
+                'mode': 'quick'
+            }
+
+            yield f"event: complete\ndata: {json.dumps(final_response, ensure_ascii=False, default=str)}\n\n"
+
+        response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        response['Connection'] = 'keep-alive'
+        return response
+
+    def _deep_analysis_stream(self, query, user):
+        """
+        Deep Mode: Full 4-phase workflow (~12-20s)
+
+        Existing logic with strategic insights and self-review.
+        """
         def event_stream():
             import re
             import requests
@@ -2219,7 +2406,8 @@ Trả về JSON: {{"is_consistent": true/false, "issues": []}}"""
                 'query': query,
                 'thinking': thinking,
                 'response': response_content,
-                'data': query_result
+                'data': query_result,
+                'mode': 'deep'  # Mark as deep mode
             }
 
             yield f"event: complete\ndata: {json.dumps(final_response, ensure_ascii=False, default=str)}\n\n"
@@ -2855,3 +3043,108 @@ class UnitProgressDashboardView(APIView):
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+
+
+# ========================================
+# AI Conversation ViewSet
+# ========================================
+
+class AIConversationViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for AI Conversation management
+
+    Endpoints:
+    - GET /api/ai-conversations/ - List user's conversations
+    - POST /api/ai-conversations/ - Create new conversation
+    - GET /api/ai-conversations/{id}/ - Get conversation details
+    - DELETE /api/ai-conversations/{id}/ - Delete conversation
+    - POST /api/ai-conversations/{id}/add_message/ - Add message to conversation
+    """
+    serializer_class = AIConversationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Only return conversations for current user"""
+        return AIConversation.objects.filter(user=self.request.user).prefetch_related('messages')
+
+    def get_serializer_class(self):
+        """Use different serializers for different actions"""
+        if self.action == 'list':
+            return AIConversationListSerializer
+        elif self.action == 'create':
+            return AIConversationCreateSerializer
+        return AIConversationSerializer
+
+    def perform_create(self, serializer):
+        """Auto-set user from logged-in user"""
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def add_message(self, request, pk=None):
+        """
+        Add a message to conversation
+
+        Request body:
+        {
+            "role": "user|assistant",
+            "content": "message content",
+            "response_data": {}  // optional, for assistant messages
+        }
+        """
+        conversation = self.get_object()
+
+        # Verify ownership
+        if conversation.user != request.user:
+            return Response(
+                {'error': 'Not authorized'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        role = request.data.get('role')
+        content = request.data.get('content')
+        response_data = request.data.get('response_data')
+
+        if not role or not content:
+            return Response(
+                {'error': 'role and content are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if role not in ['user', 'assistant']:
+            return Response(
+                {'error': 'role must be user or assistant'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Create message
+        message = AIMessage.objects.create(
+            conversation=conversation,
+            role=role,
+            content=content,
+            response_data=response_data
+        )
+
+        # Update conversation metadata
+        if conversation.messages.count() == 1:
+            conversation.first_message = content[:200]
+        conversation.updated_at = timezone.now()
+        conversation.save()
+
+        # Serialize and return
+        serializer = AIMessageSerializer(message)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'])
+    def messages(self, request, pk=None):
+        """Get all messages for a conversation"""
+        conversation = self.get_object()
+
+        if conversation.user != request.user:
+            return Response(
+                {'error': 'Not authorized'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        messages = conversation.messages.all()
+        serializer = AIMessageSerializer(messages, many=True)
+        return Response(serializer.data)

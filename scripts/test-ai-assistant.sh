@@ -11,10 +11,14 @@
 #   -a, --all         Run all tests (default)
 #   -v, --verbose     Verbose output
 #   -c, --coverage    Generate coverage report
+#   --unsafe          ALLOW running on production database (DANGEROUS!)
 #   -h, --help        Show this help message
 #
+# WARNING: This script creates a SEPARATE test database by default.
+# NEVER run with --reuse-db or --no-migrations on production!
+#
 # Examples:
-#   ./scripts/test-ai-assistant.sh              # Run all tests
+#   ./scripts/test-ai-assistant.sh              # Run all tests (safe - uses test DB)
 #   ./scripts/test-ai-assistant.sh -b           # Run backend tests only
 #   ./scripts/test-ai-assistant.sh -f -v        # Run frontend tests with verbose output
 #   ./scripts/test-ai-assistant.sh -a -c        # Run all tests with coverage
@@ -23,6 +27,7 @@
 #   0 - All tests passed
 #   1 - One or more tests failed
 #   2 - Invalid arguments
+#   3 - Safety check failed (production database detected)
 # =============================================================================
 
 set -euo pipefail
@@ -50,6 +55,10 @@ RUN_FRONTEND=false
 RUN_ALL=true
 VERBOSE=false
 COVERAGE=false
+UNSAFE_MODE=false
+
+# Safety flag: Detect production environment
+PRODUCTION_HOSTS=("34.142.152.104" "hientrangcds.mst.gov.vn")
 
 # =============================================================================
 # Helper Functions
@@ -76,6 +85,83 @@ log_section() {
 show_help() {
     grep '^#' "$SCRIPT_DIR/test-ai-assistant.sh" | sed 's/^# //' | sed 's/^#//'
     exit 0
+}
+
+# =============================================================================
+# Safety Checks
+# =============================================================================
+
+check_production_safety() {
+    """Check if running on production and warn user"""
+
+    # Get current hostname
+    local current_host
+    current_host=$(hostname 2>/dev/null || echo "unknown")
+
+    # Check if we're on a known production host
+    for prod_host in "${PRODUCTION_HOSTS[@]}"; do
+        if [[ "$current_host" == "$prod_host" ]] || [[ "$current_host" == *"admin_"* ]]; then
+            log_warn "⚠️  PRODUCTION ENVIRONMENT DETECTED: $current_host"
+            echo ""
+            log_error "Running tests on production will create test data in the database!"
+            log_error "This includes test users, conversations, and messages."
+            echo ""
+
+            if [[ "$UNSAFE_MODE" == true ]]; then
+                log_warn "⚠️  --unsafe flag is set. Proceeding with production tests..."
+                log_warn "⚠️  Test data WILL be created. You have been warned!"
+                echo ""
+                # Add a 5 second delay to allow user to cancel
+                for i in {5..1}; do
+                    echo -e "${YELLOW}Starting in $i seconds... (Ctrl+C to cancel)${NC}"
+                    sleep 1
+                done
+                return 0
+            else
+                log_error "❌ Refusing to run tests on production without --unsafe flag"
+                echo ""
+                log_info "To run tests anyway (NOT RECOMMENDED):"
+                log_info "  $0 --unsafe"
+                echo ""
+                log_info "Better alternative: Run tests in a staging/development environment"
+                return 1
+            fi
+        fi
+    done
+
+    # Not on production - safe to proceed
+    log_info "✅ Environment check passed (not production)"
+    return 0
+}
+
+check_test_data_pollution() {
+    """Check if test data exists in database and warn"""
+
+    if [[ "$UNSAFE_MODE" == true ]]; then
+        log_warn "⚠️  Checking for existing test data..."
+
+        # Check for test users
+        local test_user_count
+        test_user_count=$(docker compose exec -T backend python manage.py shell -c "
+from apps.accounts.models import User
+print(User.objects.filter(username__startswith='test').count())
+" 2>/dev/null || echo "0")
+
+        if [[ "$test_user_count" -gt 0 ]]; then
+            log_warn "⚠️  Found $test_user_count test users in database"
+        fi
+
+        # Check for test conversations
+        local test_convo_count
+        test_convo_count=$(docker compose exec -T backend python manage.py shell -c "
+from apps.systems.models import AIConversation
+print(AIConversation.objects.filter(title__startswith='Test').count())
+" 2>/dev/null || echo "0")
+
+        if [[ "$test_convo_count" -gt 0 ]]; then
+            log_warn "⚠️  Found $test_convo_count test conversations in database"
+        fi
+    fi
 }
 
 # =============================================================================
@@ -191,6 +277,10 @@ parse_arguments() {
                 COVERAGE=true
                 shift
                 ;;
+            --unsafe)
+                UNSAFE_MODE=true
+                shift
+                ;;
             -h|--help)
                 show_help
                 ;;
@@ -208,6 +298,14 @@ main() {
     log_info "================================"
 
     parse_arguments "$@"
+
+    # Safety checks - prevent running on production
+    if ! check_production_safety; then
+        exit 3
+    fi
+
+    # Check for existing test data pollution
+    check_test_data_pollution
 
     # Track results
     local backend_result=0

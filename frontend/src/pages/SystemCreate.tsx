@@ -1085,7 +1085,7 @@ const SystemCreate = () => {
 
   const fetchOrganizations = async () => {
     try {
-      const response = await api.get('/organizations/');
+      const response = await api.get('/organizations/?page_size=200');
       setOrganizations(response.data.results || []);
     } catch (error) {
       console.error('Failed to fetch organizations:', error);

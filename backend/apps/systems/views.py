@@ -2135,29 +2135,32 @@ CHỈ trả về JSON."""
             yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': query_result.get('total_rows', 0)})}\n\n"
 
             # Replace template variables in answer with actual data
-            # AI might return "{{column_name}}" which needs to be replaced with actual values
+            # AI might return "{{column_name}}" or "[column_name]" which needs to be replaced
             def replace_template_vars(text, data):
-                """Replace {{column_name}} templates with actual data from query result"""
+                """Replace template variables with actual data from query result"""
                 if not text:
                     return text
 
                 # Get first row for template replacement
                 first_row = data.get('rows', [{}])[0] if data.get('rows') else {}
 
-                # Replace all {{column_name}} patterns with actual values
-                import re
+                # Replacement function that looks up value from data
                 def replace_match(match):
-                    var_name = match.group(1)  # Get column name from {{var_name}}
+                    var_name = match.group(1)  # Get column name from {{var}} or [var]
                     value = first_row.get(var_name)
                     if value is not None:
                         return str(value)
                     return match.group(0)  # Keep original if not found
 
-                # Replace {{variable}} patterns
+                import re
+                # Replace {{variable}} patterns first
                 result = re.sub(r'\{\{(\w+)\}\}', replace_match, text)
+                # Then replace [variable] patterns (markdown-style placeholders from AI)
+                result = re.sub(r'\[(\w+)\]', replace_match, result)
+
                 return result
 
-            # Apply template replacement to the answer
+            # Process answer to replace any template variables
             processed_answer = replace_template_vars(answer, query_result)
 
             # Final result (no Phase 3, no Phase 4 for quick mode)
@@ -2519,6 +2522,37 @@ CHỈ trả về JSON."""
                     response_content = {'greeting': 'Báo cáo anh/chị,', 'main_answer': phase2_content, 'follow_up_suggestions': []}
 
                 response_content['chart_type'] = chart_type
+
+                # Replace template variables in response with actual data
+                # AI might return "{{column_name}}" or "[column_name]" which needs to be replaced
+                def replace_template_vars(text, data):
+                    """Replace template variables with actual data from query result"""
+                    if not text:
+                        return text
+
+                    # Get first row for template replacement
+                    first_row = data.get('rows', [{}])[0] if data.get('rows') else {}
+
+                    # Replacement function that looks up value from data
+                    def replace_match(match):
+                        var_name = match.group(1)  # Get column name from {{var}} or [var]
+                        value = first_row.get(var_name)
+                        if value is not None:
+                            return str(value)
+                        return match.group(0)  # Keep original if not found
+
+                    # Replace {{variable}} patterns first
+                    result = re.sub(r'\{\{(\w+)\}\}', replace_match, text)
+                    # Then replace [variable] patterns (markdown-style placeholders from AI)
+                    result = re.sub(r'\[(\w+)\]', replace_match, result)
+
+                    return result
+
+                # Process main_answer to replace any template variables
+                if 'main_answer' in response_content:
+                    original_answer = response_content['main_answer']
+                    processed_answer = replace_template_vars(original_answer, query_result)
+                    response_content['main_answer'] = processed_answer or original_answer
 
             except Exception as e:
                 logger.error(f"Phase 3 error: {e}")

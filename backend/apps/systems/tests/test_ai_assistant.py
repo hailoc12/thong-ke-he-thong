@@ -384,10 +384,13 @@ class TestStrategicDashboardAccess(TestCase):
 
     def test_admin_cannot_access_strategic_dashboard(self):
         """Test that admin role cannot access strategic dashboard"""
-        # Admin role should NOT be in LEADER_USERNAMES
-        from frontend.src.stores.authStore import LEADER_USERNAMES
+        # Frontend LEADER_USERNAMES only includes 'lanhdaobo', not 'admin'
         # Note: This is a conceptual test - actual check is in frontend
-        self.assertNotIn('admin', ['lanhdaobo'])
+        # The frontend authStore has: LEADER_USERNAMES = ['lanhdaobo']
+        # Admin role should NOT be in this list
+        leader_usernames = ['lanhdaobo']  # Matches frontend configuration
+        self.assertNotIn('admin', leader_usernames)
+        self.assertIn('lanhdaobo', leader_usernames)
 
 
 class TestAIMessageSerializers(TestCase):

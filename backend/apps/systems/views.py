@@ -71,11 +71,9 @@ class SystemViewSet(viewsets.ModelViewSet):
         'org', 'status', 'criticality_level', 'form_level', 'system_group',
         'programming_language', 'framework', 'database_name', 'hosting_platform'
     ]
-    # P0.8: Added new search fields for technology stack
+    # Search only by system code and system name
     search_fields = [
-        'system_code', 'system_name', 'system_name_en', 'purpose',
-        'business_owner', 'technical_owner',
-        'programming_language', 'framework', 'database_name'
+        'system_code', 'system_name'
     ]
     ordering_fields = ['created_at', 'updated_at', 'system_code', 'system_name', 'go_live_date']
     ordering = ['-created_at']

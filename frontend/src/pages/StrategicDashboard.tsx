@@ -67,7 +67,6 @@ import {
   PlusOutlined,
   DeleteOutlined,
   RightCircleOutlined,
-  RightCircleOutlined,
 } from '@ant-design/icons';
 import {
   PieChart,
@@ -92,14 +91,12 @@ import CountUp from 'react-countup';
 import * as XLSX from 'xlsx';
 import ReactMarkdown from 'react-markdown';
 import api, {
-  type AIMessage,
   type AIConversation,
   getConversations,
   createConversation,
   getConversation,
   addConversationMessage,
   deleteConversation,
-  updateConversation,
 } from '../config/api';
 import { shadows, borderRadius, spacing } from '../theme/tokens';
 import AIDataModal from '../components/AIDataModal';
@@ -719,7 +716,7 @@ const StrategicDashboard = () => {
                 mode: aiMode
               });
               setCurrentConversation(conv);
-              setConversations(prev => [conv, ...prev]);
+              setConversations(prev => [conv, ...prev.filter(c => c !== null)]);
             }
 
             // Add user message

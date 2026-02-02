@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, Typography, Tag, Input, Empty, Popconfirm, message, Progress, Tooltip, Modal, Radio, Spin } from 'antd';
+import { Table, Button, Space, Typography, Tag, Input, Empty, Popconfirm, message, Progress, Tooltip, Modal, Radio, Spin, Select, Row, Col } from 'antd';
 import { PlusOutlined, SearchOutlined, InboxOutlined, DeleteOutlined, ExclamationCircleOutlined, EyeOutlined, EditOutlined, DownloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../config/api';
 import { useAuthStore } from '../stores/authStore';
-import type { System, ApiResponse, SystemDetail } from '../types';
+import type { System, ApiResponse, SystemDetail, Organization } from '../types';
 import { exportSystemsDetailToExcel } from '../utils/exportSystemsDetailToExcel';
 
 const { Title } = Typography;
+const { Option } = Select;
 
 const Systems = () => {
   const navigate = useNavigate();
@@ -25,6 +26,8 @@ const Systems = () => {
   const [exportOption, setExportOption] = useState<'all' | 'filtered'>('all');
   const [exporting, setExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [selectedOrg, setSelectedOrg] = useState<string>('all');
 
   useEffect(() => {
     const handleResize = () => {
@@ -36,17 +39,31 @@ const Systems = () => {
   }, []);
 
   useEffect(() => {
+    fetchOrganizations();
     fetchSystems();
   }, []);
 
-  const fetchSystems = async (page = 1, search = '') => {
+  const fetchOrganizations = async () => {
+    try {
+      const response = await api.get<any>('/organizations/?page_size=100');
+      const orgsData = Array.isArray(response.data)
+        ? response.data
+        : response.data.results || [];
+      setOrganizations(orgsData);
+    } catch (error) {
+      console.error('Failed to fetch organizations:', error);
+    }
+  };
+
+  const fetchSystems = async (page = 1, search = '', org = 'all') => {
     setLoading(true);
     try {
+      const params: any = { page };
+      if (search) params.search = search;
+      if (org !== 'all') params.org = org;
+
       const response = await api.get<ApiResponse<System>>('/systems/', {
-        params: {
-          page,
-          search,
-        },
+        params,
       });
       setSystems(response.data.results || []);
       setPagination({
@@ -62,14 +79,23 @@ const Systems = () => {
   };
 
   const handleTableChange = (pagination: any) => {
-    fetchSystems(pagination.current);
+    fetchSystems(pagination.current, searchQuery, selectedOrg);
+  };
+
+  const handleOrgChange = (value: string) => {
+    setSelectedOrg(value);
+    fetchSystems(1, searchQuery, value);
+  };
+
+  const handleSearch = () => {
+    fetchSystems(1, searchQuery, selectedOrg);
   };
 
   const handleDelete = async (id: number, name: string) => {
     try {
       await api.delete(`/systems/${id}/`);
       message.success(`Đã xóa hệ thống "${name}" thành công`);
-      fetchSystems(pagination.current);
+      fetchSystems(pagination.current, searchQuery, selectedOrg);
     } catch (error: any) {
       console.error('Failed to delete system:', error);
       const errorMessage = error.response?.data?.error || 'Có lỗi xảy ra khi xóa hệ thống';
@@ -90,8 +116,9 @@ const Systems = () => {
     try {
       // Fetch full data for export
       const params: Record<string, string> = {};
-      if (exportOption === 'filtered' && searchQuery) {
-        params.search = searchQuery;
+      if (exportOption === 'filtered') {
+        if (searchQuery) params.search = searchQuery;
+        if (selectedOrg !== 'all') params.org = selectedOrg;
       }
 
       const response = await api.get<{ count: number; results: SystemDetail[] }>('/systems/export_data/', { params });
@@ -307,14 +334,35 @@ const Systems = () => {
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <Input
-          placeholder={isMobile ? "Tìm kiếm..." : "Tìm kiếm theo tên, mã hệ thống..."}
-          prefix={<SearchOutlined />}
-          style={{ width: isMobile ? '100%' : 300 }}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onPressEnter={(e) => fetchSystems(1, (e.target as HTMLInputElement).value)}
-        />
+        <Row gutter={[8, 8]}>
+          <Col xs={24} sm={12} md={8}>
+            <Input
+              placeholder={isMobile ? "Tìm kiếm..." : "Tìm theo mã, tên hệ thống..."}
+              prefix={<SearchOutlined />}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onPressEnter={handleSearch}
+              allowClear
+            />
+          </Col>
+          {isAdmin && (
+            <Col xs={24} sm={12} md={8}>
+              <Select
+                style={{ width: '100%' }}
+                placeholder="Chọn đơn vị"
+                value={selectedOrg}
+                onChange={handleOrgChange}
+              >
+                <Option value="all">Tất cả đơn vị</Option>
+                {organizations.map((org) => (
+                  <Option key={org.id} value={org.id.toString()}>
+                    {org.name}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+          )}
+        </Row>
       </div>
 
       <Table
@@ -372,8 +420,16 @@ const Systems = () => {
                 <Radio value="all">
                   Xuất tất cả hệ thống ({pagination.total} hệ thống)
                 </Radio>
-                <Radio value="filtered" disabled={!searchQuery}>
-                  Chỉ xuất kết quả tìm kiếm {searchQuery ? `(từ khóa: "${searchQuery}")` : '(nhập từ khóa tìm kiếm trước)'}
+                <Radio value="filtered" disabled={!searchQuery && selectedOrg === 'all'}>
+                  Chỉ xuất kết quả lọc hiện tại
+                  {(searchQuery || selectedOrg !== 'all') && (
+                    <span style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 4 }}>
+                      ({[
+                        searchQuery && `tìm: "${searchQuery}"`,
+                        selectedOrg !== 'all' && `đơn vị: ${organizations.find(o => o.id.toString() === selectedOrg)?.name}`
+                      ].filter(Boolean).join(', ')})
+                    </span>
+                  )}
                 </Radio>
               </Space>
             </Radio.Group>

@@ -542,7 +542,7 @@ const StrategicDashboard = () => {
   const [recognition, setRecognition] = useState<any>(null);
 
   // P3 #29: Query templates visibility
-  const [showTemplates, setShowTemplates] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(true);
 
   // P2 #27: Last failed query for retry
   const [lastFailedQuery, setLastFailedQuery] = useState<string | null>(null);
@@ -556,6 +556,7 @@ const StrategicDashboard = () => {
 
   // Progressive AI loading state (Claude Code style)
   const [aiProgressTasks, setAiProgressTasks] = useState<AIThinkingTask[]>([]);
+  const [expandedTaskIds, setExpandedTaskIds] = useState<Set<number>>(new Set());
 
   // Drill-down modal state
   const [drilldownVisible, setDrilldownVisible] = useState(false);
@@ -1602,31 +1603,6 @@ const StrategicDashboard = () => {
                   <Space>
                     <Button
                       type="default"
-                      onClick={async () => {
-                        try {
-                          const convs = await getConversations();
-                          console.log('[AI DEBUG] Conversations loaded:', convs);
-                          // Ensure convs is always an array
-                          setConversations(Array.isArray(convs) ? convs : []);
-                          setConversationSidebarVisible(true);
-                        } catch (err) {
-                          console.error('[AI DEBUG] Error loading conversations:', err);
-                          message.error('Lỗi khi tải danh sách cuộc trò chuyện');
-                          setConversations([]); // Reset to empty array on error
-                        }
-                      }}
-                      style={{
-                        background: 'rgba(255,255,255,0.2)',
-                        borderColor: 'rgba(255,255,255,0.3)',
-                        color: 'white',
-                        fontWeight: 500,
-                      }}
-                      icon={<MessageOutlined />}
-                    >
-                      Lịch sử
-                    </Button>
-                    <Button
-                      type="default"
                       onClick={() => setAiAssistantExpanded(!aiAssistantExpanded)}
                       style={{
                         background: 'rgba(255,255,255,0.2)',
@@ -1923,6 +1899,32 @@ const StrategicDashboard = () => {
                           <Tag color="#52c41a" style={{ margin: 0, borderRadius: 12 }}>
                             <span style={{ fontSize: 11 }}>✨ Mới</span>
                           </Tag>
+                          <Button
+                            type="default"
+                            size="small"
+                            onClick={async () => {
+                              try {
+                                const convs = await getConversations();
+                                console.log('[AI DEBUG] Conversations loaded:', convs);
+                                // Ensure convs is always an array
+                                setConversations(Array.isArray(convs) ? convs : []);
+                                setConversationSidebarVisible(true);
+                              } catch (err) {
+                                console.error('[AI DEBUG] Error loading conversations:', err);
+                                message.error('Lỗi khi tải danh sách cuộc trò chuyện');
+                                setConversations([]); // Reset to empty array on error
+                              }
+                            }}
+                            style={{
+                              background: 'rgba(255,255,255,0.2)',
+                              borderColor: 'rgba(255,255,255,0.3)',
+                              color: 'white',
+                              fontWeight: 500,
+                            }}
+                            icon={<MessageOutlined />}
+                          >
+                            Lịch sử
+                          </Button>
                         </Space>
                         <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13 }}>
                           Nhập câu hỏi bằng tiếng Việt tự nhiên, AI sẽ phân tích dữ liệu và trả lời ngay!
@@ -2036,86 +2038,122 @@ const StrategicDashboard = () => {
                       {/* Enhanced Progress Section - BEFORE AI Response */}
                       {aiProgressTasks.length > 0 && (
                         <div style={{ marginBottom: 16 }}>
-                          <Card
-                            size="small"
-                            style={{
-                              background: 'linear-gradient(135deg, #f9f0ff 0%, #efdbff 100%)',
-                              borderRadius: 12,
-                              border: '2px solid #d3adf7',
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                              <div style={{
-                                width: 36,
-                                height: 36,
-                                borderRadius: '50%',
-                                background: 'linear-gradient(135deg, #722ed1 0%, #1890ff 100%)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0,
-                              }}>
-                                <RobotOutlined style={{ color: 'white', fontSize: 16 }} />
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ marginBottom: 10 }}>
-                                  <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                          <Collapse
+                            defaultActiveKey={[]}
+                            ghost
+                            items={[{
+                              key: 'progress',
+                              label: (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <RobotOutlined style={{ color: '#722ed1', fontSize: 16 }} />
+                                  <Text strong style={{ fontSize: 13, color: '#722ed1' }}>
                                     TIẾN ĐỘ ({aiProgressTasks.filter(t => t.status === 'completed').length}/{aiProgressTasks.length})
                                   </Text>
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                  {aiProgressTasks.map((task) => (
-                                    <motion.div
-                                      key={task.id}
-                                      initial={{ opacity: 0, x: -10 }}
-                                      animate={{ opacity: 1, x: 0 }}
-                                      transition={{ duration: 0.2 }}
-                                      style={{
-                                        padding: '10px 12px',
-                                        background: task.status === 'in_progress' ? 'rgba(114, 46, 209, 0.08)' : 'rgba(0, 0, 0, 0.02)',
-                                        borderRadius: 8,
-                                        border: task.status === 'in_progress' ? '1px solid rgba(114, 46, 209, 0.2)' : '1px solid transparent',
-                                        transition: 'all 0.2s ease',
-                                      }}
-                                    >
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: task.description || task.status === 'completed' ? 6 : 0 }}>
-                                        {task.status === 'completed' ? (
-                                          <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 14, flexShrink: 0 }} />
-                                        ) : (
-                                          <SyncOutlined spin style={{ color: '#722ed1', fontSize: 14, flexShrink: 0 }} />
-                                        )}
-                                        <Text
-                                          style={{
-                                            fontSize: 13,
-                                            flex: 1,
-                                            textDecoration: task.status === 'completed' ? 'line-through' : 'none',
-                                            color: task.status === 'completed' ? '#8c8c8c' : '#262626',
-                                            fontWeight: task.status === 'in_progress' ? 500 : 400,
-                                          }}
-                                        >
-                                          {task.name}
-                                        </Text>
-                                        {task.duration && (
-                                          <Tag color={task.status === 'completed' ? 'success' : 'processing'} style={{ fontSize: 11, margin: 0, padding: '0 6px', height: 18 }}>
-                                            {task.duration}
-                                          </Tag>
-                                        )}
-                                        {task.status === 'in_progress' && !task.duration && (
-                                          <Spin size="small" />
-                                        )}
-                                      </div>
+                              ),
+                              children: (
+                                <Card
+                                  size="small"
+                                  style={{
+                                    background: 'linear-gradient(135deg, #f9f0ff 0%, #efdbff 100%)',
+                                    borderRadius: 12,
+                                    border: '2px solid #d3adf7',
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                                    <div style={{
+                                      width: 36,
+                                      height: 36,
+                                      borderRadius: '50%',
+                                      background: 'linear-gradient(135deg, #722ed1 0%, #1890ff 100%)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      flexShrink: 0,
+                                    }}>
+                                      <RobotOutlined style={{ color: 'white', fontSize: 16 }} />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        {aiProgressTasks.map((task) => {
+                                          const isExpanded = expandedTaskIds.has(task.id);
+                                          const hasDebugInfo = task.sqlPreview || task.dataAnalysis || task.resultCount !== undefined || task.reviewPassed !== undefined;
+                                          return (
+                                            <motion.div
+                                              key={task.id}
+                                              initial={{ opacity: 0, x: -10 }}
+                                              animate={{ opacity: 1, x: 0 }}
+                                              transition={{ duration: 0.2 }}
+                                              style={{
+                                                padding: '10px 12px',
+                                                background: task.status === 'in_progress' ? 'rgba(114, 46, 209, 0.08)' : 'rgba(0, 0, 0, 0.02)',
+                                                borderRadius: 8,
+                                                border: task.status === 'in_progress' ? '1px solid rgba(114, 46, 209, 0.2)' : '1px solid transparent',
+                                                transition: 'all 0.2s ease',
+                                                cursor: hasDebugInfo ? 'pointer' : 'default',
+                                              }}
+                                              onClick={() => {
+                                                if (hasDebugInfo) {
+                                                  setExpandedTaskIds(prev => {
+                                                    const newSet = new Set(prev);
+                                                    if (isExpanded) {
+                                                      newSet.delete(task.id);
+                                                    } else {
+                                                      newSet.add(task.id);
+                                                    }
+                                                    return newSet;
+                                                  });
+                                                }
+                                              }}
+                                            >
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: task.description || task.status === 'completed' ? 6 : 0 }}>
+                                                {task.status === 'completed' ? (
+                                                  <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 14, flexShrink: 0 }} />
+                                                ) : (
+                                                  <SyncOutlined spin style={{ color: '#722ed1', fontSize: 14, flexShrink: 0 }} />
+                                                )}
+                                                <Text
+                                                  style={{
+                                                    fontSize: 13,
+                                                    flex: 1,
+                                                    textDecoration: task.status === 'completed' ? 'line-through' : 'none',
+                                                    color: task.status === 'completed' ? '#8c8c8c' : '#262626',
+                                                    fontWeight: task.status === 'in_progress' ? 500 : 400,
+                                                  }}
+                                                >
+                                                  {task.name}
+                                                </Text>
+                                                {task.duration && (
+                                                  <Tag color={task.status === 'completed' ? 'success' : 'processing'} style={{ fontSize: 11, margin: 0, padding: '0 6px', height: 18, alignSelf: 'flex-start', marginTop: 2 }}>
+                                                    {task.duration}
+                                                  </Tag>
+                                                )}
+                                                {task.status === 'in_progress' && !task.duration && (
+                                                  <Spin size="small" />
+                                                )}
+                                                {hasDebugInfo && task.status === 'completed' && (
+                                                  <RightCircleOutlined
+                                                    style={{
+                                                      fontSize: 12,
+                                                      color: '#8c8c8c',
+                                                      transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                                                      transition: 'transform 0.2s ease'
+                                                    }}
+                                                  />
+                                                )}
+                                              </div>
 
-                                      {task.description && task.status === 'in_progress' && (
-                                        <div style={{ marginLeft: 22, marginTop: 4 }}>
-                                          <Text style={{ fontSize: 12, color: '#595959' }}>
-                                            {task.description}
-                                          </Text>
-                                        </div>
-                                      )}
+                                              {task.description && task.status === 'in_progress' && (
+                                                <div style={{ marginLeft: 22, marginTop: 4 }}>
+                                                  <Text style={{ fontSize: 12, color: '#595959' }}>
+                                                    {task.description}
+                                                  </Text>
+                                                </div>
+                                              )}
 
-                                      {task.status === 'completed' && (
-                                        <div style={{ marginLeft: 22, marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                          {task.sqlPreview && (
+                                              {task.status === 'completed' && isExpanded && (
+                                                <div style={{ marginLeft: 22, marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                                  {task.sqlPreview && (
                                             <div style={{
                                               background: '#f6f6f6',
                                               padding: '6px 8px',
@@ -2171,33 +2209,37 @@ const StrategicDashboard = () => {
                                             </Tag>
                                           )}
 
-                                          {task.reviewPassed !== undefined && (
-                                            <Tag color={task.reviewPassed ? 'success' : 'warning'} style={{ fontSize: 11, width: 'fit-content' }}>
-                                              {task.reviewPassed ? '✓ Đã kiểm tra' : '⚠ Phát hiện vấn đề'}
-                                            </Tag>
-                                          )}
-                                        </div>
-                                      )}
-                                    </motion.div>
-                                  ))}
+                                                  {task.reviewPassed !== undefined && (
+                                                    <Tag color={task.reviewPassed ? 'success' : 'warning'} style={{ fontSize: 11, width: 'fit-content' }}>
+                                                      {task.reviewPassed ? '✓ Đã kiểm tra' : '⚠ Phát hiện vấn đề'}
+                                                    </Tag>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </motion.div>
+                                          );
+                                        })}
 
-                                  {aiProgressTasks.length === 0 && (
-                                    <div style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 10,
-                                      padding: '6px 10px',
-                                    }}>
-                                      <Spin size="small" />
-                                      <Text style={{ color: '#722ed1', fontSize: 13 }}>
-                                        Đang khởi tạo...
-                                      </Text>
+                                        {aiProgressTasks.length === 0 && (
+                                          <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 10,
+                                            padding: '6px 10px',
+                                          }}>
+                                            <Spin size="small" />
+                                            <Text style={{ color: '#722ed1', fontSize: 13 }}>
+                                              Đang khởi tạo...
+                                            </Text>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </Card>
+                                  </div>
+                                </Card>
+                              )
+                            }]}
+                          />
                         </div>
                       )}
 
@@ -2305,7 +2347,7 @@ const StrategicDashboard = () => {
                                     </Button>
                                   )}
 
-                                  {/* P3 #31: PDF Export */}
+                                  {/* P3 #31: PDF Export - HIDDEN TEMPORARILY */}
                                   <Button
                                     size="small"
                                     type="default"
@@ -2326,18 +2368,18 @@ const StrategicDashboard = () => {
                                         printWindow.print();
                                       }
                                     }}
-                                    style={{ fontSize: 12 }}
+                                    style={{ fontSize: 12, display: 'none' }}
                                   >
                                     Xuất PDF
                                   </Button>
 
-                                  {/* P3 #32: Dark Mode Toggle */}
+                                  {/* P3 #32: Dark Mode Toggle - HIDDEN TEMPORARILY */}
                                   <Button
                                     size="small"
                                     type="default"
                                     icon={<LightBulbOutlined />}
                                     onClick={() => setAiDarkMode(!aiDarkMode)}
-                                    style={{ fontSize: 12 }}
+                                    style={{ fontSize: 12, display: 'none' }}
                                   >
                                     {aiDarkMode ? 'Sáng' : 'Tối'}
                                   </Button>
@@ -2867,7 +2909,10 @@ const StrategicDashboard = () => {
                                 background: '#f0f5ff',
                                 border: '1px solid #adc6ff',
                               }}
-                              onClick={() => setAiQuery(template)}
+                              onClick={() => {
+                                setAiQuery(template);
+                                setTimeout(() => handleAIQuery(), 0);
+                              }}
                             >
                               {template}
                             </Tag>
@@ -2876,8 +2921,8 @@ const StrategicDashboard = () => {
                       )}
                     </div>
 
-                    {/* P3 #28: Voice Input */}
-                    <div style={{ marginTop: 8 }}>
+                    {/* P3 #28: Voice Input - HIDDEN TEMPORARILY */}
+                    <div style={{ marginTop: 8, display: 'none' }}>
                       <Button
                         type={isListening ? 'primary' : 'default'}
                         danger={isListening}

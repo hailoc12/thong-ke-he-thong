@@ -772,6 +772,10 @@ const StrategicDashboard = () => {
         console.log('[AI DEBUG] *** COMPLETE EVENT RECEIVED ***', e.data);
         const data = JSON.parse(e.data);
 
+        // CRITICAL FIX: Mark as completed IMMEDIATELY to prevent false error dialog
+        // This must be set BEFORE setTimeout so error handler can check it
+        queryCompleted = true;
+
         // Mark all tasks as completed
         setAiProgressTasks(prev => prev.map(t => ({ ...t, status: 'completed' as const })));
 
@@ -818,8 +822,7 @@ const StrategicDashboard = () => {
           // Save to conversation
           await saveToConversation(currentConversation);
 
-          // Mark as completed before closing to prevent false error dialog
-          queryCompleted = true;
+          // Close EventSource
           eventSource.close();
         }, 400);
       } catch (err) {
@@ -1206,7 +1209,31 @@ const StrategicDashboard = () => {
       'percent': '%',
       'count': 'Số lượng',
     };
-    return unitMap[dataType.toLowerCase()] || dataType;
+
+    const lowerType = dataType.toLowerCase();
+
+    // Check exact match first
+    if (unitMap[lowerType]) {
+      return unitMap[lowerType];
+    }
+
+    // CRITICAL FIX: Smart pattern matching for dynamic column names
+    // e.g., "cobol_systems_count" -> "Hệ thống"
+    if (lowerType.includes('system') && (lowerType.includes('count') || lowerType.includes('total'))) {
+      return 'Hệ thống';
+    }
+    if (lowerType.includes('org') && (lowerType.includes('count') || lowerType.includes('total'))) {
+      return 'Đơn vị';
+    }
+    if (lowerType.includes('api') && (lowerType.includes('count') || lowerType.includes('total'))) {
+      return 'API';
+    }
+    if (lowerType.includes('count') || lowerType.includes('total')) {
+      return 'Kết quả';
+    }
+
+    // Default fallback: return generic "Kết quả" instead of raw column name
+    return 'Kết quả';
   };
 
   const handleExportExcel = useCallback(() => {

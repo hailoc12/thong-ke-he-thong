@@ -650,6 +650,9 @@ const StrategicDashboard = () => {
     // Track which phases we've seen
     const seenPhases = new Set<number>();
 
+    // Track query completion to avoid showing error dialog after successful completion
+    let queryCompleted = false;
+
     eventSource.addEventListener('phase_start', (e: MessageEvent) => {
       try {
         console.log('[AI DEBUG] phase_start event received:', e.data);
@@ -815,6 +818,8 @@ const StrategicDashboard = () => {
           // Save to conversation
           await saveToConversation(currentConversation);
 
+          // Mark as completed before closing to prevent false error dialog
+          queryCompleted = true;
           eventSource.close();
         }, 400);
       } catch (err) {
@@ -823,8 +828,17 @@ const StrategicDashboard = () => {
     });
 
     eventSource.addEventListener('error', (e: MessageEvent) => {
+      console.log('[AI DEBUG] ERROR event received:', e.data);
+
+      // CRITICAL FIX: Ignore error events after successful completion
+      // EventSource fires error event when connection closes, even after success
+      if (queryCompleted) {
+        console.log('[AI DEBUG] Ignoring error event after successful completion');
+        eventSource.close();
+        return;
+      }
+
       try {
-        console.log('[AI DEBUG] ERROR event received:', e.data);
         const data = JSON.parse(e.data);
 
         // P0 #5: Specific error messages with actions
@@ -870,6 +884,7 @@ const StrategicDashboard = () => {
         // Also show message for quick feedback
         message.error(errorDetail);
       } catch {
+        // Only show connection error if query didn't complete
         Modal.error({
           title: 'Lỗi kết nối',
           content: 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.',
@@ -896,6 +911,36 @@ const StrategicDashboard = () => {
   const clearQueryHistory = useCallback(() => {
     setAiQueryHistory([]);
     message.success('Đã xóa lịch sử câu hỏi');
+  }, []);
+
+  // Utility: Sanitize response text to remove any remaining template placeholders
+  const sanitizeResponse = useCallback((text: string): string => {
+    if (!text) return text;
+
+    // Check for common placeholder patterns
+    const placeholderPatterns = [
+      /\{\{(\w+)\}\}/g,   // {{variable}}
+      /<(\w+)>/g,         // <variable>
+      /\[(\w+)\]/g,       // [variable] - but preserve markdown links
+      /\bX\b/g            // Standalone X
+    ];
+
+    let hasPlaceholders = false;
+    for (const pattern of placeholderPatterns) {
+      if (pattern.test(text)) {
+        hasPlaceholders = true;
+        console.error('[AI DEBUG] Placeholder detected in response:', text.match(pattern));
+        break;
+      }
+    }
+
+    if (hasPlaceholders) {
+      // Return safe fallback message
+      console.error('[AI DEBUG] Response contains placeholders, using fallback');
+      return 'Đã tìm thấy kết quả. Vui lòng xem dữ liệu bên dưới.';
+    }
+
+    return text;
   }, []);
 
   // Utility: Generate smart conversation title (P0 #2)
@@ -2214,7 +2259,7 @@ const StrategicDashboard = () => {
                                       ),
                                     }}
                                   >
-                                    {aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả'}
+                                    {sanitizeResponse(aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả')}
                                   </ReactMarkdown>
                                 </div>
 

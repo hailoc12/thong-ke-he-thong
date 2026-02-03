@@ -2086,12 +2086,19 @@ Câu hỏi: {query}
 
 NHIỆM VỤ:
 1. Tạo SQL query để lấy dữ liệu
-2. Viết câu trả lời NGẮN GỌN (1-2 câu) với số liệu
+2. Viết câu trả lời NGẮN GỌN (1-2 câu) sử dụng kết quả truy vấn
+
+QUAN TRỌNG - Về câu trả lời:
+- PHẢI sử dụng placeholder {{{{column_name}}}} hoặc [column_name] cho các giá trị từ SQL
+- KHÔNG sử dụng "X", "<variable>", hoặc text placeholder khác
+- VÍ DỤ TỐT: "answer": "Có {{{{count}}}} hệ thống đang vận hành"
+- VÍ DỤ TỐT: "answer": "Tổng số hệ thống là [total_systems]"
+- VÍ DỤ SAI: "answer": "Có X hệ thống" hoặc "Có <count> hệ thống"
 
 Trả về JSON:
 {{
     "sql": "SELECT query here",
-    "answer": "Câu trả lời ngắn gọn với số liệu (VD: 'Có 25 hệ thống đang sử dụng Java')",
+    "answer": "Câu trả lời với {{{{column_name}}}} placeholder (VD: 'Có {{{{count}}}} hệ thống đang sử dụng Java')",
     "chart_type": "bar|pie|table|null"
 }}
 
@@ -2150,15 +2157,21 @@ CHỈ trả về JSON."""
                     value = first_row.get(var_name)
                     if value is not None:
                         return str(value)
-                    return match.group(0)  # Keep original if not found
+                    # CRITICAL FIX: Return "0" for missing values, not the variable name
+                    logger.warning(f"Template variable '{var_name}' not found in data, using '0'")
+                    return "0"
 
                 import re
-                # Replace {{variable}} patterns first
-                result = re.sub(r'\{\{(\w+)\}\}', replace_match, text)
-                # Then replace [variable] patterns (markdown-style placeholders from AI)
-                result = re.sub(r'\[(\w+)\]', replace_match, result)
-                # Finally replace {variable} patterns (single braces - actual AI output)
-                result = re.sub(r'\{(\w+)\}', replace_match, result)
+                # Replace all possible template patterns
+                result = re.sub(r'\{\{(\w+)\}\}', replace_match, text)  # {{variable}}
+                result = re.sub(r'\[(\w+)\]', replace_match, result)     # [variable]
+                result = re.sub(r'\{(\w+)\}', replace_match, result)     # {variable}
+                result = re.sub(r'<(\w+)>', replace_match, result)       # <variable>
+
+                # Replace standalone "X" placeholder with count/total from data
+                if r'\bX\b' in result or ' X ' in result:
+                    count_value = first_row.get('count', first_row.get('total', first_row.get('total_systems', '0')))
+                    result = re.sub(r'\bX\b', str(count_value), result)
 
                 return result
 
@@ -2541,14 +2554,21 @@ CHỈ trả về JSON."""
                         value = first_row.get(var_name)
                         if value is not None:
                             return str(value)
-                        return match.group(0)  # Keep original if not found
+                        # CRITICAL FIX: Return "0" for missing values, not the variable name
+                        logger.warning(f"Template variable '{var_name}' not found in data, using '0'")
+                        return "0"
 
-                    # Replace {{variable}} patterns first
-                    result = re.sub(r'\{\{(\w+)\}\}', replace_match, text)
-                    # Then replace [variable] patterns (markdown-style placeholders from AI)
-                    result = re.sub(r'\[(\w+)\]', replace_match, result)
-                    # Finally replace {variable} patterns (single braces - actual AI output)
-                    result = re.sub(r'\{(\w+)\}', replace_match, result)
+                    import re
+                    # Replace all possible template patterns
+                    result = re.sub(r'\{\{(\w+)\}\}', replace_match, text)  # {{variable}}
+                    result = re.sub(r'\[(\w+)\]', replace_match, result)     # [variable]
+                    result = re.sub(r'\{(\w+)\}', replace_match, result)     # {variable}
+                    result = re.sub(r'<(\w+)>', replace_match, result)       # <variable>
+
+                    # Replace standalone "X" placeholder with count/total from data
+                    if r'\bX\b' in result or ' X ' in result:
+                        count_value = first_row.get('count', first_row.get('total', first_row.get('total_systems', '0')))
+                        result = re.sub(r'\bX\b', str(count_value), result)
 
                     return result
 

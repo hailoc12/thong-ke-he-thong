@@ -2169,7 +2169,8 @@ CHỈ trả về JSON."""
                 result = re.sub(r'<(\w+)>', replace_match, result)       # <variable>
 
                 # Replace standalone "X" placeholder with count/total from data
-                if r'\bX\b' in result or ' X ' in result:
+                # Check for " X " (with spaces) or X at word boundaries
+                if re.search(r'\bX\b', result):
                     count_value = first_row.get('count', first_row.get('total', first_row.get('total_systems', '0')))
                     result = re.sub(r'\bX\b', str(count_value), result)
 
@@ -2566,7 +2567,8 @@ CHỈ trả về JSON."""
                     result = re.sub(r'<(\w+)>', replace_match, result)       # <variable>
 
                     # Replace standalone "X" placeholder with count/total from data
-                    if r'\bX\b' in result or ' X ' in result:
+                    # Check for " X " (with spaces) or X at word boundaries
+                    if re.search(r'\bX\b', result):
                         count_value = first_row.get('count', first_row.get('total', first_row.get('total_systems', '0')))
                         result = re.sub(r'\bX\b', str(count_value), result)
 

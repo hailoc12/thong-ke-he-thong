@@ -839,6 +839,14 @@ const StrategicDashboard = () => {
         return;
       }
 
+      // CRITICAL FIX: Check if error has data before parsing
+      // EventSource fires error event with undefined data when connection closes normally
+      if (!e.data) {
+        console.log('[AI DEBUG] Error event without data - connection closed normally');
+        eventSource.close();
+        return;
+      }
+
       try {
         const data = JSON.parse(e.data);
 

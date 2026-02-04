@@ -524,8 +524,8 @@ const StrategicDashboard = () => {
   const [conversationSidebarVisible, setConversationSidebarVisible] = useState(false);
 
   // Conversation enhancements (P0 #1: Load full timeline, P1 #3: Search/filter)
-  // Note: _conversationHistory is loaded but not yet displayed (future feature)
-  const [_conversationHistory, setConversationHistory] = useState<Array<{
+  // Note: _conversationTimeline is loaded but not yet displayed (future feature)
+  const [_conversationTimeline, _setConversationTimeline] = useState<Array<{
     role: 'user' | 'assistant';
     content: string;
     timestamp: string;
@@ -3172,14 +3172,14 @@ const StrategicDashboard = () => {
 
                       // P0 #1: Load full conversation timeline (not just last response)
                       if (fullConv.messages && fullConv.messages.length > 0) {
-                        // Build conversation history for display
-                        const history = fullConv.messages.map(msg => ({
+                        // Build conversation timeline for display (future feature)
+                        const timeline = fullConv.messages.map(msg => ({
                           role: msg.role as 'user' | 'assistant',
                           content: msg.content,
                           timestamp: msg.created_at,
                           responseData: msg.response_data,
                         }));
-                        setConversationHistory(history);
+                        _setConversationTimeline(timeline);
 
                         // P1 #8: Sync query history with conversation
                         const userQueries = fullConv.messages
@@ -3300,7 +3300,8 @@ const StrategicDashboard = () => {
                         if (currentConversation?.id === conv.id) {
                           setCurrentConversation(null);
                           setAiQueryResponse(null);
-                          setConversationHistory([]);
+                          setConversationHistory([]); // Clear current chat thread
+                          _setConversationTimeline([]); // Clear loaded conversation timeline
                         }
                         message.success('Đã xóa cuộc trò chuyện');
                       } catch (err) {

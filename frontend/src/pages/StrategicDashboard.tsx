@@ -2824,7 +2824,7 @@ const StrategicDashboard = () => {
                       placeholder="Ví dụ: 'Có bao nhiêu hệ thống?' hoặc 'Đơn vị nào có nhiều hệ thống nhất?'"
                       value={aiQuery}
                       onChange={(e) => setAiQuery(e.target.value)}
-                      onSearch={(value, event) => {
+                      onSearch={(_value, event) => {
                         // FIX: Prevent page scroll on submit
                         if (event) {
                           event.preventDefault();

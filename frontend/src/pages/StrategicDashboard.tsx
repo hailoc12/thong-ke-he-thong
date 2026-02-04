@@ -675,6 +675,9 @@ const StrategicDashboard = () => {
     const queryString = encodeURIComponent(currentQuery);
     const sseUrl = `${window.location.protocol}//${window.location.hostname}/api/systems/ai_query_stream/?query=${queryString}&token=${token}&mode=${aiMode}`;
 
+    // Debug: Log mode being used
+    console.log('[AI DEBUG] Query mode:', aiMode, '| Query:', currentQuery.substring(0, 50));
+
     const eventSource = new EventSource(sseUrl);
     console.log('[AI DEBUG] EventSource created:', sseUrl);
 

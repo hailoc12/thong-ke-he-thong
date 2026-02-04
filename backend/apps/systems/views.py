@@ -1915,14 +1915,25 @@ Trả về JSON với SQL đã sửa."""
         # Get mode parameter (default: 'quick' for faster perceived performance)
         mode = request.query_params.get('mode', 'quick')  # 'quick' or 'deep'
 
-        if mode == 'quick':
-            return self._quick_answer_stream(query, user)
-        else:
-            return self._deep_analysis_stream(query, user)
+        # Get conversation context for follow-up questions
+        context_param = request.query_params.get('context', '')
+        context = None
+        if context_param:
+            try:
+                context = json.loads(context_param)
+                logger.info(f"Conversation context received: previous_query={context.get('previous_query', '')[:50]}")
+            except Exception as e:
+                logger.warning(f"Failed to parse context: {e}")
 
-    def _quick_answer_stream(self, query, user):
+        if mode == 'quick':
+            return self._quick_answer_stream(query, user, context)
+        else:
+            return self._deep_analysis_stream(query, user, context)
+
+    def _quick_answer_stream(self, query, user, context=None):
         """
         Quick Mode: Single AI call + direct answer (~4-6s)
+        context: Optional dict with previous_query, previous_answer, previous_sql for follow-up questions
 
         Stream:
         - phase_start: "Phân tích nhanh"
@@ -2187,7 +2198,15 @@ VÍ DỤ ĐÚNG: system_name ILIKE '%Portal%' (tìm được tất cả hệ th�
 
 ---
 
-Câu hỏi: {query}
+{"NGỮCẢNH HỘI THOẠI (dùng để hiểu câu hỏi tiếp theo):" if context else ""}
+{f'''
+Câu hỏi trước: {context.get("previous_query", "")}
+Câu trả lời trước: {context.get("previous_answer", "")}
+SQL query trước: {context.get("previous_sql", "")}
+
+LƯU Ý: Nếu câu hỏi hiện tại có từ "này", "đó", "của nó", "hệ thống đó" → tham chiếu đến thông tin từ câu hỏi trước
+''' if context else ""}
+Câu hỏi hiện tại: {query}
 
 NHIỆM VỤ:
 1. Tạo SQL query để lấy dữ liệu (học theo examples)
@@ -2440,9 +2459,10 @@ CHỈ trả về JSON."""
         response['Connection'] = 'keep-alive'
         return response
 
-    def _deep_analysis_stream(self, query, user):
+    def _deep_analysis_stream(self, query, user, context=None):
         """
         Deep Mode: Full 4-phase workflow (~12-20s)
+        context: Optional dict with previous_query, previous_answer, previous_sql for follow-up questions
 
         Existing logic with strategic insights and self-review.
         """
@@ -2645,7 +2665,15 @@ VÍ DỤ: Câu hỏi "Portal" sẽ tìm được: "Portal VNNIC", "Portal Cục 
 
 ---
 
-Câu hỏi: {query}
+{"NGỮCẢNH HỘI THOẠI (dùng để hiểu câu hỏi tiếp theo):" if context else ""}
+{f'''
+Câu hỏi trước: {context.get("previous_query", "")}
+Câu trả lời trước: {context.get("previous_answer", "")}
+SQL query trước: {context.get("previous_sql", "")}
+
+LƯU Ý: Nếu câu hỏi hiện tại có từ "này", "đó", "của nó", "hệ thống đó" → tham chiếu đến thông tin từ câu hỏi trước
+''' if context else ""}
+Câu hỏi hiện tại: {query}
 
 NHIỆM VỤ:
 1. Phân tích sâu câu hỏi (thinking)

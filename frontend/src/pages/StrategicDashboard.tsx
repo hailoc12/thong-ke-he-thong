@@ -673,10 +673,23 @@ const StrategicDashboard = () => {
 
     // Create EventSource for SSE
     const queryString = encodeURIComponent(currentQuery);
-    const sseUrl = `${window.location.protocol}//${window.location.hostname}/api/systems/ai_query_stream/?query=${queryString}&token=${token}&mode=${aiMode}`;
+
+    // Build conversation context from last conversation (if exists) for follow-up questions
+    let contextParam = '';
+    if (conversationHistory.length > 0) {
+      const lastConv = conversationHistory[conversationHistory.length - 1];
+      const context = {
+        previous_query: lastConv.query,
+        previous_answer: lastConv.response?.response?.main_answer || '',
+        previous_sql: lastConv.response?.sql || ''
+      };
+      contextParam = '&context=' + encodeURIComponent(JSON.stringify(context));
+    }
+
+    const sseUrl = `${window.location.protocol}//${window.location.hostname}/api/systems/ai_query_stream/?query=${queryString}&token=${token}&mode=${aiMode}${contextParam}`;
 
     // Debug: Log mode being used
-    console.log('[AI DEBUG] Query mode:', aiMode, '| Query:', currentQuery.substring(0, 50));
+    console.log('[AI DEBUG] Query mode:', aiMode, '| Query:', currentQuery.substring(0, 50), '| Has context:', contextParam !== '');
 
     const eventSource = new EventSource(sseUrl);
     console.log('[AI DEBUG] EventSource created:', sseUrl);

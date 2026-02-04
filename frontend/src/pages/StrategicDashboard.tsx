@@ -2087,11 +2087,11 @@ const StrategicDashboard = () => {
                         </div>
                       </div>
 
-                      {/* Enhanced Progress Section - BEFORE AI Response */}
-                      {aiProgressTasks.length > 0 && (
+                      {/* Enhanced Progress Section - BEFORE AI Response - Show immediately when loading */}
+                      {(aiQueryLoading || aiProgressTasks.length > 0) && (
                         <div style={{ marginBottom: 16 }}>
                           <Collapse
-                            defaultActiveKey={[]}
+                            defaultActiveKey={['progress']}
                             ghost
                             items={[{
                               key: 'progress',

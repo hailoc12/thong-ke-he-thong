@@ -2991,15 +2991,24 @@ const StrategicDashboard = () => {
                                           return;
                                         }
 
-                                        const newSuggestions = generateContextualSuggestions(aiQuery || aiQueryResponse.query || '', aiQueryResponse);
+                                        // Use conv.query instead of aiQuery to refresh suggestions for this specific conversation
+                                        const newSuggestions = generateContextualSuggestions(conv.query, aiQueryResponse);
 
                                         if (aiQueryResponse.response) {
-                                          setAiQueryResponse({
-                                            ...aiQueryResponse,
-                                            response: {
-                                              ...aiQueryResponse.response,
-                                              follow_up_suggestions: newSuggestions
-                                            }
+                                          // Update conversation history with new suggestions
+                                          setConversationHistory(prev => {
+                                            const updated = [...prev];
+                                            updated[idx] = {
+                                              ...updated[idx],
+                                              response: {
+                                                ...updated[idx].response,
+                                                response: {
+                                                  ...updated[idx].response.response,
+                                                  follow_up_suggestions: newSuggestions
+                                                }
+                                              }
+                                            };
+                                            return updated;
                                           });
                                           message.success('Đã làm mới gợi ý');
                                         } else {
@@ -3014,7 +3023,7 @@ const StrategicDashboard = () => {
                                 <Space wrap size={[6, 6]}>
                                   {(aiQueryResponse.response?.follow_up_suggestions && aiQueryResponse.response.follow_up_suggestions.length > 0
                                     ? aiQueryResponse.response.follow_up_suggestions
-                                    : generateContextualSuggestions(aiQuery, aiQueryResponse)
+                                    : generateContextualSuggestions(conv.query, aiQueryResponse)
                                   ).map((suggestion, idx) => (
                                       <Tag
                                         key={idx}

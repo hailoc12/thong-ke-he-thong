@@ -2685,8 +2685,8 @@ const StrategicDashboard = () => {
                                   </div>
                                 )}
 
-                                {/* Details */}
-                                {aiQueryResponse.response?.details && (
+                                {/* Details - HIDDEN per user request: "hide hoàn toàn phần Chi tiết dữ liệu" */}
+                                {false && aiQueryResponse.response?.details && (
                                   <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
                                     <Text type="secondary" style={{ fontSize: 13 }}>{aiQueryResponse.response.details}</Text>
                                   </div>
@@ -2825,7 +2825,8 @@ const StrategicDashboard = () => {
                                       .toLowerCase()
                                       .includes('<table');
                                     // Show if has system data AND no HTML table in answer
-                                    return hasSystemData && !hasHtmlTable;
+                                    // HIDDEN per user request: "hide hoàn toàn phần Chi tiết dữ liệu"
+                                    return false; // Previously: hasSystemData && !hasHtmlTable
                                   })() && aiQueryResponse.data && ((aiQueryResponse.data?.rows?.length || 0) > 1 || (aiQueryResponse.data?.columns?.length || 0) > 1) && (
                                     <>
                                       <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>

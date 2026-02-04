@@ -2227,7 +2227,69 @@ CHỈ trả về JSON."""
                 yield f"event: error\ndata: {json.dumps({'error': 'Lỗi truy vấn dữ liệu', 'detail': sql_error})}\n\n"
                 return
 
-            yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': query_result.get('total_rows', 0)})}\n\n"
+            # Check if result is empty (0 rows) - retry once with SQL review
+            if query_result.get('total_rows', 0) == 0:
+                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': 0, 'retry': True})}\n\n"
+
+                # Phase 2.5: Review and fix SQL
+                yield f"event: phase_start\ndata: {json.dumps({'phase': 2.5, 'name': 'Kiểm tra SQL', 'description': 'Kết quả trống - đang kiểm tra và sửa SQL...', 'mode': 'quick'})}\n\n"
+
+                review_prompt = f"""SQL query trả về 0 kết quả. Hãy kiểm tra và sửa lại SQL.
+
+SQL hiện tại:
+{sql_query}
+
+Câu hỏi gốc: {query}
+
+{schema_context}
+
+KIỂM TRA:
+1. WHERE clause có đúng không? (nhớ is_deleted = false)
+2. JOIN có thiếu không?
+3. Column names có chính xác không?
+4. Logic có sai không?
+
+Trả về JSON:
+{{
+    "issue": "Mô tả vấn đề tìm thấy",
+    "fixed_sql": "SELECT query đã sửa (hoặc null nếu SQL đúng)",
+    "explanation": "Giải thích ngắn gọn"
+}}
+
+CHỈ trả về JSON."""
+
+                try:
+                    review_content = call_ai_internal(review_prompt, [{'role': 'user', 'content': query}], 'SQL Review')
+                    json_match = re.search(r'\{[\s\S]*\}', review_content)
+
+                    if json_match:
+                        review_data = json.loads(json_match.group())
+                        fixed_sql = review_data.get('fixed_sql')
+
+                        if fixed_sql and fixed_sql != sql_query:
+                            logger.info(f"SQL reviewed: {review_data.get('explanation')}")
+                            yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.5, 'issue': review_data.get('issue'), 'fixed': True})}\n\n"
+
+                            # Retry with fixed SQL
+                            yield f"event: phase_start\ndata: {json.dumps({'phase': 2.6, 'name': 'Thử lại truy vấn', 'description': 'Đang chạy SQL đã sửa...', 'mode': 'quick'})}\n\n"
+
+                            retry_result, retry_error = validate_and_execute_sql_internal(fixed_sql)
+                            if retry_result and retry_result.get('total_rows', 0) > 0:
+                                query_result = retry_result
+                                sql_query = fixed_sql  # Update for logging
+                                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.6, 'total_rows': query_result.get('total_rows', 0), 'success': True})}\n\n"
+                            else:
+                                # Still 0 results after retry
+                                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.6, 'total_rows': 0, 'success': False})}\n\n"
+                        else:
+                            # SQL is correct, 0 is expected result
+                            yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.5, 'issue': 'SQL đúng - kết quả thực sự là 0', 'fixed': False})}\n\n"
+
+                except Exception as e:
+                    logger.error(f"SQL review error: {e}")
+                    yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.5, 'error': str(e)})}\n\n"
+            else:
+                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': query_result.get('total_rows', 0)})}\n\n"
 
             # Replace template variables in answer with actual data
             # AI might return "{{column_name}}" or "[column_name]" which needs to be replaced
@@ -2693,7 +2755,68 @@ CHỈ trả về JSON, không giải thích."""
                 yield f"event: error\ndata: {json.dumps({'error': 'Lỗi truy vấn dữ liệu', 'detail': sql_error})}\n\n"
                 return
 
-            yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': query_result.get('total_rows', 0)})}\n\n"
+            # Check if result is empty (0 rows) - retry once with SQL review (Deep mode)
+            if query_result.get('total_rows', 0) == 0:
+                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': 0, 'retry': True})}\n\n"
+
+                # Phase 2.5: Review and fix SQL
+                yield f"event: phase_start\ndata: {json.dumps({'phase': 2.5, 'name': 'Kiểm tra SQL', 'description': 'Kết quả trống - đang phân tích và sửa SQL...', 'mode': 'deep'})}\n\n"
+
+                review_prompt = f"""SQL query trả về 0 kết quả trong Deep mode. Phân tích và sửa lỗi.
+
+SQL hiện tại:
+{sql_query}
+
+Câu hỏi: {query}
+
+{schema_context}
+
+PHÂN TÍCH:
+1. WHERE conditions có đúng không?
+2. JOIN logic có sai không?
+3. Column names có tồn tại không?
+4. Có thể data thực sự không có không?
+
+Trả về JSON:
+{{
+    "analysis": "Phân tích chi tiết vấn đề",
+    "fixed_sql": "SELECT query đã sửa (hoặc null nếu 0 là kết quả đúng)",
+    "is_valid_empty": true/false  (true nếu 0 là kết quả hợp lệ)
+}}
+
+CHỈ trả về JSON."""
+
+                try:
+                    review_content = call_ai_internal(review_prompt, [{'role': 'user', 'content': query}], 'Deep SQL Review')
+                    json_match = re.search(r'\{[\s\S]*\}', review_content)
+
+                    if json_match:
+                        review_data = json.loads(json_match.group())
+                        fixed_sql = review_data.get('fixed_sql')
+                        is_valid_empty = review_data.get('is_valid_empty', False)
+
+                        if fixed_sql and not is_valid_empty:
+                            logger.info(f"Deep mode SQL reviewed: {review_data.get('analysis')}")
+                            yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.5, 'analysis': review_data.get('analysis'), 'fixed': True})}\n\n"
+
+                            # Retry with fixed SQL
+                            yield f"event: phase_start\ndata: {json.dumps({'phase': 2.6, 'name': 'Thử lại truy vấn', 'description': 'Đang chạy SQL đã tối ưu...', 'mode': 'deep'})}\n\n"
+
+                            retry_result, retry_error = validate_and_execute_sql_internal(fixed_sql)
+                            if retry_result and retry_result.get('total_rows', 0) > 0:
+                                query_result = retry_result
+                                sql_query = fixed_sql
+                                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.6, 'total_rows': query_result.get('total_rows', 0), 'success': True})}\n\n"
+                            else:
+                                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.6, 'total_rows': 0, 'success': False})}\n\n"
+                        else:
+                            yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.5, 'analysis': 'Kết quả 0 là chính xác', 'fixed': False})}\n\n"
+
+                except Exception as e:
+                    logger.error(f"Deep SQL review error: {e}")
+                    yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.5, 'error': str(e)})}\n\n"
+            else:
+                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': query_result.get('total_rows', 0)})}\n\n"
 
             # Phase 3: Generate Response
             yield f"event: phase_start\ndata: {json.dumps({'phase': 3, 'name': 'Tạo báo cáo', 'description': 'Đang tạo báo cáo chiến lược...'})}\n\n"

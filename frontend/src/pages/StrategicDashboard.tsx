@@ -2677,16 +2677,16 @@ const StrategicDashboard = () => {
                                     <>
                                       <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
                                         <LineChartOutlined style={{ marginRight: 6 }} />
-                                        Chi tiết dữ liệu ({Math.min(aiQueryResponse.data.rows.length, 5)} / {aiQueryResponse.data.total_rows} kết quả)
+                                        Chi tiết dữ liệu ({Math.min(aiQueryResponse.data?.rows?.length || 0, 5)} / {aiQueryResponse.data?.total_rows || 0} kết quả)
                                         {aiQueryResponse.response?.chart_config?.unit && (
                                           <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>
-                                            Đơn vị: {getVietnameseUnit(aiQueryResponse.response.chart_config.unit)}
+                                            Đơn vị: {getVietnameseUnit(aiQueryResponse.response?.chart_config?.unit || '')}
                                           </Tag>
                                         )}
                                       </Text>
 
                                       {/* Simple Visual Bars for numeric data */}
-                                      {aiQueryResponse.data.rows.slice(0, 5).map((row: any, idx: number) => {
+                                      {aiQueryResponse.data?.rows?.slice(0, 5).map((row: any, idx: number) => {
                                         const chartConfig = aiQueryResponse.response?.chart_config;
                                         const columns = aiQueryResponse.data!.columns;
 
@@ -2800,7 +2800,7 @@ const StrategicDashboard = () => {
                                         );
                                       })}
 
-                                      {aiQueryResponse.data.rows.length > 5 && (
+                                      {(aiQueryResponse.data?.rows?.length || 0) > 5 && (
                                         <Button
                                           type="primary"
                                           size="small"
@@ -2810,7 +2810,7 @@ const StrategicDashboard = () => {
                                           style={{ marginTop: 8, borderRadius: 16 }}
                                           icon={<EyeOutlined />}
                                         >
-                                          Xem đầy đủ {aiQueryResponse.data.total_rows} kết quả
+                                          Xem đầy đủ {aiQueryResponse.data?.total_rows || 0} kết quả
                                         </Button>
                                       )}
                                     </>

@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Card,
   Row,
@@ -77,6 +78,7 @@ import {
   FormOutlined,
   UndoOutlined,
   BulbOutlined as LightBulbOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons';
 import {
   PieChart,
@@ -396,6 +398,8 @@ interface AIThinkingTask {
   sql?: string;
   sqlPreview?: string;
   resultCount?: number;
+  sampleRows?: any[]; // Sample data rows for debugging
+  columns?: string[]; // Column names
   reviewPassed?: boolean;
 
   // Phase 1.5: Smart Data Details
@@ -437,6 +441,7 @@ interface AIQueryResponse {
   query: string;
   thinking?: AIThinking;
   response?: AIResponseContent;
+  sql?: string; // Add sql field for context passing
   // Legacy format support
   ai_response?: {
     sql?: string;
@@ -455,6 +460,36 @@ interface AIQueryResponse {
     total_rows: number;
   };
   error?: string;
+  mode?: 'quick' | 'deep'; // Add mode field
+  loading?: boolean; // Add loading field for placeholder
+}
+
+interface ProgressTask {
+  id: number;
+  name: string;
+  description: string;
+  status: 'in_progress' | 'completed';
+  startTime?: number;
+  endTime?: number;
+  duration?: string;
+
+  // Phase-specific data (Phase 1: SQL Generation)
+  thinking?: string;
+  sql?: string;
+  sqlPreview?: string;
+
+  // Phase 1.5: Smart Data Details
+  dataAnalysis?: string;
+  enhanced?: boolean;
+  addedInfo?: string[];
+
+  // Phase 2: Data Query
+  resultCount?: number;
+  sampleRows?: any[];
+  columns?: string[];
+
+  // Phase 4: Self-Review
+  reviewPassed?: boolean;
 }
 
 interface DrilldownSystem {
@@ -470,6 +505,7 @@ interface DrilldownSystem {
 }
 
 const StrategicDashboard = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<StrategicStats | null>(null);
   const [investmentStats, setInvestmentStats] = useState<InvestmentStats | null>(null);
@@ -487,6 +523,14 @@ const StrategicDashboard = () => {
   const [aiQuery, setAiQuery] = useState('');
   const [aiQueryLoading, setAiQueryLoading] = useState(false);
   const [aiQueryResponse, setAiQueryResponse] = useState<AIQueryResponse | null>(null);
+
+  // Conversation history for multi-turn chat (FIX: Bug #1 - conversation history disappearing)
+  const [conversationHistory, setConversationHistory] = useState<Array<{
+    query: string;
+    response: AIQueryResponse;
+    timestamp: number;
+    progressTasks?: ProgressTask[]; // Strongly typed progress tasks for Deep mode transparency
+  }>>([]);
 
   // Query history with localStorage persistence (P0 #3: Fix history lost on refresh)
   const HISTORY_STORAGE_KEY = 'ai_query_history';
@@ -517,8 +561,8 @@ const StrategicDashboard = () => {
   const [conversationSidebarVisible, setConversationSidebarVisible] = useState(false);
 
   // Conversation enhancements (P0 #1: Load full timeline, P1 #3: Search/filter)
-  // Note: _conversationHistory is loaded but not yet displayed (future feature)
-  const [_conversationHistory, setConversationHistory] = useState<Array<{
+  // Note: _conversationTimeline is loaded but not yet displayed (future feature)
+  const [_conversationTimeline, _setConversationTimeline] = useState<Array<{
     role: 'user' | 'assistant';
     content: string;
     timestamp: string;
@@ -619,19 +663,37 @@ const StrategicDashboard = () => {
   }, [activeTab, investmentStats, integrationStats, optimizationStats, monitoringStats, insightsStats, roadmapStats]);
 
   // AI Query handler with SSE streaming for real-time progress
-  const handleAIQuery = useCallback(async () => {
-    if (!aiQuery.trim()) {
+  const handleAIQuery = useCallback(async (queryText?: string) => {
+    // Use provided queryText or fall back to aiQuery state
+    const currentQuery = queryText || aiQuery;
+
+    if (!currentQuery.trim()) {
       message.warning('Vui lòng nhập câu hỏi');
       return;
     }
 
-    const currentQuery = aiQuery;
     setAiQuery(''); // Clear input immediately
     setAiQueryLoading(true);
-    setAiQueryResponse(null); // Clear previous response
+    // FIX Bug #1: Don't clear previous response, keep in conversation history
+    // setAiQueryResponse(null); // REMOVED - this was causing conversation history to disappear
 
     // Reset progress states
     setAiProgressTasks([]);
+
+    // Show user's question immediately in chat before processing
+    const pendingConversationIndex = conversationHistory.length;
+    setConversationHistory(prev => [
+      ...prev,
+      {
+        query: currentQuery,
+        response: {
+          query: currentQuery,
+          mode: aiMode,
+          loading: true // Mark as loading
+        } as any, // Temporary placeholder
+        timestamp: Date.now()
+      }
+    ]);
 
     // Get token from localStorage or sessionStorage
     const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
@@ -643,7 +705,23 @@ const StrategicDashboard = () => {
 
     // Create EventSource for SSE
     const queryString = encodeURIComponent(currentQuery);
-    const sseUrl = `${window.location.protocol}//${window.location.hostname}/api/systems/ai_query_stream/?query=${queryString}&token=${token}&mode=${aiMode}`;
+
+    // Build conversation context from last conversation (if exists) for follow-up questions
+    let contextParam = '';
+    if (conversationHistory.length > 0) {
+      const lastConv = conversationHistory[conversationHistory.length - 1];
+      const context = {
+        previous_query: lastConv.query,
+        previous_answer: lastConv.response?.response?.main_answer || '',
+        previous_sql: lastConv.response?.sql || ''
+      };
+      contextParam = '&context=' + encodeURIComponent(JSON.stringify(context));
+    }
+
+    const sseUrl = `${window.location.protocol}//${window.location.hostname}/api/systems/ai_query_stream/?query=${queryString}&token=${token}&mode=${aiMode}${contextParam}`;
+
+    // Debug: Log mode being used
+    console.log('[AI DEBUG] Query mode:', aiMode, '| Query:', currentQuery.substring(0, 50), '| Has context:', contextParam !== '');
 
     const eventSource = new EventSource(sseUrl);
     console.log('[AI DEBUG] EventSource created:', sseUrl);
@@ -725,9 +803,8 @@ const StrategicDashboard = () => {
               // SQL Generation phase
               updated.thinking = data.thinking;
               updated.sql = data.sql;
-              updated.sqlPreview = data.sql ?
-                (data.sql.length > 80 ? data.sql.substring(0, 80) + '...' : data.sql)
-                : undefined;
+              // Show full SQL without trimming
+              updated.sqlPreview = data.sql;
             } else if (data.phase === 1.5) {
               // Smart Data Details phase
               updated.dataAnalysis = data.analysis;
@@ -736,6 +813,8 @@ const StrategicDashboard = () => {
             } else if (data.phase === 2) {
               // Data Query phase
               updated.resultCount = data.total_rows;
+              updated.sampleRows = data.sample_rows; // For debugging
+              updated.columns = data.columns;
             } else if (data.phase === 4) {
               // Self-Review phase
               updated.reviewPassed = data.review_passed;
@@ -772,10 +851,6 @@ const StrategicDashboard = () => {
       try {
         console.log('[AI DEBUG] *** COMPLETE EVENT RECEIVED ***', e.data);
         const data = JSON.parse(e.data);
-
-        // CRITICAL FIX: Mark as completed IMMEDIATELY to prevent false error dialog
-        // This must be set BEFORE setTimeout so error handler can check it
-        queryCompleted = true;
 
         // Mark all tasks as completed
         setAiProgressTasks(prev => prev.map(t => ({ ...t, status: 'completed' as const })));
@@ -816,6 +891,41 @@ const StrategicDashboard = () => {
         setTimeout(async () => {
           console.log('[AI DEBUG] Setting aiQueryResponse state:', data);
           setAiQueryResponse(data);
+
+          // FIX Bug #1: Update the placeholder entry instead of adding new one
+          // ALSO: Save progress tasks for this conversation
+          // FIX Deep Mode Bug: Deep copy progress tasks to preserve detailed info
+          const savedProgressTasks = JSON.parse(JSON.stringify(aiProgressTasks));
+          console.log('[SAVE] Saving conversation with', savedProgressTasks.length, 'progress tasks');
+
+          setConversationHistory(prev => {
+            const updated = [...prev];
+            if (updated[pendingConversationIndex]) {
+              // Update the placeholder entry with actual response and save progress tasks
+              updated[pendingConversationIndex] = {
+                query: currentQuery,
+                response: data,
+                timestamp: Date.now(),
+                progressTasks: savedProgressTasks // Deep copy to preserve all details
+              };
+            } else {
+              // Fallback: add new entry if placeholder not found (shouldn't happen)
+              updated.push({
+                query: currentQuery,
+                response: data,
+                timestamp: Date.now(),
+                progressTasks: savedProgressTasks
+              });
+            }
+            return updated;
+          });
+
+          // Clear global progress tasks to prevent contamination in next query
+          setTimeout(() => {
+            setAiProgressTasks([]);
+            console.log('[CLEAR] Global progress tasks cleared');
+          }, 100);
+
           console.log('[AI DEBUG] Setting aiQueryLoading to false');
           setAiQueryHistory(prev => [currentQuery, ...prev.filter(q => q !== currentQuery)].slice(0, 10));
           setAiQueryLoading(false);
@@ -823,7 +933,8 @@ const StrategicDashboard = () => {
           // Save to conversation
           await saveToConversation(currentConversation);
 
-          // Close EventSource
+          // Mark as completed before closing to prevent false error dialog
+          queryCompleted = true;
           eventSource.close();
         }, 400);
       } catch (err) {
@@ -838,6 +949,14 @@ const StrategicDashboard = () => {
       // EventSource fires error event when connection closes, even after success
       if (queryCompleted) {
         console.log('[AI DEBUG] Ignoring error event after successful completion');
+        eventSource.close();
+        return;
+      }
+
+      // CRITICAL FIX: Check if error has data before parsing
+      // EventSource fires error event with undefined data when connection closes normally
+      if (!e.data) {
+        console.log('[AI DEBUG] Error event without data - connection closed normally');
         eventSource.close();
         return;
       }
@@ -909,7 +1028,7 @@ const StrategicDashboard = () => {
     return () => {
       eventSource.close();
     };
-  }, [aiQuery]);
+  }, [aiQuery, aiMode]); // FIX: Add aiMode to dependencies
 
   // Utility: Clear query history (P2 #10)
   const clearQueryHistory = useCallback(() => {
@@ -947,6 +1066,43 @@ const StrategicDashboard = () => {
     return text;
   }, []);
 
+  // Utility: Add system links to response text
+  const addSystemLinks = useCallback((text: string, data?: { columns: string[], rows: any[] }): string => {
+    if (!text || !data?.rows || data.rows.length === 0) return text;
+
+    // Find system_name and id columns
+    const nameCol = data.columns.find(col =>
+      col === 'system_name' || col === 'tên hệ thống' || col === 'ten_he_thong'
+    );
+    const idCol = data.columns.find(col =>
+      col === 'id' || col === 'system_id'
+    );
+
+    if (!nameCol || !idCol) return text;
+
+    // Build a map of system_name -> system_id
+    const systemMap = new Map<string, number>();
+    data.rows.forEach(row => {
+      const name = row[nameCol];
+      const id = row[idCol];
+      if (name && id) {
+        systemMap.set(String(name).trim(), Number(id));
+      }
+    });
+
+    // Replace system names in text with markdown links
+    let result = text;
+    systemMap.forEach((id, name) => {
+      // Escape special regex characters in system name
+      const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Match the name but avoid replacing if it's already in a link
+      const regex = new RegExp(`(?<!\\[)\\b${escapedName}\\b(?!\\])`, 'g');
+      result = result.replace(regex, `[${name}](/systems/${id})`);
+    });
+
+    return result;
+  }, []);
+
   // Utility: Generate smart conversation title (P0 #2)
   const generateSmartTitle = useCallback((query: string, responseData?: AIQueryResponse): string => {
     // Short queries keep as-is
@@ -974,9 +1130,10 @@ const StrategicDashboard = () => {
   // Utility: Generate contextual follow-up suggestions (P1 #11)
   const generateContextualSuggestions = useCallback((
     currentQuery: string,
-    responseData?: AIQueryResponse
+    _responseData?: AIQueryResponse // Prefix with _ to indicate intentionally unused
   ): string[] => {
-    const suggestions: string[] = [];
+    // Build a pool of contextual suggestions based on keywords
+    const pool: string[] = [];
 
     // Extract keywords from query
     const keywords = currentQuery.toLowerCase();
@@ -984,38 +1141,98 @@ const StrategicDashboard = () => {
     const hasSystem = keywords.includes('hệ thống');
     const hasCost = keywords.includes('chi phí') || keywords.includes('ngân sách') || keywords.includes('đầu tư');
     const hasRisk = keywords.includes('rủi ro') || keywords.includes('bảo mật');
+    const hasData = keywords.includes('dữ liệu') || keywords.includes('database') || keywords.includes('csdl');
+    const hasTech = keywords.includes('công nghệ') || keywords.includes('ngôn ngữ') || keywords.includes('framework');
+    const hasStatus = keywords.includes('trạng thái') || keywords.includes('hoạt động') || keywords.includes('vận hành');
 
-    // Generate contextual suggestions
-    if (hasSystem && responseData?.data?.rows && responseData.data.rows.length > 5) {
-      suggestions.push('Top 5 kết quả quan trọng nhất?');
-      suggestions.push('Lọc theo điều kiện cụ thể?');
-    }
-
-    if (hasOrg) {
-      suggestions.push('So sánh giữa các đơn vị?');
-      suggestions.push('Chi tiết từng đơn vị cụ thể?');
-    }
-
-    if (hasCost) {
-      suggestions.push('Phân tích chi phí theo thời gian?');
-      suggestions.push('Đơn vị có chi phí cao nhất?');
-    }
-
-    if (hasRisk) {
-      suggestions.push('Các biện pháp giảm thiểu rủi ro?');
-      suggestions.push('Đánh giá mức độ nghiêm trọng?');
-    }
-
-    // Add generic suggestions if needed
-    if (suggestions.length < 3) {
-      suggestions.push(
-        'Phân tích chuyên sâu hơn?',
-        'So sánh với giai đoạn trước?',
-        'Đề xuất giải pháp cụ thể?'
+    // Add contextual suggestions based on keywords
+    if (hasSystem) {
+      pool.push(
+        'Top 5 kết quả quan trọng nhất?',
+        'Lọc theo điều kiện cụ thể?',
+        'Hệ thống nào cần nâng cấp gấp?',
+        'Phân bố hệ thống theo đơn vị?',
+        'Xu hướng phát triển hệ thống?',
+        'Hệ thống có rủi ro cao?'
       );
     }
 
-    return suggestions.slice(0, 4);
+    if (hasOrg) {
+      pool.push(
+        'So sánh giữa các đơn vị?',
+        'Chi tiết từng đơn vị cụ thể?',
+        'Đơn vị nào đầu tư nhiều nhất?',
+        'Xếp hạng đơn vị theo hiệu suất?',
+        'Phân tích chênh lệch giữa các đơn vị?'
+      );
+    }
+
+    if (hasCost) {
+      pool.push(
+        'Phân tích chi phí theo thời gian?',
+        'Đơn vị có chi phí cao nhất?',
+        'Tối ưu hóa ngân sách như thế nào?',
+        'Dự báo chi phí năm sau?',
+        'Chi phí trung bình trên hệ thống?'
+      );
+    }
+
+    if (hasRisk) {
+      pool.push(
+        'Các biện pháp giảm thiểu rủi ro?',
+        'Đánh giá mức độ nghiêm trọng?',
+        'Lộ trình khắc phục rủi ro?',
+        'Hệ thống có bảo mật yếu?'
+      );
+    }
+
+    if (hasData) {
+      pool.push(
+        'Dung lượng dữ liệu trung bình?',
+        'Hệ thống nào dữ liệu lớn nhất?',
+        'Xu hướng tăng trưởng dữ liệu?',
+        'Chiến lược backup dữ liệu?'
+      );
+    }
+
+    if (hasTech) {
+      pool.push(
+        'Công nghệ nào phổ biến nhất?',
+        'Đề xuất stack công nghệ mới?',
+        'Hệ thống dùng công nghệ lỗi thời?',
+        'So sánh hiệu suất các công nghệ?'
+      );
+    }
+
+    if (hasStatus) {
+      pool.push(
+        'Hệ thống nào ngừng hoạt động?',
+        'Tỷ lệ uptime trung bình?',
+        'Nguyên nhân downtime phổ biến?',
+        'Cải thiện độ ổn định thế nào?'
+      );
+    }
+
+    // Generic suggestions (always available)
+    const genericPool = [
+      'Phân tích chuyên sâu hơn?',
+      'So sánh với giai đoạn trước?',
+      'Đề xuất giải pháp cụ thể?',
+      'Thống kê tổng quan?',
+      'Xu hướng trong tương lai?',
+      'Các điểm cần cải thiện?',
+      'Best practices áp dụng được?',
+      'Lessons learned từ dữ liệu?',
+      'Yếu tố rủi ro tiềm ẩn?',
+      'Cơ hội tối ưu hóa?'
+    ];
+
+    // Combine pools
+    const allSuggestions = pool.length > 0 ? [...pool, ...genericPool] : genericPool;
+
+    // Shuffle and pick 4 random suggestions
+    const shuffled = allSuggestions.sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 4);
   }, []);
 
   // Utility: Filter conversations (P1 #3)
@@ -1210,31 +1427,7 @@ const StrategicDashboard = () => {
       'percent': '%',
       'count': 'Số lượng',
     };
-
-    const lowerType = dataType.toLowerCase();
-
-    // Check exact match first
-    if (unitMap[lowerType]) {
-      return unitMap[lowerType];
-    }
-
-    // CRITICAL FIX: Smart pattern matching for dynamic column names
-    // e.g., "cobol_systems_count" -> "Hệ thống"
-    if (lowerType.includes('system') && (lowerType.includes('count') || lowerType.includes('total'))) {
-      return 'Hệ thống';
-    }
-    if (lowerType.includes('org') && (lowerType.includes('count') || lowerType.includes('total'))) {
-      return 'Đơn vị';
-    }
-    if (lowerType.includes('api') && (lowerType.includes('count') || lowerType.includes('total'))) {
-      return 'API';
-    }
-    if (lowerType.includes('count') || lowerType.includes('total')) {
-      return 'Kết quả';
-    }
-
-    // Default fallback: return generic "Kết quả" instead of raw column name
-    return 'Kết quả';
+    return unitMap[dataType.toLowerCase()] || dataType;
   };
 
   const handleExportExcel = useCallback(() => {
@@ -1850,20 +2043,22 @@ const StrategicDashboard = () => {
                 </Row>
 
                 {/* AI Chat Section - Premium Hero Design */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                  style={{
-                    marginTop: 20,
-                    marginBottom: 16,
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-                    borderRadius: 16,
-                    padding: '16px 20px',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
-                >
+                {/* FIX Bug #2: Hide fancy header after first conversation */}
+                {conversationHistory.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    style={{
+                      marginTop: 20,
+                      marginBottom: 16,
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                      borderRadius: 16,
+                      padding: '16px 20px',
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                  >
                   {/* Animated background dots */}
                   <div style={{
                     position: 'absolute',
@@ -1987,6 +2182,8 @@ const StrategicDashboard = () => {
                     </Space>
                   </div>
                 </motion.div>
+                )}
+                {/* End of conditional header */}
 
                 {/* Chat Container */}
                 <div style={{
@@ -1996,10 +2193,36 @@ const StrategicDashboard = () => {
                   minHeight: 120,
                   border: '2px dashed #d3adf7',
                 }}>
-                  {/* Previous Q&A in Chat Style */}
-                  {aiQueryResponse && !aiQueryLoading && (
-                    <div style={{ marginBottom: 20 }}>
-                      {/* User Question Bubble */}
+                  {/* Conversation History in Chat Style - FIX Bug #1 */}
+                  {conversationHistory.map((conv, idx) => {
+                    // Use local variable to avoid changing all references below
+                    const aiQueryResponse = conv.response;
+
+                    // Get progress tasks for this conversation with defensive logic
+                    // FIX Deep Mode Bug: Prioritize saved tasks over global state
+                    const conversationProgressTasks = (() => {
+                      // If conversation has saved progress tasks, use them (completed conversations)
+                      if ((conv as any).progressTasks && (conv as any).progressTasks.length > 0) {
+                        console.log('[RENDER] Conv', idx, 'using saved', (conv as any).progressTasks.length, 'tasks');
+                        return (conv as any).progressTasks;
+                      }
+
+                      // If this is the current (last) conversation, use global progress (in-progress conversations)
+                      if (idx === conversationHistory.length - 1) {
+                        console.log('[RENDER] Conv', idx, 'using global', aiProgressTasks.length, 'tasks');
+                        return aiProgressTasks;
+                      }
+
+                      // Otherwise, no progress to show (old conversations without saved progress)
+                      console.log('[RENDER] Conv', idx, 'has no progress tasks');
+                      return [];
+                    })();
+
+                    const isCurrentConversation = idx === conversationHistory.length - 1;
+
+                    return (
+                      <div key={idx} style={{ marginBottom: 20 }}>
+                        {/* User Question Bubble */}
                       <div style={{
                         display: 'flex',
                         justifyContent: 'flex-end',
@@ -2017,7 +2240,7 @@ const StrategicDashboard = () => {
                           }}
                         >
                           <Text style={{ color: 'white', fontSize: 14 }}>
-                            {aiQueryHistory[0] || 'Câu hỏi của bạn'}
+                            {conv.query}
                           </Text>
                         </motion.div>
                         <div style={{
@@ -2035,11 +2258,12 @@ const StrategicDashboard = () => {
                         </div>
                       </div>
 
-                      {/* Enhanced Progress Section - BEFORE AI Response */}
-                      {aiProgressTasks.length > 0 && (
+                      {/* Enhanced Progress Section - BEFORE AI Response - Show for each conversation */}
+                      {/* Show progress if: (1) current conversation is loading, OR (2) this conversation has saved progress tasks */}
+                      {((isCurrentConversation && aiQueryLoading) || conversationProgressTasks.length > 0) && (
                         <div style={{ marginBottom: 16 }}>
                           <Collapse
-                            defaultActiveKey={[]}
+                            defaultActiveKey={['progress']}
                             ghost
                             items={[{
                               key: 'progress',
@@ -2047,8 +2271,14 @@ const StrategicDashboard = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <RobotOutlined style={{ color: '#722ed1', fontSize: 16 }} />
                                   <Text strong style={{ fontSize: 13, color: '#722ed1' }}>
-                                    TIẾN ĐỘ ({aiProgressTasks.filter(t => t.status === 'completed').length}/{aiProgressTasks.length})
+                                    AI PHÂN TÍCH ({conversationProgressTasks.filter((t: any) => t.status === 'completed').length}/{conversationProgressTasks.length})
                                   </Text>
+                                  {/* Show mode indicator */}
+                                  {conv.response && (conv.response as any).mode && (
+                                    <Tag color={(conv.response as any).mode === 'quick' ? 'green' : 'blue'} style={{ fontSize: 10, marginLeft: 4 }}>
+                                      {(conv.response as any).mode === 'quick' ? 'Nhanh' : 'Sâu'}
+                                    </Tag>
+                                  )}
                                 </div>
                               ),
                               children: (
@@ -2075,7 +2305,7 @@ const StrategicDashboard = () => {
                                     </div>
                                     <div style={{ flex: 1 }}>
                                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                        {aiProgressTasks.map((task) => {
+                                        {conversationProgressTasks.map((task: any) => {
                                           const isExpanded = expandedTaskIds.has(task.id);
                                           const hasDebugInfo = task.sqlPreview || task.dataAnalysis || task.resultCount !== undefined || task.reviewPassed !== undefined;
                                           return (
@@ -2162,9 +2392,9 @@ const StrategicDashboard = () => {
                                               fontSize: 11,
                                               fontFamily: 'Monaco, Consolas, monospace',
                                               color: '#d73a49',
-                                              overflow: 'hidden',
-                                              textOverflow: 'ellipsis',
-                                              whiteSpace: 'nowrap'
+                                              overflowX: 'auto',
+                                              whiteSpace: 'pre-wrap',
+                                              wordBreak: 'break-all'
                                             }}>
                                               {task.sqlPreview}
                                             </div>
@@ -2186,7 +2416,7 @@ const StrategicDashboard = () => {
                                                   </Text>
                                                   {task.addedInfo && task.addedInfo.length > 0 && (
                                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-                                                      {task.addedInfo.map((info, idx) => (
+                                                      {task.addedInfo.map((info: any, idx: number) => (
                                                         <Tag key={idx} color="cyan" style={{ fontSize: 10, margin: 0 }}>
                                                           {info}
                                                         </Tag>
@@ -2209,6 +2439,72 @@ const StrategicDashboard = () => {
                                             </Tag>
                                           )}
 
+                                          {/* Query Results - Detailed View */}
+                                          {task.sampleRows && task.sampleRows.length > 0 && (
+                                            <div style={{
+                                              marginTop: 8,
+                                              padding: 10,
+                                              background: 'linear-gradient(135deg, #f9f0ff 0%, #fff5f5 100%)',
+                                              borderRadius: 6,
+                                              border: '1px solid #d3adf7',
+                                              fontSize: 11,
+                                              maxHeight: 400,
+                                              overflowY: 'auto'
+                                            }}>
+                                              <div style={{ fontWeight: 600, marginBottom: 6, color: '#722ed1', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <DatabaseOutlined style={{ fontSize: 14 }} />
+                                                <span>Kết quả truy vấn: Hiển thị {task.sampleRows.length} / {task.resultCount || task.sampleRows.length} dòng</span>
+                                              </div>
+                                              <table style={{
+                                                width: '100%',
+                                                borderCollapse: 'collapse',
+                                                fontSize: 11,
+                                                background: 'white',
+                                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                              }}>
+                                                <thead>
+                                                  <tr style={{ background: 'linear-gradient(135deg, #f0f0f0 0%, #fafafa 100%)' }}>
+                                                    {task.columns?.map((col: any, idx: number) => (
+                                                      <th key={idx} style={{
+                                                        border: '1px solid #d9d9d9',
+                                                        padding: '6px 8px',
+                                                        textAlign: 'left',
+                                                        fontWeight: 600,
+                                                        color: '#722ed1',
+                                                        fontSize: 10
+                                                      }}>
+                                                        {col}
+                                                      </th>
+                                                    ))}
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  {task.sampleRows.map((row: any, rowIdx: number) => (
+                                                    <tr key={rowIdx} style={{
+                                                      background: rowIdx % 2 === 0 ? 'white' : '#fafafa'
+                                                    }}>
+                                                      {task.columns?.map((col: any, colIdx: number) => (
+                                                        <td key={colIdx} style={{
+                                                          border: '1px solid #e8e8e8',
+                                                          padding: '5px 8px',
+                                                          maxWidth: 200,
+                                                          overflow: 'hidden',
+                                                          textOverflow: 'ellipsis',
+                                                          whiteSpace: 'nowrap',
+                                                          fontSize: 10
+                                                        }}
+                                                        title={row[col] !== null && row[col] !== undefined ? String(row[col]) : '—'}
+                                                        >
+                                                          {row[col] !== null && row[col] !== undefined ? String(row[col]) : '—'}
+                                                        </td>
+                                                      ))}
+                                                    </tr>
+                                                  ))}
+                                                </tbody>
+                                              </table>
+                                            </div>
+                                          )}
+
                                                   {task.reviewPassed !== undefined && (
                                                     <Tag color={task.reviewPassed ? 'success' : 'warning'} style={{ fontSize: 11, width: 'fit-content' }}>
                                                       {task.reviewPassed ? '✓ Đã kiểm tra' : '⚠ Phát hiện vấn đề'}
@@ -2220,7 +2516,7 @@ const StrategicDashboard = () => {
                                           );
                                         })}
 
-                                        {aiProgressTasks.length === 0 && (
+                                        {conversationProgressTasks.length === 0 && isCurrentConversation && aiQueryLoading && (
                                           <div style={{
                                             display: 'flex',
                                             alignItems: 'center',
@@ -2272,7 +2568,15 @@ const StrategicDashboard = () => {
                             boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                           }}
                         >
-                          {(aiQueryResponse.error || aiQueryResponse.ai_response?.error) ? (
+                          {/* Show loading spinner if response is still loading */}
+                          {(aiQueryResponse as any).loading ? (
+                            <Space direction="vertical" size={8} align="center" style={{ width: '100%', padding: '20px 0' }}>
+                              <Spin size="default" />
+                              <Text type="secondary" style={{ fontSize: 13 }}>
+                                Đang phân tích câu hỏi...
+                              </Text>
+                            </Space>
+                          ) : (aiQueryResponse.error || aiQueryResponse.ai_response?.error) ? (
                             <Space direction="vertical" size={8} style={{ width: '100%' }}>
                               <Alert
                                 type="error"
@@ -2326,9 +2630,36 @@ const StrategicDashboard = () => {
                                       p: ({ children }) => (
                                         <p style={{ margin: '4px 0' }}>{children}</p>
                                       ),
+                                      a: ({ href, children }) => {
+                                        // Handle internal system links
+                                        if (href?.startsWith('/systems/')) {
+                                          return (
+                                            <a
+                                              href={href}
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                navigate(href);
+                                              }}
+                                              style={{
+                                                color: '#1890ff',
+                                                textDecoration: 'underline',
+                                                cursor: 'pointer',
+                                              }}
+                                            >
+                                              {children}
+                                            </a>
+                                          );
+                                        }
+                                        // External links open in new tab
+                                        return (
+                                          <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#1890ff', textDecoration: 'underline' }}>
+                                            {children}
+                                          </a>
+                                        );
+                                      },
                                     }}
                                   >
-                                    {sanitizeResponse(aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả')}
+                                    {sanitizeResponse(addSystemLinks(aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả', aiQueryResponse.data || undefined))}
                                   </ReactMarkdown>
                                 </div>
 
@@ -2409,10 +2740,10 @@ const StrategicDashboard = () => {
                                   </div>
                                 )}
 
-                                {/* Details */}
-                                {aiQueryResponse.response?.details && (
+                                {/* Details - HIDDEN per user request: "hide hoàn toàn phần Chi tiết dữ liệu" */}
+                                {false && aiQueryResponse.response?.details && (
                                   <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
-                                    <Text type="secondary" style={{ fontSize: 13 }}>{aiQueryResponse.response.details}</Text>
+                                    <Text type="secondary" style={{ fontSize: 13 }}>{aiQueryResponse.response?.details}</Text>
                                   </div>
                                 )}
 
@@ -2538,21 +2869,21 @@ const StrategicDashboard = () => {
                                     </div>
                                   )}
 
-                                  {/* Multi-row data display */}
-                                  {(aiQueryResponse.data.rows.length > 1 || aiQueryResponse.data.columns.length > 1) && (
+                                  {/* Multi-row data display - HIDDEN per user request: "hide hoàn toàn phần Chi tiết dữ liệu" */}
+                                  {false && aiQueryResponse.data && ((aiQueryResponse.data?.rows?.length || 0) > 1 || (aiQueryResponse.data?.columns?.length || 0) > 1) && (
                                     <>
                                       <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
                                         <LineChartOutlined style={{ marginRight: 6 }} />
-                                        Chi tiết dữ liệu ({Math.min(aiQueryResponse.data.rows.length, 5)} / {aiQueryResponse.data.total_rows} kết quả)
+                                        Chi tiết dữ liệu ({Math.min(aiQueryResponse.data?.rows?.length || 0, 5)} / {aiQueryResponse.data?.total_rows || 0} kết quả)
                                         {aiQueryResponse.response?.chart_config?.unit && (
                                           <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>
-                                            Đơn vị: {getVietnameseUnit(aiQueryResponse.response.chart_config.unit)}
+                                            Đơn vị: {getVietnameseUnit(aiQueryResponse.response?.chart_config?.unit || '')}
                                           </Tag>
                                         )}
                                       </Text>
 
                                       {/* Simple Visual Bars for numeric data */}
-                                      {aiQueryResponse.data.rows.slice(0, 5).map((row: any, idx: number) => {
+                                      {aiQueryResponse.data?.rows?.slice(0, 5).map((row: any, idx: number) => {
                                         const chartConfig = aiQueryResponse.response?.chart_config;
                                         const columns = aiQueryResponse.data!.columns;
 
@@ -2666,7 +2997,7 @@ const StrategicDashboard = () => {
                                         );
                                       })}
 
-                                      {aiQueryResponse.data.rows.length > 5 && (
+                                      {(aiQueryResponse.data?.rows?.length || 0) > 5 && (
                                         <Button
                                           type="primary"
                                           size="small"
@@ -2676,7 +3007,7 @@ const StrategicDashboard = () => {
                                           style={{ marginTop: 8, borderRadius: 16 }}
                                           icon={<EyeOutlined />}
                                         >
-                                          Xem đầy đủ {aiQueryResponse.data.total_rows} kết quả
+                                          Xem đầy đủ {aiQueryResponse.data?.total_rows || 0} kết quả
                                         </Button>
                                       )}
                                     </>
@@ -2698,8 +3029,35 @@ const StrategicDashboard = () => {
                                       size="small"
                                       icon={<ReloadOutlined />}
                                       onClick={() => {
-                                        // Regenerate contextual suggestions
-                                        generateContextualSuggestions(aiQuery, aiQueryResponse);
+                                        // Regenerate contextual suggestions and update state
+                                        if (!aiQueryResponse) {
+                                          message.info('Vui lòng hỏi một câu hỏi trước');
+                                          return;
+                                        }
+
+                                        // Use conv.query instead of aiQuery to refresh suggestions for this specific conversation
+                                        const newSuggestions = generateContextualSuggestions(conv.query, aiQueryResponse);
+
+                                        if (aiQueryResponse.response) {
+                                          // Update conversation history with new suggestions
+                                          setConversationHistory(prev => {
+                                            const updated = [...prev];
+                                            updated[idx] = {
+                                              ...updated[idx],
+                                              response: {
+                                                ...updated[idx].response,
+                                                response: {
+                                                  ...updated[idx].response.response!,
+                                                  follow_up_suggestions: newSuggestions
+                                                } as AIResponseContent
+                                              }
+                                            };
+                                            return updated;
+                                          });
+                                          message.success('Đã làm mới gợi ý');
+                                        } else {
+                                          message.warning('Không thể làm mới gợi ý lúc này');
+                                        }
                                         setSelectedSuggestion(null);
                                       }}
                                       style={{ padding: '0 4px' }}
@@ -2709,7 +3067,7 @@ const StrategicDashboard = () => {
                                 <Space wrap size={[6, 6]}>
                                   {(aiQueryResponse.response?.follow_up_suggestions && aiQueryResponse.response.follow_up_suggestions.length > 0
                                     ? aiQueryResponse.response.follow_up_suggestions
-                                    : generateContextualSuggestions(aiQuery, aiQueryResponse)
+                                    : generateContextualSuggestions(conv.query, aiQueryResponse)
                                   ).map((suggestion, idx) => (
                                       <Tag
                                         key={idx}
@@ -2737,16 +3095,16 @@ const StrategicDashboard = () => {
                                         onMouseEnter={() => setHoveredSuggestion(suggestion)}
                                         onMouseLeave={() => setHoveredSuggestion(null)}
                                         onClick={() => {
-                                          // P1 #12: Just fill input, don't auto-submit
+                                          // Auto-submit follow-up suggestion
                                           setAiQuery(suggestion);
                                           setSelectedSuggestion(suggestion);
+                                          handleAIQuery(suggestion);
 
-                                          // Focus input for immediate edit
+                                          // Focus input for next question
                                           setTimeout(() => {
                                             const inputElement = document.querySelector('.ai-query-input') as HTMLInputElement;
                                             if (inputElement) {
                                               inputElement.focus();
-                                              inputElement.setSelectionRange(inputElement.value.length, inputElement.value.length);
                                             }
                                           }, 50);
 
@@ -2773,7 +3131,8 @@ const StrategicDashboard = () => {
                         </motion.div>
                       </div>
                     </div>
-                  )}
+                    );
+                  })}
 
                   {/* Input Area - Enhanced */}
                   <div style={{
@@ -2810,40 +3169,53 @@ const StrategicDashboard = () => {
                       </Radio.Group>
                     </div>
 
-                    {/* Mode-specific hint */}
-                    {aiMode === 'quick' && (
-                      <Alert
-                        message="Chế độ nhanh: Trả lời trực tiếp, phù hợp câu hỏi đơn giản"
-                        description="Ví dụ: Có bao nhiêu hệ thống? Những hệ thống nào dùng Java?"
-                        type="info"
-                        showIcon
-                        style={{ marginBottom: 12, fontSize: 12 }}
-                      />
-                    )}
-                    {aiMode === 'deep' && (
-                      <Alert
-                        message="Chế độ chuyên sâu: Báo cáo chiến lược với insight và đề xuất"
-                        description="Ví dụ: Đánh giá rủi ro bảo mật? Lộ trình chuyển đổi số?"
-                        type="info"
-                        showIcon
-                        style={{ marginBottom: 12, fontSize: 12 }}
-                      />
+                    {/* Mode-specific hint - FIX Bug #2: Hide after first conversation */}
+                    {conversationHistory.length === 0 && (
+                      <>
+                        {aiMode === 'quick' && (
+                          <Alert
+                            message="Chế độ nhanh: Trả lời trực tiếp, phù hợp câu hỏi đơn giản"
+                            description="Ví dụ: Có bao nhiêu hệ thống? Những hệ thống nào dùng Java?"
+                            type="info"
+                            showIcon
+                            style={{ marginBottom: 12, fontSize: 12 }}
+                          />
+                        )}
+                        {aiMode === 'deep' && (
+                          <Alert
+                            message="Chế độ chuyên sâu: Báo cáo chiến lược với insight và đề xuất"
+                            description="Ví dụ: Đánh giá rủi ro bảo mật? Lộ trình chuyển đổi số?"
+                            type="info"
+                            showIcon
+                            style={{ marginBottom: 12, fontSize: 12 }}
+                          />
+                        )}
+                      </>
                     )}
 
-                    <div style={{ marginBottom: 8 }}>
-                      <Space>
-                        <RobotOutlined style={{ color: '#722ed1', fontSize: 16 }} />
-                        <Text style={{ color: '#722ed1', fontSize: 13, fontWeight: 500 }}>
-                          Nhập câu hỏi bằng tiếng Việt tự nhiên
-                        </Text>
-                      </Space>
-                    </div>
+                    {/* FIX Bug #2: Hide label after first conversation */}
+                    {conversationHistory.length === 0 && (
+                      <div style={{ marginBottom: 8 }}>
+                        <Space>
+                          <RobotOutlined style={{ color: '#722ed1', fontSize: 16 }} />
+                          <Text style={{ color: '#722ed1', fontSize: 13, fontWeight: 500 }}>
+                            Nhập câu hỏi bằng tiếng Việt tự nhiên
+                          </Text>
+                        </Space>
+                      </div>
+                    )}
                     <Input.Search
                       className="ai-query-input"
                       placeholder="Ví dụ: 'Có bao nhiêu hệ thống?' hoặc 'Đơn vị nào có nhiều hệ thống nhất?'"
                       value={aiQuery}
                       onChange={(e) => setAiQuery(e.target.value)}
-                      onSearch={handleAIQuery}
+                      onSearch={(_value, event) => {
+                        // FIX: Prevent page scroll on submit
+                        if (event) {
+                          event.preventDefault();
+                        }
+                        handleAIQuery();
+                      }}
                       // P0 #4: Accessibility improvements
                       aria-label="Nhập câu hỏi cho AI"
                       aria-describedby="ai-query-description"
@@ -2877,25 +3249,26 @@ const StrategicDashboard = () => {
                       }}
                     />
 
-                    {/* P3 #29: Query Templates */}
-                    <div style={{ marginTop: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          <FormOutlined /> Câu hỏi mẫu:
-                        </Text>
-                        <Button
-                          type="text"
-                          size="small"
-                          onClick={() => setShowTemplates(!showTemplates)}
-                          style={{ fontSize: 11, padding: 0 }}
-                        >
-                          {showTemplates ? 'Ẩn' : 'Hiện'}
-                        </Button>
-                      </div>
+                    {/* P3 #29: Query Templates - FIX Bug #2: Hide after first conversation */}
+                    {conversationHistory.length === 0 && (
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            <FormOutlined /> Câu hỏi mẫu:
+                          </Text>
+                          <Button
+                            type="text"
+                            size="small"
+                            onClick={() => setShowTemplates(!showTemplates)}
+                            style={{ fontSize: 11, padding: 0 }}
+                          >
+                            {showTemplates ? 'Ẩn' : 'Hiện'}
+                          </Button>
+                        </div>
                       {showTemplates && (
                         <Space wrap size={[6, 6]}>
                           {[
-                            'Có bao nhiêu hệ thống đang hoạt động?',
+                            'Bộ KH&CN hiện có bao nhiêu hệ thống CNTT?',
                             'Top 5 hệ thống tốn kém nhất?',
                             'Đơn vị nào có nhiều hệ thống nhất?',
                             'Hệ thống nào hết hạn bảo mật?',
@@ -2911,7 +3284,7 @@ const StrategicDashboard = () => {
                               }}
                               onClick={() => {
                                 setAiQuery(template);
-                                setTimeout(() => handleAIQuery(), 0);
+                                handleAIQuery(template);
                               }}
                             >
                               {template}
@@ -2919,7 +3292,9 @@ const StrategicDashboard = () => {
                           ))}
                         </Space>
                       )}
-                    </div>
+                      </div>
+                    )}
+                    {/* End of conditional query templates */}
 
                     {/* P3 #28: Voice Input - HIDDEN TEMPORARILY */}
                     <div style={{ marginTop: 8, display: 'none' }}>
@@ -2996,7 +3371,7 @@ const StrategicDashboard = () => {
                         label: (
                           <Space>
                             <HistoryOutlined style={{ color: '#8c8c8c' }} />
-                            <Text type="secondary" style={{ fontSize: 12 }}>Lịch sử gần đây</Text>
+                            <Text type="secondary" style={{ fontSize: 12 }}>Lịch sử hội thoại</Text>
                           </Space>
                         ),
                         children: (
@@ -3011,7 +3386,10 @@ const StrategicDashboard = () => {
                                   background: 'white',
                                   border: '1px solid #d9d9d9',
                                 }}
-                                onClick={() => setAiQuery(q)}
+                                onClick={() => {
+                                  setAiQuery(q);
+                                  setConversationSidebarVisible(true);
+                                }}
                               >
                                 {q.length > 30 ? q.substring(0, 30) + '...' : q}
                               </Tag>
@@ -3147,14 +3525,14 @@ const StrategicDashboard = () => {
 
                       // P0 #1: Load full conversation timeline (not just last response)
                       if (fullConv.messages && fullConv.messages.length > 0) {
-                        // Build conversation history for display
-                        const history = fullConv.messages.map(msg => ({
+                        // Build conversation timeline for display (future feature)
+                        const timeline = fullConv.messages.map(msg => ({
                           role: msg.role as 'user' | 'assistant',
                           content: msg.content,
                           timestamp: msg.created_at,
                           responseData: msg.response_data,
                         }));
-                        setConversationHistory(history);
+                        _setConversationTimeline(timeline);
 
                         // P1 #8: Sync query history with conversation
                         const userQueries = fullConv.messages
@@ -3275,7 +3653,8 @@ const StrategicDashboard = () => {
                         if (currentConversation?.id === conv.id) {
                           setCurrentConversation(null);
                           setAiQueryResponse(null);
-                          setConversationHistory([]);
+                          setConversationHistory([]); // Clear current chat thread
+                          _setConversationTimeline([]); // Clear loaded conversation timeline
                         }
                         message.success('Đã xóa cuộc trò chuyện');
                       } catch (err) {

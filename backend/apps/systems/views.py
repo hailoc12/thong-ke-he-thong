@@ -18,6 +18,23 @@ from .models import System, Attachment, AIConversation, AIMessage, AIRequestLog
 
 logger = logging.getLogger(__name__)
 
+# JSON Serialization Helper for SSE - handles Decimal, date, datetime
+def serialize_for_json(obj):
+    """Convert non-JSON-serializable types to JSON-safe formats"""
+    from decimal import Decimal
+    from datetime import date, datetime
+
+    if isinstance(obj, dict):
+        return {k: serialize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [serialize_for_json(item) for item in obj]
+    elif isinstance(obj, Decimal):
+        return float(obj)
+    elif isinstance(obj, (date, datetime)):
+        return obj.isoformat()
+    else:
+        return obj
+
 # AI Model Cost Estimation (USD per 1M tokens)
 # Pricing as of 2025
 AI_MODEL_PRICING = {
@@ -1915,14 +1932,25 @@ Trả về JSON với SQL đã sửa."""
         # Get mode parameter (default: 'quick' for faster perceived performance)
         mode = request.query_params.get('mode', 'quick')  # 'quick' or 'deep'
 
-        if mode == 'quick':
-            return self._quick_answer_stream(query, user)
-        else:
-            return self._deep_analysis_stream(query, user)
+        # Get conversation context for follow-up questions
+        context_param = request.query_params.get('context', '')
+        context = None
+        if context_param:
+            try:
+                context = json.loads(context_param)
+                logger.info(f"Conversation context received: previous_query={context.get('previous_query', '')[:50]}")
+            except Exception as e:
+                logger.warning(f"Failed to parse context: {e}")
 
-    def _quick_answer_stream(self, query, user):
+        if mode == 'quick':
+            return self._quick_answer_stream(query, user, context)
+        else:
+            return self._deep_analysis_stream(query, user, context)
+
+    def _quick_answer_stream(self, query, user, context=None):
         """
         Quick Mode: Single AI call + direct answer (~4-6s)
+        context: Optional dict with previous_query, previous_answer, previous_sql for follow-up questions
 
         Stream:
         - phase_start: "Phân tích nhanh"
@@ -2059,21 +2087,68 @@ Trả về JSON với SQL đã sửa."""
                 except Exception as e:
                     return None, str(e)
 
-            # Schema context (abbreviated for quick mode)
-            schema_context = """Database Schema:
-- organizations: id, name, organization_type, code
-- systems: id, system_name, status, criticality_level, org_id, hosting_platform, has_encryption, is_deleted,
-  storage_capacity (text), data_volume (text), data_volume_gb (decimal),
-  programming_language, framework, database_name,
-  users_total, users_mau, users_dau, total_accounts,
-  api_provided_count, api_consumed_count
-- system_architecture: system_id, architecture_type, scalability_level
-- system_assessment: system_id, performance_rating, recommendation
-- system_security: system_id, auth_methods, encryption_type, has_security_audit
+            # Schema context (abbreviated for quick mode) - WITH VIETNAMESE LABELS
+            schema_context = """Database Schema (với tên tiếng Việt):
 
-Lưu ý:
-- Dùng is_deleted = false khi query bảng systems
-- data_volume_gb là NUMERIC - dùng để tính SUM/AVG"""
+- organizations:
+  id, name (Tên tổ chức), code (Mã), description (Mô tả), contact_person (Người liên hệ)
+
+- systems (Bảng hệ thống chính):
+  id, system_name (Tên hệ thống), system_code (Mã hệ thống), status (Trạng thái),
+  criticality_level (Mức độ quan trọng), org_id (Tổ chức),
+  hosting_platform (Nền tảng triển khai), has_encryption (Mã hóa dữ liệu), is_deleted,
+  storage_capacity (Dung lượng lưu trữ - TEXT), data_volume (Khối lượng dữ liệu - TEXT),
+  data_volume_gb (Khối lượng dữ liệu GB - NUMERIC),
+  programming_language (Ngôn ngữ lập trình), framework (Framework/Thư viện),
+  database_name (Cơ sở dữ liệu),
+  users_total (Tổng người dùng), users_mau (MAU), users_dau (DAU),
+  total_accounts (Tổng số tài khoản),
+  api_provided_count (Số API cung cấp), api_consumed_count (Số API tiêu thụ),
+  authentication_method (Phương thức xác thực), compliance_standards_list (Chuẩn tuân thủ),
+  business_owner (Người chịu trách nhiệm), technical_owner (Người quản trị kỹ thuật),
+  go_live_date (Thời gian đưa vào vận hành),
+  server_configuration (Cấu hình máy chủ), backup_plan (Phương án sao lưu),
+  disaster_recovery_plan (Kế hoạch khôi phục thảm họa)
+
+- system_architecture (Kiến trúc hệ thống):
+  system_id, architecture_type (Loại kiến trúc), backend_tech (Backend Technology),
+  frontend_tech (Frontend Technology), database_type (Loại CSDL), mobile_app (Ứng dụng di động),
+  hosting_type (Loại hosting), cloud_provider (Nhà cung cấp cloud),
+  api_style (API Style), has_cicd (CI/CD Pipeline), cicd_tool (CI/CD Tool),
+  is_multi_tenant (Multi-tenant), containerization (Container hóa)
+
+- system_assessment (Đánh giá hệ thống):
+  system_id, performance_rating (Đánh giá hiệu năng), recommendation (Đề xuất của đơn vị),
+  uptime_percent (Thời gian hoạt động %), technical_debt_level (Mức nợ kỹ thuật),
+  needs_replacement (Cần thay thế), modernization_priority (Ưu tiên hiện đại hóa)
+
+- system_data_info (Thông tin dữ liệu):
+  system_id, data_classification (Phân loại dữ liệu),
+  storage_size_gb (Dung lượng CSDL hiện tại GB - NUMERIC),
+  growth_rate_percent (Tốc độ tăng trưởng dữ liệu %),
+  has_personal_data (Có dữ liệu cá nhân), has_sensitive_data (Có dữ liệu nhạy cảm),
+  record_count (Số bản ghi)
+
+- system_integration (Tích hợp hệ thống):
+  system_id, has_api_gateway (Có API Gateway), integration_count (Số tích hợp),
+  api_provided_count (Số API cung cấp), api_consumed_count (Số API tiêu thụ),
+  has_integration (Có tích hợp), uses_standard_api (Dùng API chuẩn),
+  api_gateway_name (Tên API Gateway)
+
+- system_security (An toàn thông tin):
+  system_id, auth_method (Phương thức xác thực), has_mfa (Có MFA), has_rbac (Có RBAC),
+  has_data_encryption_at_rest (Mã hóa dữ liệu lưu trữ),
+  has_data_encryption_in_transit (Mã hóa dữ liệu truyền tải),
+  has_firewall (Có Firewall), has_waf (Có WAF), has_ids_ips (Có IDS/IPS),
+  has_antivirus (Có Antivirus),
+  last_security_audit_date (Ngày audit ATTT gần nhất),
+  has_vulnerability_scanning (Có quét lỗ hổng)
+
+Lưu ý quan trọng:
+- LUÔN LUÔN dùng WHERE is_deleted = false khi query bảng systems
+- data_volume_gb, storage_size_gb là NUMERIC - dùng để tính SUM/AVG
+- storage_capacity, data_volume là TEXT - chỉ để hiển thị, KHÔNG dùng cho phép tính
+- Khi user hỏi bằng tiếng Việt, map sang đúng field name tiếng Anh trong database"""
 
             # Phase 1: Combined SQL Generation + Answer
             yield f"event: phase_start\ndata: {json.dumps({'phase': 1, 'name': 'Phân tích nhanh', 'description': 'Đang tạo câu trả lời...', 'mode': 'quick'})}\n\n"
@@ -2082,23 +2157,93 @@ Lưu ý:
 
 {schema_context}
 
-Câu hỏi: {query}
+VÍ DỤ CÁCH XỬ LÝ:
+
+Example 1 - Đếm số lượng:
+User: "Có bao nhiêu hệ thống?"
+SQL: SELECT COUNT(*) as count FROM systems WHERE is_deleted = false
+Answer: "Tổng số hệ thống là {{{{count}}}}."
+Chart: null
+Xử lý: Dùng COUNT(*), LUÔN có WHERE is_deleted = false, placeholder {{{{count}}}} sẽ được replace bằng số thực tế
+
+Example 2 - Thống kê theo nhóm:
+User: "Có bao nhiêu hệ thống dùng từng ngôn ngữ lập trình?"
+SQL: SELECT programming_language, COUNT(*) as count FROM systems WHERE is_deleted = false AND programming_language IS NOT NULL GROUP BY programming_language ORDER BY count DESC
+Answer: "Thống kê hệ thống theo ngôn ngữ lập trình"
+Chart: "bar"
+Xử lý: GROUP BY để thống kê, ORDER BY count DESC, chart_type="bar" để hiển thị biểu đồ
+
+Example 3 - Tổng/trung bình:
+User: "Tổng dung lượng dữ liệu của các hệ thống?"
+SQL: SELECT SUM(data_volume_gb) as total_gb, COUNT(*) as count FROM systems WHERE is_deleted = false AND data_volume_gb IS NOT NULL
+Answer: "Tổng dung lượng dữ liệu là {{{{total_gb}}}} GB từ {{{{count}}}} hệ thống."
+Chart: null
+Xử lý: Dùng data_volume_gb (NUMERIC) để tính SUM, KHÔNG dùng data_volume (TEXT)
+
+Example 4 - Tìm hệ thống theo điều kiện:
+User: "Hệ thống nào dùng Java và có MFA?"
+SQL: SELECT system_name, framework FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id WHERE s.is_deleted = false AND s.programming_language = 'Java' AND ss.has_mfa = true
+Answer: "Danh sách các hệ thống dùng Java và có MFA. Bảng hiển thị Tên hệ thống và Framework."
+Chart: "table"
+Xử lý: JOIN nhiều bảng, WHERE với điều kiện cụ thể, chart_type="table" để hiển thị danh sách
+LƯU Ý: Trong answer, dùng "Tên hệ thống" và "Framework" (canonical names), KHÔNG viết "system_name" hay "framework" (database names)
+
+Example 5 - An toàn thông tin:
+User: "Có bao nhiêu hệ thống chưa có Firewall?"
+SQL: SELECT COUNT(*) as count FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id WHERE s.is_deleted = false AND (ss.has_firewall = false OR ss.has_firewall IS NULL)
+Answer: "Có {{{{count}}}} hệ thống chưa có Firewall."
+Chart: null
+Xử lý: JOIN với system_security, check has_firewall = false OR IS NULL
+
+Example 6 - Lọc theo trạng thái hoạt động:
+User: "Có bao nhiêu hệ thống đang hoạt động?"
+SQL: SELECT COUNT(*) as count FROM systems WHERE is_deleted = false AND status = 'operating'
+Answer: "Có {{{{count}}}} hệ thống đang hoạt động."
+Chart: null
+Xử lý: QUAN TRỌNG - "đang hoạt động" = status = 'operating', KHÔNG phải 'active' hay 'running'
+LƯU Ý: Các giá trị status: 'operating' (Đang vận hành), 'pilot' (Thí điểm), 'testing' (Đang thử nghiệm), 'stopped' (Dừng), 'replacing' (Sắp thay thế)
+
+Example 7 - Tìm hệ thống theo tên (FULL-TEXT SEARCH):
+User: "Thông tin về hệ thống Portal"
+SQL: SELECT system_name, status, programming_language, organization FROM systems WHERE is_deleted = false AND system_name ILIKE '%Portal%'
+Answer: "Danh sách các hệ thống có tên chứa 'Portal'. Bảng hiển thị Tên hệ thống, Trạng thái, Ngôn ngữ lập trình, Đơn vị."
+Chart: "table"
+Xử lý: QUAN TRỌNG - Dùng ILIKE '%keyword%' để tìm kiếm gần đúng, KHÔNG dùng = 'exact name'
+Lý do: User thường không nhớ chính xác tên đầy đủ của hệ thống, ILIKE cho kết quả linh hoạt hơn
+VÍ DỤ SAI: system_name = 'Portal' (sẽ không tìm thấy 'Portal VNNIC' hay 'Portal Cục SHTT')
+VÍ DỤ ĐÚNG: system_name ILIKE '%Portal%' (tìm được tất cả hệ thống có chứa 'Portal')
+
+---
+
+{"NGỮCẢNH HỘI THOẠI (dùng để hiểu câu hỏi tiếp theo):" if context else ""}
+{f'''
+Câu hỏi trước: {context.get("previous_query", "")}
+Câu trả lời trước: {context.get("previous_answer", "")}
+SQL query trước: {context.get("previous_sql", "")}
+
+LƯU Ý: Nếu câu hỏi hiện tại có từ "này", "đó", "của nó", "hệ thống đó" → tham chiếu đến thông tin từ câu hỏi trước
+''' if context else ""}
+Câu hỏi hiện tại: {query}
 
 NHIỆM VỤ:
-1. Tạo SQL query để lấy dữ liệu
-2. Viết câu trả lời NGẮN GỌN (1-2 câu) sử dụng kết quả truy vấn
+1. Tạo SQL query để lấy dữ liệu (học theo examples)
+2. Viết câu trả lời NGẮN GỌN (1-2 câu) sử dụng placeholder
 
-QUAN TRỌNG - Về câu trả lời:
-- PHẢI sử dụng placeholder {{{{column_name}}}} hoặc [column_name] cho các giá trị từ SQL
-- KHÔNG sử dụng "X", "<variable>", hoặc text placeholder khác
-- VÍ DỤ TỐT: "answer": "Có {{{{count}}}} hệ thống đang vận hành"
-- VÍ DỤ TỐT: "answer": "Tổng số hệ thống là [total_systems]"
-- VÍ DỤ SAI: "answer": "Có X hệ thống" hoặc "Có <count> hệ thống"
+QUAN TRỌNG:
+- LUÔN có WHERE is_deleted = false khi query bảng systems
+- Dùng field _gb (NUMERIC) cho tính toán, field TEXT chỉ để hiển thị
+- Placeholder: {{{{column_name}}}} hoặc [column_name]
+- Chart type: "bar" (thống kê nhóm), "pie" (phần trăm), "table" (danh sách), null (số đơn)
+- **KHI VIẾT CÂU TRẢ LỜI: Dùng tên tiếng Việt (canonical name) của field, KHÔNG dùng database field name**
+  VD: Viết "Tên hệ thống" thay vì "system_name", "Trạng thái" thay vì "status"
+- **KHI LỌC THEO TÊN HỆ THỐNG: Dùng ILIKE với % (full-text search), KHÔNG dùng = (exact match)**
+  VD: system_name ILIKE '%Portal%' thay vì system_name = 'Portal VNNIC'
+  Lý do: Exact search rất khó vì user không nhớ chính xác tên đầy đủ
 
 Trả về JSON:
 {{
     "sql": "SELECT query here",
-    "answer": "Câu trả lời với {{{{column_name}}}} placeholder (VD: 'Có {{{{count}}}} hệ thống đang sử dụng Java')",
+    "answer": "Câu trả lời với {{{{column_name}}}} placeholder",
     "chart_type": "bar|pie|table|null"
 }}
 
@@ -2115,6 +2260,9 @@ CHỈ trả về JSON."""
                 sql_query = phase1_data.get('sql')
                 answer = phase1_data.get('answer')
                 chart_type = phase1_data.get('chart_type')
+
+                # Emit phase 1 complete with details (like Deep mode)
+                yield f"event: phase_complete\ndata: {json.dumps({'phase': 1, 'sql': sql_query, 'answer_template': answer, 'chart_type': chart_type})}\n\n"
 
             except Exception as e:
                 logger.error(f"Quick mode phase 1 error: {e}")
@@ -2139,7 +2287,88 @@ CHỈ trả về JSON."""
                 yield f"event: error\ndata: {json.dumps({'error': 'Lỗi truy vấn dữ liệu', 'detail': sql_error})}\n\n"
                 return
 
-            yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': query_result.get('total_rows', 0)})}\n\n"
+            # Check if result is empty (0 rows) - retry once with SQL review
+            if query_result.get('total_rows', 0) == 0:
+                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': 0, 'retry': True})}\n\n"
+
+                # Phase 2.5: Review and fix SQL
+                yield f"event: phase_start\ndata: {json.dumps({'phase': 2.5, 'name': 'Kiểm tra SQL', 'description': 'Kết quả trống - đang kiểm tra và sửa SQL...', 'mode': 'quick'})}\n\n"
+
+                review_prompt = f"""SQL query trả về 0 kết quả. Hãy kiểm tra và sửa lại SQL.
+
+SQL hiện tại:
+{sql_query}
+
+Câu hỏi gốc: {query}
+
+{schema_context}
+
+KIỂM TRA:
+1. WHERE clause có đúng không? (nhớ is_deleted = false)
+2. JOIN có thiếu không?
+3. Column names có chính xác không?
+4. Logic có sai không?
+
+Trả về JSON:
+{{
+    "issue": "Mô tả vấn đề tìm thấy",
+    "fixed_sql": "SELECT query đã sửa (hoặc null nếu SQL đúng)",
+    "explanation": "Giải thích ngắn gọn"
+}}
+
+CHỈ trả về JSON."""
+
+                try:
+                    review_content = call_ai_internal(review_prompt, [{'role': 'user', 'content': query}], 'SQL Review')
+                    json_match = re.search(r'\{[\s\S]*\}', review_content)
+
+                    if json_match:
+                        review_data = json.loads(json_match.group())
+                        fixed_sql = review_data.get('fixed_sql')
+
+                        if fixed_sql and fixed_sql != sql_query:
+                            logger.info(f"SQL reviewed: {review_data.get('explanation')}")
+                            yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.5, 'issue': review_data.get('issue'), 'fixed': True})}\n\n"
+
+                            # Retry with fixed SQL
+                            yield f"event: phase_start\ndata: {json.dumps({'phase': 2.6, 'name': 'Thử lại truy vấn', 'description': 'Đang chạy SQL đã sửa...', 'mode': 'quick'})}\n\n"
+
+                            retry_result, retry_error = validate_and_execute_sql_internal(fixed_sql)
+                            if retry_result and retry_result.get('total_rows', 0) > 0:
+                                query_result = retry_result
+                                sql_query = fixed_sql  # Update for logging
+                                # Include sample rows for debugging
+                                sample_rows = query_result.get('rows', [])[:5]
+                                # Serialize data to handle Decimal and date types
+                                phase_data = serialize_for_json({
+                                    'phase': 2.6,
+                                    'total_rows': query_result.get('total_rows', 0),
+                                    'sample_rows': sample_rows,
+                                    'columns': query_result.get('columns', []),
+                                    'success': True
+                                })
+                                yield f"event: phase_complete\ndata: {json.dumps(phase_data)}\n\n"
+                            else:
+                                # Still 0 results after retry
+                                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.6, 'total_rows': 0, 'success': False})}\n\n"
+                        else:
+                            # SQL is correct, 0 is expected result
+                            yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.5, 'issue': 'SQL đúng - kết quả thực sự là 0', 'fixed': False})}\n\n"
+
+                except Exception as e:
+                    logger.error(f"SQL review error: {e}")
+                    yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.5, 'error': str(e)})}\n\n"
+            else:
+                # Include sample rows for debugging (more rows for detailed analysis)
+                sample_rows = query_result.get('rows', [])[:15]  # First 15 rows for detailed view
+                # Serialize data to handle Decimal and date types
+                phase_data = serialize_for_json({
+                    'phase': 2,
+                    'total_rows': query_result.get('total_rows', 0),
+                    'sample_rows': sample_rows,
+                    'columns': query_result.get('columns', [])
+                })
+                yield f"event: phase_complete\ndata: {json.dumps(phase_data)}\n\n"
 
             # Replace template variables in answer with actual data
             # AI might return "{{column_name}}" or "[column_name]" which needs to be replaced
@@ -2169,7 +2398,8 @@ CHỈ trả về JSON."""
                 result = re.sub(r'<(\w+)>', replace_match, result)       # <variable>
 
                 # Replace standalone "X" placeholder with count/total from data
-                if r'\bX\b' in result or ' X ' in result:
+                # Check for " X " (with spaces) or X at word boundaries
+                if re.search(r'\bX\b', result):
                     count_value = first_row.get('count', first_row.get('total', first_row.get('total_systems', '0')))
                     result = re.sub(r'\bX\b', str(count_value), result)
 
@@ -2178,6 +2408,57 @@ CHỈ trả về JSON."""
             # Process answer to replace any template variables
             processed_answer = replace_template_vars(answer, query_result)
 
+            # Generate strategic follow-up suggestions based on query context
+            def generate_strategic_suggestions(query_text, data):
+                """Generate strategic follow-up questions for leadership decision-making"""
+                query_lower = query_text.lower()
+
+                # Default strategic suggestions
+                suggestions = []
+
+                # Context-aware suggestions based on query type
+                if any(word in query_lower for word in ['bao nhiêu', 'số lượng', 'count', 'tổng']):
+                    suggestions = [
+                        'Đánh giá rủi ro của các hệ thống này?',
+                        'Phân tích xu hướng tăng trưởng trong 3 năm qua?',
+                        'Ưu tiên đầu tư nâng cấp cho hệ thống nào?'
+                    ]
+                elif any(word in query_lower for word in ['an toàn', 'bảo mật', 'attt', 'security', 'mfa', 'firewall']):
+                    suggestions = [
+                        'Lộ trình tăng cường ATTT cho các hệ thống yếu?',
+                        'Ước tính ngân sách cần thiết cho bảo mật?',
+                        'Hệ thống nào cần ưu tiên audit ATTT ngay?'
+                    ]
+                elif any(word in query_lower for word in ['công nghệ', 'tech', 'framework', 'ngôn ngữ', 'database']):
+                    suggestions = [
+                        'Rủi ro công nghệ lỗi thời trong các hệ thống?',
+                        'Kế hoạch hiện đại hóa công nghệ?',
+                        'Nguồn lực cần thiết để nâng cấp công nghệ?'
+                    ]
+                elif any(word in query_lower for word in ['dung lượng', 'storage', 'data', 'dữ liệu']):
+                    suggestions = [
+                        'Dự báo nhu cầu lưu trữ trong 2-3 năm tới?',
+                        'Ngân sách cho hạ tầng lưu trữ?',
+                        'Tối ưu hóa chi phí lưu trữ dữ liệu?'
+                    ]
+                elif any(word in query_lower for word in ['tích hợp', 'api', 'integration', 'liên thông']):
+                    suggestions = [
+                        'Lộ trình tích hợp và liên thông dữ liệu?',
+                        'Rủi ro từ tích hợp chưa chuẩn hóa?',
+                        'Ưu tiên tích hợp hệ thống nào trước?'
+                    ]
+                else:
+                    # Generic strategic suggestions
+                    suggestions = [
+                        'Đánh giá rủi ro tổng thể hệ thống?',
+                        'Ưu tiên đầu tư ngân sách cho mảng nào?',
+                        'Lộ trình chuyển đổi số trong 3 năm tới?'
+                    ]
+
+                return suggestions[:3]  # Return max 3 suggestions
+
+            strategic_suggestions = generate_strategic_suggestions(query, query_result)
+
             # Final result (no Phase 3, no Phase 4 for quick mode)
             final_response = {
                 'query': query,
@@ -2185,10 +2466,7 @@ CHỈ trả về JSON."""
                 'response': {
                     'greeting': '',
                     'main_answer': processed_answer or answer or f'Tìm thấy **{query_result.get("total_rows", 0)}** kết quả.',
-                    'follow_up_suggestions': [
-                        'Xem chi tiết dữ liệu',
-                        'Phân tích sâu với chế độ chuyên sâu'
-                    ]
+                    'follow_up_suggestions': strategic_suggestions
                 },
                 'data': query_result,
                 'chart_type': chart_type,
@@ -2213,9 +2491,10 @@ CHỈ trả về JSON."""
         response['Connection'] = 'keep-alive'
         return response
 
-    def _deep_analysis_stream(self, query, user):
+    def _deep_analysis_stream(self, query, user, context=None):
         """
         Deep Mode: Full 4-phase workflow (~12-20s)
+        context: Optional dict with previous_query, previous_answer, previous_sql for follow-up questions
 
         Existing logic with strategic insights and self-review.
         """
@@ -2313,45 +2592,141 @@ CHỈ trả về JSON."""
             # Phase 1: SQL Generation
             yield f"event: phase_start\ndata: {json.dumps({'phase': 1, 'name': 'Phân tích yêu cầu', 'description': 'Đang phân tích câu hỏi và tạo truy vấn SQL...'})}\n\n"
 
-            # Schema context (abbreviated for SSE)
-            schema_context = """Database Schema:
-- organizations: id, name, organization_type, code
-- systems: id, system_name, status, criticality_level, org_id, hosting_platform, has_encryption, is_deleted,
-  storage_capacity (text), data_volume (text), data_volume_gb (decimal),
-  server_configuration, backup_plan, disaster_recovery_plan,
-  programming_language, framework, database_name,
-  users_total, users_mau, users_dau, total_accounts,
-  api_provided_count, api_consumed_count,
-  authentication_method, compliance_standards_list,
-  business_owner, technical_owner, go_live_date
-- system_architecture: system_id, architecture_type, scalability_level
-- system_assessment: system_id, performance_rating, recommendation
-- system_data_info: system_id, data_classification
-- system_integration: system_id, has_api_gateway, integration_level
-- system_security: system_id, auth_methods, encryption_type, has_security_audit
+            # Schema context (abbreviated for SSE) - WITH VIETNAMESE LABELS
+            schema_context = """Database Schema (với tên tiếng Việt):
 
-Lưu ý:
-- Dùng is_deleted = false khi query bảng systems
-- storage_capacity, data_volume là TEXT (100GB, 1TB) - dùng để hiển thị
-- data_volume_gb là NUMERIC (decimal) - dùng để tính SUM/AVG"""
+- organizations:
+  id, name (Tên tổ chức), code (Mã), description (Mô tả), contact_person (Người liên hệ)
+
+- systems (Bảng hệ thống chính):
+  id, system_name (Tên hệ thống), system_code (Mã hệ thống), status (Trạng thái),
+  criticality_level (Mức độ quan trọng), org_id (Tổ chức),
+  hosting_platform (Nền tảng triển khai), has_encryption (Mã hóa dữ liệu), is_deleted,
+  storage_capacity (Dung lượng lưu trữ - TEXT), data_volume (Khối lượng dữ liệu - TEXT),
+  data_volume_gb (Khối lượng dữ liệu GB - NUMERIC),
+  programming_language (Ngôn ngữ lập trình), framework (Framework/Thư viện),
+  database_name (Cơ sở dữ liệu),
+  users_total (Tổng người dùng), users_mau (MAU), users_dau (DAU),
+  total_accounts (Tổng số tài khoản),
+  api_provided_count (Số API cung cấp), api_consumed_count (Số API tiêu thụ),
+  authentication_method (Phương thức xác thực), compliance_standards_list (Chuẩn tuân thủ),
+  business_owner (Người chịu trách nhiệm), technical_owner (Người quản trị kỹ thuật),
+  go_live_date (Thời gian đưa vào vận hành),
+  server_configuration (Cấu hình máy chủ), backup_plan (Phương án sao lưu),
+  disaster_recovery_plan (Kế hoạch khôi phục thảm họa)
+
+- system_architecture (Kiến trúc hệ thống):
+  system_id, architecture_type (Loại kiến trúc), backend_tech (Backend Technology),
+  frontend_tech (Frontend Technology), database_type (Loại CSDL), mobile_app (Ứng dụng di động),
+  hosting_type (Loại hosting), cloud_provider (Nhà cung cấp cloud),
+  api_style (API Style), has_cicd (CI/CD Pipeline), cicd_tool (CI/CD Tool),
+  is_multi_tenant (Multi-tenant), containerization (Container hóa)
+
+- system_assessment (Đánh giá hệ thống):
+  system_id, performance_rating (Đánh giá hiệu năng), recommendation (Đề xuất của đơn vị),
+  uptime_percent (Thời gian hoạt động %), technical_debt_level (Mức nợ kỹ thuật),
+  needs_replacement (Cần thay thế), modernization_priority (Ưu tiên hiện đại hóa)
+
+- system_data_info (Thông tin dữ liệu):
+  system_id, data_classification (Phân loại dữ liệu),
+  storage_size_gb (Dung lượng CSDL hiện tại GB - NUMERIC),
+  growth_rate_percent (Tốc độ tăng trưởng dữ liệu %),
+  has_personal_data (Có dữ liệu cá nhân), has_sensitive_data (Có dữ liệu nhạy cảm),
+  record_count (Số bản ghi)
+
+- system_integration (Tích hợp hệ thống):
+  system_id, has_api_gateway (Có API Gateway), integration_count (Số tích hợp),
+  api_provided_count (Số API cung cấp), api_consumed_count (Số API tiêu thụ),
+  has_integration (Có tích hợp), uses_standard_api (Dùng API chuẩn),
+  api_gateway_name (Tên API Gateway)
+
+- system_security (An toàn thông tin):
+  system_id, auth_method (Phương thức xác thực), has_mfa (Có MFA), has_rbac (Có RBAC),
+  has_data_encryption_at_rest (Mã hóa dữ liệu lưu trữ),
+  has_data_encryption_in_transit (Mã hóa dữ liệu truyền tải),
+  has_firewall (Có Firewall), has_waf (Có WAF), has_ids_ips (Có IDS/IPS),
+  has_antivirus (Có Antivirus),
+  last_security_audit_date (Ngày audit ATTT gần nhất),
+  has_vulnerability_scanning (Có quét lỗ hổng)
+
+Lưu ý quan trọng:
+- QUAN TRỌNG: LUÔN LUÔN dùng WHERE is_deleted = false khi query bảng systems
+- CHÍNH XÁC: CHỈ dùng columns có trong schema. KHÔNG dùng scalability_level, integration_level, organization_type
+- storage_capacity, data_volume là TEXT (100GB, 1TB) - chỉ để hiển thị, KHÔNG dùng cho SUM/AVG
+- data_volume_gb, storage_size_gb là NUMERIC - dùng để tính SUM/AVG
+- Khi user hỏi bằng tiếng Việt, map sang đúng field name tiếng Anh trong database"""
 
             phase1_prompt = f"""Bạn là AI assistant chuyên phân tích dữ liệu hệ thống CNTT cho Bộ KH&CN.
 
 QUAN TRỌNG - NGỮ CẢNH:
 Người dùng đang HỎI VỀ DỮ LIỆU được khai báo trong database, KHÔNG phải hỏi về database engine/infrastructure.
 
-Ví dụ:
-- "Tổng dung lượng CSDL?" → Hỏi về SUM(data_volume_gb) của các hệ thống (dùng _gb field cho tính toán)
-- "Có bao nhiêu hệ thống?" → Hỏi về COUNT(*) trong bảng systems
-- "Dung lượng trung bình?" → Hỏi về AVG(data_volume_gb)
-- KHÔNG phải hỏi về: PostgreSQL database size, table count, database performance metrics
-
 {schema_context}
 
-Phân tích câu hỏi và tạo SQL query. Trả về JSON:
+VÍ DỤ CÁCH XỬ LÝ:
+
+Example 1 - Phân tích tình trạng hệ thống:
+User: "Phân tích tình trạng hệ thống hiện tại"
+Thinking: {{"plan": "Lấy thống kê tổng quan về số lượng, trạng thái, công nghệ, an toàn thông tin", "tasks": ["Đếm tổng số hệ thống", "Thống kê theo trạng thái", "Phân tích công nghệ", "Kiểm tra ATTT"]}}
+SQL: SELECT s.status, COUNT(*) as count, COUNT(CASE WHEN ss.has_mfa = true THEN 1 END) as has_mfa_count, COUNT(CASE WHEN ss.has_firewall = true THEN 1 END) as has_firewall_count FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id WHERE s.is_deleted = false GROUP BY s.status
+Chart: "bar"
+Xử lý: Deep mode cần SQL phức tạp hơn với JOIN nhiều bảng, GROUP BY, CASE WHEN để phân tích sâu
+
+Example 2 - Hệ thống cần nâng cấp:
+User: "Hệ thống nào cần nâng cấp?"
+Thinking: {{"plan": "Tìm hệ thống có modernization_priority cao, technical_debt_level cao, needs_replacement = true", "tasks": ["Query bảng assessment", "JOIN với systems", "Filter theo điều kiện"]}}
+SQL: SELECT s.system_name, sa.technical_debt_level, sa.modernization_priority, sa.recommendation FROM systems s JOIN system_assessment sa ON s.id = sa.system_id WHERE s.is_deleted = false AND (sa.needs_replacement = true OR sa.modernization_priority IN ('high', 'critical') OR sa.technical_debt_level IN ('high', 'critical')) ORDER BY sa.modernization_priority DESC, sa.technical_debt_level DESC
+Chart: "table"
+Xử lý: JOIN system_assessment, multiple conditions trong WHERE, ORDER BY priority
+
+Example 3 - Đánh giá rủi ro ATTT:
+User: "Đánh giá rủi ro bảo mật?"
+Thinking: {{"plan": "Phân tích các hệ thống thiếu biện pháp ATTT: không có MFA, Firewall, WAF, mã hóa", "tasks": ["Query system_security", "Đếm hệ thống thiếu từng biện pháp", "Tính phần trăm"]}}
+SQL: SELECT COUNT(*) as total_systems, COUNT(CASE WHEN ss.has_mfa = false OR ss.has_mfa IS NULL THEN 1 END) as no_mfa, COUNT(CASE WHEN ss.has_firewall = false OR ss.has_firewall IS NULL THEN 1 END) as no_firewall, COUNT(CASE WHEN ss.has_waf = false OR ss.has_waf IS NULL THEN 1 END) as no_waf, COUNT(CASE WHEN ss.has_data_encryption_at_rest = false OR ss.has_data_encryption_at_rest IS NULL THEN 1 END) as no_encryption FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id WHERE s.is_deleted = false
+Chart: null
+Xử lý: Multiple CASE WHEN để đếm nhiều điều kiện, LEFT JOIN để bao gồm cả hệ thống chưa có security info
+
+Example 4 - Phân tích hệ thống theo tên (FULL-TEXT SEARCH):
+User: "Phân tích chi tiết các hệ thống Portal"
+Thinking: {{"plan": "Tìm tất cả hệ thống có chứa 'Portal' trong tên, JOIN các bảng để lấy thông tin chi tiết về công nghệ, ATTT, đánh giá", "tasks": ["Query systems với ILIKE", "JOIN security info", "JOIN assessment", "Aggregate data"]}}
+SQL: SELECT s.system_name, s.status, s.programming_language, s.organization, ss.has_mfa, ss.has_firewall, sa.technical_debt_level, sa.modernization_priority FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id LEFT JOIN system_assessment sa ON s.id = sa.system_id WHERE s.is_deleted = false AND s.system_name ILIKE '%Portal%' ORDER BY s.system_name
+Chart: "table"
+Xử lý: QUAN TRỌNG - Dùng ILIKE '%keyword%' để full-text search, KHÔNG dùng = 'exact name'. Multiple LEFT JOIN để lấy thông tin từ nhiều bảng
+Lý do: ILIKE linh hoạt hơn exact match, tìm được nhiều hệ thống liên quan
+VÍ DỤ: Câu hỏi "Portal" sẽ tìm được: "Portal VNNIC", "Portal Cục SHTT", "Portal thông tin", etc.
+
+---
+
+{"NGỮCẢNH HỘI THOẠI (dùng để hiểu câu hỏi tiếp theo):" if context else ""}
+{f'''
+Câu hỏi trước: {context.get("previous_query", "")}
+Câu trả lời trước: {context.get("previous_answer", "")}
+SQL query trước: {context.get("previous_sql", "")}
+
+LƯU Ý: Nếu câu hỏi hiện tại có từ "này", "đó", "của nó", "hệ thống đó" → tham chiếu đến thông tin từ câu hỏi trước
+''' if context else ""}
+Câu hỏi hiện tại: {query}
+
+NHIỆM VỤ:
+1. Phân tích sâu câu hỏi (thinking)
+2. Tạo SQL query phức tạp với JOIN, GROUP BY, CASE WHEN nếu cần
+3. Chọn chart type phù hợp
+
+QUAN TRỌNG:
+- LUÔN có WHERE is_deleted = false
+- Deep mode cần SQL chi tiết hơn Quick mode
+- Dùng LEFT JOIN nếu có thể thiếu data trong bảng phụ
+- CASE WHEN để tính toán conditional aggregates
+- **KHI VIẾT CÂU TRẢ LỜI: Dùng tên tiếng Việt (canonical name) của field, KHÔNG dùng database field name**
+  VD: Viết "Tên hệ thống" thay vì "system_name", "Trạng thái" thay vì "status"
+- **KHI LỌC THEO TÊN HỆ THỐNG: Dùng ILIKE với % (full-text search), KHÔNG dùng = (exact match)**
+  VD: system_name ILIKE '%Portal%' thay vì system_name = 'Portal VNNIC'
+  Lý do: Exact search rất khó vì user không nhớ chính xác tên đầy đủ
+
+Trả về JSON:
 {{
-    "thinking": {{"plan": "Kế hoạch phân tích", "tasks": ["task1", "task2"]}},
-    "sql": "SELECT query here",
+    "thinking": {{"plan": "Kế hoạch phân tích chi tiết", "tasks": ["task1", "task2", "..."]}},
+    "sql": "SELECT query here (có thể phức tạp với nhiều JOIN)",
     "chart_type": "bar|pie|line|table|null"
 }}
 
@@ -2482,7 +2857,87 @@ CHỈ trả về JSON, không giải thích."""
                 yield f"event: error\ndata: {json.dumps({'error': 'Lỗi truy vấn dữ liệu', 'detail': sql_error})}\n\n"
                 return
 
-            yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': query_result.get('total_rows', 0)})}\n\n"
+            # Check if result is empty (0 rows) - retry once with SQL review (Deep mode)
+            if query_result.get('total_rows', 0) == 0:
+                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': 0, 'retry': True})}\n\n"
+
+                # Phase 2.5: Review and fix SQL
+                yield f"event: phase_start\ndata: {json.dumps({'phase': 2.5, 'name': 'Kiểm tra SQL', 'description': 'Kết quả trống - đang phân tích và sửa SQL...', 'mode': 'deep'})}\n\n"
+
+                review_prompt = f"""SQL query trả về 0 kết quả trong Deep mode. Phân tích và sửa lỗi.
+
+SQL hiện tại:
+{sql_query}
+
+Câu hỏi: {query}
+
+{schema_context}
+
+PHÂN TÍCH:
+1. WHERE conditions có đúng không?
+2. JOIN logic có sai không?
+3. Column names có tồn tại không?
+4. Có thể data thực sự không có không?
+
+Trả về JSON:
+{{
+    "analysis": "Phân tích chi tiết vấn đề",
+    "fixed_sql": "SELECT query đã sửa (hoặc null nếu 0 là kết quả đúng)",
+    "is_valid_empty": true/false  (true nếu 0 là kết quả hợp lệ)
+}}
+
+CHỈ trả về JSON."""
+
+                try:
+                    review_content = call_ai_internal(review_prompt, [{'role': 'user', 'content': query}], 'Deep SQL Review')
+                    json_match = re.search(r'\{[\s\S]*\}', review_content)
+
+                    if json_match:
+                        review_data = json.loads(json_match.group())
+                        fixed_sql = review_data.get('fixed_sql')
+                        is_valid_empty = review_data.get('is_valid_empty', False)
+
+                        if fixed_sql and not is_valid_empty:
+                            logger.info(f"Deep mode SQL reviewed: {review_data.get('analysis')}")
+                            yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.5, 'analysis': review_data.get('analysis'), 'fixed': True})}\n\n"
+
+                            # Retry with fixed SQL
+                            yield f"event: phase_start\ndata: {json.dumps({'phase': 2.6, 'name': 'Thử lại truy vấn', 'description': 'Đang chạy SQL đã tối ưu...', 'mode': 'deep'})}\n\n"
+
+                            retry_result, retry_error = validate_and_execute_sql_internal(fixed_sql)
+                            if retry_result and retry_result.get('total_rows', 0) > 0:
+                                query_result = retry_result
+                                sql_query = fixed_sql
+                                # Include sample rows for debugging (15 rows for detail)
+                                sample_rows = query_result.get('rows', [])[:15]
+                                # Serialize data to handle Decimal and date types
+                                phase_data = serialize_for_json({
+                                    'phase': 2.6,
+                                    'total_rows': query_result.get('total_rows', 0),
+                                    'sample_rows': sample_rows,
+                                    'columns': query_result.get('columns', []),
+                                    'success': True
+                                })
+                                yield f"event: phase_complete\ndata: {json.dumps(phase_data)}\n\n"
+                            else:
+                                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.6, 'total_rows': 0, 'success': False})}\n\n"
+                        else:
+                            yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.5, 'analysis': 'Kết quả 0 là chính xác', 'fixed': False})}\n\n"
+
+                except Exception as e:
+                    logger.error(f"Deep SQL review error: {e}")
+                    yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.5, 'error': str(e)})}\n\n"
+            else:
+                # Include sample rows for debugging (more rows for detailed analysis)
+                sample_rows = query_result.get('rows', [])[:15]  # First 15 rows for detailed view
+                # Serialize data to handle Decimal and date types
+                phase_data = serialize_for_json({
+                    'phase': 2,
+                    'total_rows': query_result.get('total_rows', 0),
+                    'sample_rows': sample_rows,
+                    'columns': query_result.get('columns', [])
+                })
+                yield f"event: phase_complete\ndata: {json.dumps(phase_data)}\n\n"
 
             # Phase 3: Generate Response
             yield f"event: phase_start\ndata: {json.dumps({'phase': 3, 'name': 'Tạo báo cáo', 'description': 'Đang tạo báo cáo chiến lược...'})}\n\n"
@@ -2499,6 +2954,8 @@ CHỈ trả về JSON, không giải thích."""
 2. INSIGHT: Thêm strategic_insight về ý nghĩa chiến lược của dữ liệu
 3. HÀNH ĐỘNG: Thêm recommended_action gợi ý bước tiếp theo
 4. KHÔNG liệt kê chi tiết trong main_answer - data chi tiết sẽ hiển thị riêng
+5. **CANONICAL NAMES: Dùng tên tiếng Việt (canonical name) của field, KHÔNG dùng database field name**
+   VD: Viết "Tên hệ thống" thay vì "system_name", "Trạng thái" thay vì "status"
 
 === CÂU HỎI ===
 {query}
@@ -2566,7 +3023,8 @@ CHỈ trả về JSON."""
                     result = re.sub(r'<(\w+)>', replace_match, result)       # <variable>
 
                     # Replace standalone "X" placeholder with count/total from data
-                    if r'\bX\b' in result or ' X ' in result:
+                    # Check for " X " (with spaces) or X at word boundaries
+                    if re.search(r'\bX\b', result):
                         count_value = first_row.get('count', first_row.get('total', first_row.get('total_systems', '0')))
                         result = re.sub(r'\bX\b', str(count_value), result)
 

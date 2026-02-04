@@ -914,7 +914,7 @@ const StrategicDashboard = () => {
     return () => {
       eventSource.close();
     };
-  }, [aiQuery]);
+  }, [aiQuery, aiMode]); // FIX: Add aiMode to dependencies
 
   // Utility: Clear query history (P2 #10)
   const clearQueryHistory = useCallback(() => {
@@ -2824,7 +2824,13 @@ const StrategicDashboard = () => {
                       placeholder="Ví dụ: 'Có bao nhiêu hệ thống?' hoặc 'Đơn vị nào có nhiều hệ thống nhất?'"
                       value={aiQuery}
                       onChange={(e) => setAiQuery(e.target.value)}
-                      onSearch={handleAIQuery}
+                      onSearch={(value, event) => {
+                        // FIX: Prevent page scroll on submit
+                        if (event) {
+                          event.preventDefault();
+                        }
+                        handleAIQuery();
+                      }}
                       // P0 #4: Accessibility improvements
                       aria-label="Nhập câu hỏi cho AI"
                       aria-describedby="ai-query-description"

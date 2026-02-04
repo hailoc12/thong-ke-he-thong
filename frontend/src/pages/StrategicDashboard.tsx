@@ -2201,6 +2201,12 @@ const StrategicDashboard = () => {
                                   <Text strong style={{ fontSize: 13, color: '#722ed1' }}>
                                     AI PHÂN TÍCH ({conversationProgressTasks.filter(t => t.status === 'completed').length}/{conversationProgressTasks.length})
                                   </Text>
+                                  {/* Show mode indicator */}
+                                  {conv.response && (conv.response as any).mode && (
+                                    <Tag color={(conv.response as any).mode === 'quick' ? 'green' : 'blue'} style={{ fontSize: 10, marginLeft: 4 }}>
+                                      {(conv.response as any).mode === 'quick' ? 'Nhanh' : 'Sâu'}
+                                    </Tag>
+                                  )}
                                 </div>
                               ),
                               children: (

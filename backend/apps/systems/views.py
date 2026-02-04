@@ -152,7 +152,7 @@ class SystemViewSet(viewsets.ModelViewSet):
             return queryset
 
         # Lanhdaobo can see all systems (read-only for strategic dashboard)
-        if user.role == 'lanhdaobo':
+        if user.role == 'leader':
             return queryset
 
         # Org user can only see systems from their organization
@@ -248,8 +248,8 @@ class SystemViewSet(viewsets.ModelViewSet):
         Only accessible by lanhdaobo role.
         """
         user = request.user
-        # TEMP: Allow admin for testing
-        if user.role not in ['lanhdaobo', 'admin']:
+        # Only allow leader role and admin role
+        if user.role not in ['leader', 'admin']:
             return Response(
                 {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
                 status=status.HTTP_403_FORBIDDEN
@@ -372,7 +372,7 @@ class SystemViewSet(viewsets.ModelViewSet):
         Only accessible by lanhdaobo role.
         """
         user = request.user
-        if user.role not in ['lanhdaobo', 'admin']:
+        if user.role not in ['leader', 'admin']:
             return Response(
                 {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
                 status=status.HTTP_403_FORBIDDEN
@@ -457,7 +457,7 @@ class SystemViewSet(viewsets.ModelViewSet):
         Only accessible by lanhdaobo role.
         """
         user = request.user
-        if user.role not in ['lanhdaobo', 'admin']:
+        if user.role not in ['leader', 'admin']:
             return Response(
                 {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
                 status=status.HTTP_403_FORBIDDEN
@@ -520,7 +520,7 @@ class SystemViewSet(viewsets.ModelViewSet):
         Only accessible by lanhdaobo role.
         """
         user = request.user
-        if user.role not in ['lanhdaobo', 'admin']:
+        if user.role not in ['leader', 'admin']:
             return Response(
                 {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
                 status=status.HTTP_403_FORBIDDEN
@@ -587,7 +587,7 @@ class SystemViewSet(viewsets.ModelViewSet):
         Only accessible by lanhdaobo role.
         """
         user = request.user
-        if user.role not in ['lanhdaobo', 'admin']:
+        if user.role not in ['leader', 'admin']:
             return Response(
                 {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
                 status=status.HTTP_403_FORBIDDEN
@@ -661,7 +661,7 @@ class SystemViewSet(viewsets.ModelViewSet):
         - filter_value: the specific value to filter by
         """
         user = request.user
-        if user.role not in ['lanhdaobo', 'admin']:
+        if user.role not in ['leader', 'admin']:
             return Response(
                 {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
                 status=status.HTTP_403_FORBIDDEN
@@ -748,7 +748,7 @@ class SystemViewSet(viewsets.ModelViewSet):
         Only accessible by lanhdaobo role.
         """
         user = request.user
-        if user.role not in ['lanhdaobo', 'admin']:
+        if user.role not in ['leader', 'admin']:
             return Response(
                 {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
                 status=status.HTTP_403_FORBIDDEN
@@ -1006,7 +1006,7 @@ class SystemViewSet(viewsets.ModelViewSet):
         }
         """
         user = request.user
-        if user.role not in ['lanhdaobo', 'admin']:
+        if user.role not in ['leader', 'admin']:
             return Response(
                 {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
                 status=status.HTTP_403_FORBIDDEN
@@ -1912,7 +1912,7 @@ Trả về JSON với SQL đã sửa."""
             response['X-Accel-Buffering'] = 'no'
             return response
         # TEMP: Allow admin for testing
-        if user.role not in ['lanhdaobo', 'admin']:
+        if user.role not in ['leader', 'admin']:
             def error_stream():
                 yield f"event: error\ndata: {json.dumps({'error': 'Chỉ Lãnh đạo Bộ mới có quyền sử dụng AI Assistant'})}\n\n"
             response = StreamingHttpResponse(error_stream(), content_type='text/event-stream')
@@ -3143,7 +3143,7 @@ Trả về JSON: {{"is_consistent": true/false, "issues": []}}"""
         - Phase 3 (2029-2030): Tối ưu hóa – Thông minh hóa – Dữ liệu mở
         """
         user = request.user
-        if user.role not in ['lanhdaobo', 'admin']:
+        if user.role not in ['leader', 'admin']:
             return Response(
                 {'error': 'Chỉ Lãnh đạo Bộ mới có quyền xem Dashboard chiến lược'},
                 status=status.HTTP_403_FORBIDDEN

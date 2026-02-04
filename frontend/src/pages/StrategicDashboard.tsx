@@ -2098,7 +2098,7 @@ const StrategicDashboard = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <RobotOutlined style={{ color: '#722ed1', fontSize: 16 }} />
                                   <Text strong style={{ fontSize: 13, color: '#722ed1' }}>
-                                    TIẾN ĐỘ ({aiProgressTasks.filter(t => t.status === 'completed').length}/{aiProgressTasks.length})
+                                    AI PHÂN TÍCH ({aiProgressTasks.filter(t => t.status === 'completed').length}/{aiProgressTasks.length})
                                   </Text>
                                 </div>
                               ),
@@ -2672,8 +2672,19 @@ const StrategicDashboard = () => {
                                     </div>
                                   )}
 
-                                  {/* Multi-row data display - HIDDEN per user request */}
-                                  {false && aiQueryResponse.data && ((aiQueryResponse.data?.rows?.length || 0) > 1 || (aiQueryResponse.data?.columns?.length || 0) > 1) && (
+                                  {/* Multi-row data display - Show only if has System data AND answer has no HTML table */}
+                                  {(() => {
+                                    // Check if data has system_name column
+                                    const hasSystemData = aiQueryResponse.data?.columns?.some(col =>
+                                      col === 'system_name' || col === 'tên hệ thống' || col === 'ten_he_thong'
+                                    );
+                                    // Check if answer contains HTML table
+                                    const hasHtmlTable = (aiQueryResponse.response?.main_answer || '')
+                                      .toLowerCase()
+                                      .includes('<table');
+                                    // Show if has system data AND no HTML table in answer
+                                    return hasSystemData && !hasHtmlTable;
+                                  })() && aiQueryResponse.data && ((aiQueryResponse.data?.rows?.length || 0) > 1 || (aiQueryResponse.data?.columns?.length || 0) > 1) && (
                                     <>
                                       <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
                                         <LineChartOutlined style={{ marginRight: 6 }} />
@@ -2832,8 +2843,17 @@ const StrategicDashboard = () => {
                                       size="small"
                                       icon={<ReloadOutlined />}
                                       onClick={() => {
-                                        // Regenerate contextual suggestions
-                                        generateContextualSuggestions(aiQuery, aiQueryResponse);
+                                        // Regenerate contextual suggestions and update state
+                                        const newSuggestions = generateContextualSuggestions(aiQuery, aiQueryResponse);
+                                        if (aiQueryResponse.response) {
+                                          setAiQueryResponse({
+                                            ...aiQueryResponse,
+                                            response: {
+                                              ...aiQueryResponse.response,
+                                              follow_up_suggestions: newSuggestions
+                                            }
+                                          });
+                                        }
                                         setSelectedSuggestion(null);
                                       }}
                                       style={{ padding: '0 4px' }}

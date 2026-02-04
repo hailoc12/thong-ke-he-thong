@@ -1947,6 +1947,40 @@ Trả về JSON với SQL đã sửa."""
         else:
             return self._deep_analysis_stream(query, user, context)
 
+    def _get_active_policies_text(self):
+        """
+        Get active improvement policies and format as text to inject into system prompt
+        Returns empty string if no policies are active
+        """
+        try:
+            from .models import AIResponseFeedback
+
+            policies = AIResponseFeedback.generate_improvement_policies()
+
+            # Filter to high and medium priority only
+            active = [p for p in policies if p['priority'] in ['high', 'medium']]
+
+            if not active:
+                return ""
+
+            # Format policies as text
+            policy_text = "\n\n=== IMPROVEMENT POLICIES (Based on User Feedback) ===\n"
+            policy_text += "Những chính sách này được tạo ra từ feedback của người dùng để cải thiện chất lượng câu trả lời:\n\n"
+
+            for i, policy in enumerate(active, 1):
+                priority_icon = "🔴" if policy['priority'] == 'high' else "🟡"
+                policy_text += f"{i}. {priority_icon} [{policy['category'].upper()}] {policy['rule']}\n"
+                policy_text += f"   (Dựa trên {policy['evidence_count']} feedback)\n\n"
+
+            policy_text += "Vui lòng tuân thủ các policies trên khi generate câu trả lời.\n"
+            policy_text += "=" * 70 + "\n"
+
+            return policy_text
+
+        except Exception as e:
+            logger.warning(f"Failed to get improvement policies: {e}")
+            return ""
+
     def _quick_answer_stream(self, query, user, context=None):
         """
         Quick Mode: Single AI call + direct answer (~4-6s)
@@ -2153,10 +2187,13 @@ Lưu ý quan trọng:
             # Phase 1: Combined SQL Generation + Answer
             yield f"event: phase_start\ndata: {json.dumps({'phase': 1, 'name': 'Phân tích nhanh', 'description': 'Đang tạo câu trả lời...', 'mode': 'quick'})}\n\n"
 
+            # Get active improvement policies from user feedback
+            policies_text = self._get_active_policies_text()
+
             quick_prompt = f"""Bạn là AI assistant phân tích dữ liệu CNTT.
 
 {schema_context}
-
+{policies_text}
 VÍ DỤ CÁCH XỬ LÝ:
 
 Example 1 - Đếm số lượng:
@@ -2656,13 +2693,16 @@ Lưu ý quan trọng:
 - data_volume_gb, storage_size_gb là NUMERIC - dùng để tính SUM/AVG
 - Khi user hỏi bằng tiếng Việt, map sang đúng field name tiếng Anh trong database"""
 
+            # Get active improvement policies from user feedback
+            policies_text = self._get_active_policies_text()
+
             phase1_prompt = f"""Bạn là AI assistant chuyên phân tích dữ liệu hệ thống CNTT cho Bộ KH&CN.
 
 QUAN TRỌNG - NGỮ CẢNH:
 Người dùng đang HỎI VỀ DỮ LIỆU được khai báo trong database, KHÔNG phải hỏi về database engine/infrastructure.
 
 {schema_context}
-
+{policies_text}
 VÍ DỤ CÁCH XỬ LÝ:
 
 Example 1 - Phân tích tình trạng hệ thống:
@@ -2799,7 +2839,7 @@ Câu hỏi gốc: "{query}"
 
 Schema context:
 {schema_context}
-
+{policies_text}
 NHIỆM VỤ:
 1. Phân tích: Lãnh đạo sẽ cần thêm thông tin gì để ra quyết định tốt hơn?
 2. Tăng cường SQL với:
@@ -2956,7 +2996,7 @@ CHỈ trả về JSON."""
 4. KHÔNG liệt kê chi tiết trong main_answer - data chi tiết sẽ hiển thị riêng
 5. **CANONICAL NAMES: Dùng tên tiếng Việt (canonical name) của field, KHÔNG dùng database field name**
    VD: Viết "Tên hệ thống" thay vì "system_name", "Trạng thái" thay vì "status"
-
+{policies_text}
 === CÂU HỎI ===
 {query}
 

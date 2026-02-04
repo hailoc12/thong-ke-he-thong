@@ -488,6 +488,13 @@ const StrategicDashboard = () => {
   const [aiQueryLoading, setAiQueryLoading] = useState(false);
   const [aiQueryResponse, setAiQueryResponse] = useState<AIQueryResponse | null>(null);
 
+  // Conversation history for multi-turn chat (FIX: Bug #1 - conversation history disappearing)
+  const [conversationHistory, setConversationHistory] = useState<Array<{
+    query: string;
+    response: AIQueryResponse;
+    timestamp: number;
+  }>>([]);
+
   // Query history with localStorage persistence (P0 #3: Fix history lost on refresh)
   const HISTORY_STORAGE_KEY = 'ai_query_history';
   const [aiQueryHistory, setAiQueryHistory] = useState<string[]>(() => {
@@ -628,7 +635,8 @@ const StrategicDashboard = () => {
     const currentQuery = aiQuery;
     setAiQuery(''); // Clear input immediately
     setAiQueryLoading(true);
-    setAiQueryResponse(null); // Clear previous response
+    // FIX Bug #1: Don't clear previous response, keep in conversation history
+    // setAiQueryResponse(null); // REMOVED - this was causing conversation history to disappear
 
     // Reset progress states
     setAiProgressTasks([]);
@@ -812,6 +820,17 @@ const StrategicDashboard = () => {
         setTimeout(async () => {
           console.log('[AI DEBUG] Setting aiQueryResponse state:', data);
           setAiQueryResponse(data);
+
+          // FIX Bug #1: Add to conversation history instead of replacing
+          setConversationHistory(prev => [
+            ...prev,
+            {
+              query: currentQuery,
+              response: data,
+              timestamp: Date.now()
+            }
+          ]);
+
           console.log('[AI DEBUG] Setting aiQueryLoading to false');
           setAiQueryHistory(prev => [currentQuery, ...prev.filter(q => q !== currentQuery)].slice(0, 10));
           setAiQueryLoading(false);
@@ -1831,20 +1850,22 @@ const StrategicDashboard = () => {
                 </Row>
 
                 {/* AI Chat Section - Premium Hero Design */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                  style={{
-                    marginTop: 20,
-                    marginBottom: 16,
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-                    borderRadius: 16,
-                    padding: '16px 20px',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
-                >
+                {/* FIX Bug #2: Hide fancy header after first conversation */}
+                {conversationHistory.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    style={{
+                      marginTop: 20,
+                      marginBottom: 16,
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                      borderRadius: 16,
+                      padding: '16px 20px',
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                  >
                   {/* Animated background dots */}
                   <div style={{
                     position: 'absolute',
@@ -1968,6 +1989,8 @@ const StrategicDashboard = () => {
                     </Space>
                   </div>
                 </motion.div>
+                )}
+                {/* End of conditional header */}
 
                 {/* Chat Container */}
                 <div style={{
@@ -1977,10 +2000,14 @@ const StrategicDashboard = () => {
                   minHeight: 120,
                   border: '2px dashed #d3adf7',
                 }}>
-                  {/* Previous Q&A in Chat Style */}
-                  {aiQueryResponse && !aiQueryLoading && (
-                    <div style={{ marginBottom: 20 }}>
-                      {/* User Question Bubble */}
+                  {/* Conversation History in Chat Style - FIX Bug #1 */}
+                  {conversationHistory.map((conv, idx) => {
+                    // Use local variable to avoid changing all references below
+                    const aiQueryResponse = conv.response;
+
+                    return (
+                      <div key={idx} style={{ marginBottom: 20 }}>
+                        {/* User Question Bubble */}
                       <div style={{
                         display: 'flex',
                         justifyContent: 'flex-end',
@@ -1998,7 +2025,7 @@ const StrategicDashboard = () => {
                           }}
                         >
                           <Text style={{ color: 'white', fontSize: 14 }}>
-                            {aiQueryHistory[0] || 'Câu hỏi của bạn'}
+                            {conv.query}
                           </Text>
                         </motion.div>
                         <div style={{
@@ -2754,7 +2781,8 @@ const StrategicDashboard = () => {
                         </motion.div>
                       </div>
                     </div>
-                  )}
+                    );
+                  })}
 
                   {/* Input Area - Enhanced */}
                   <div style={{
@@ -2791,34 +2819,41 @@ const StrategicDashboard = () => {
                       </Radio.Group>
                     </div>
 
-                    {/* Mode-specific hint */}
-                    {aiMode === 'quick' && (
-                      <Alert
-                        message="Chế độ nhanh: Trả lời trực tiếp, phù hợp câu hỏi đơn giản"
-                        description="Ví dụ: Có bao nhiêu hệ thống? Những hệ thống nào dùng Java?"
-                        type="info"
-                        showIcon
-                        style={{ marginBottom: 12, fontSize: 12 }}
-                      />
-                    )}
-                    {aiMode === 'deep' && (
-                      <Alert
-                        message="Chế độ chuyên sâu: Báo cáo chiến lược với insight và đề xuất"
-                        description="Ví dụ: Đánh giá rủi ro bảo mật? Lộ trình chuyển đổi số?"
-                        type="info"
-                        showIcon
-                        style={{ marginBottom: 12, fontSize: 12 }}
-                      />
+                    {/* Mode-specific hint - FIX Bug #2: Hide after first conversation */}
+                    {conversationHistory.length === 0 && (
+                      <>
+                        {aiMode === 'quick' && (
+                          <Alert
+                            message="Chế độ nhanh: Trả lời trực tiếp, phù hợp câu hỏi đơn giản"
+                            description="Ví dụ: Có bao nhiêu hệ thống? Những hệ thống nào dùng Java?"
+                            type="info"
+                            showIcon
+                            style={{ marginBottom: 12, fontSize: 12 }}
+                          />
+                        )}
+                        {aiMode === 'deep' && (
+                          <Alert
+                            message="Chế độ chuyên sâu: Báo cáo chiến lược với insight và đề xuất"
+                            description="Ví dụ: Đánh giá rủi ro bảo mật? Lộ trình chuyển đổi số?"
+                            type="info"
+                            showIcon
+                            style={{ marginBottom: 12, fontSize: 12 }}
+                          />
+                        )}
+                      </>
                     )}
 
-                    <div style={{ marginBottom: 8 }}>
-                      <Space>
-                        <RobotOutlined style={{ color: '#722ed1', fontSize: 16 }} />
-                        <Text style={{ color: '#722ed1', fontSize: 13, fontWeight: 500 }}>
-                          Nhập câu hỏi bằng tiếng Việt tự nhiên
-                        </Text>
-                      </Space>
-                    </div>
+                    {/* FIX Bug #2: Hide label after first conversation */}
+                    {conversationHistory.length === 0 && (
+                      <div style={{ marginBottom: 8 }}>
+                        <Space>
+                          <RobotOutlined style={{ color: '#722ed1', fontSize: 16 }} />
+                          <Text style={{ color: '#722ed1', fontSize: 13, fontWeight: 500 }}>
+                            Nhập câu hỏi bằng tiếng Việt tự nhiên
+                          </Text>
+                        </Space>
+                      </div>
+                    )}
                     <Input.Search
                       className="ai-query-input"
                       placeholder="Ví dụ: 'Có bao nhiêu hệ thống?' hoặc 'Đơn vị nào có nhiều hệ thống nhất?'"
@@ -2864,21 +2899,22 @@ const StrategicDashboard = () => {
                       }}
                     />
 
-                    {/* P3 #29: Query Templates */}
-                    <div style={{ marginTop: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          <FormOutlined /> Câu hỏi mẫu:
-                        </Text>
-                        <Button
-                          type="text"
-                          size="small"
-                          onClick={() => setShowTemplates(!showTemplates)}
-                          style={{ fontSize: 11, padding: 0 }}
-                        >
-                          {showTemplates ? 'Ẩn' : 'Hiện'}
-                        </Button>
-                      </div>
+                    {/* P3 #29: Query Templates - FIX Bug #2: Hide after first conversation */}
+                    {conversationHistory.length === 0 && (
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            <FormOutlined /> Câu hỏi mẫu:
+                          </Text>
+                          <Button
+                            type="text"
+                            size="small"
+                            onClick={() => setShowTemplates(!showTemplates)}
+                            style={{ fontSize: 11, padding: 0 }}
+                          >
+                            {showTemplates ? 'Ẩn' : 'Hiện'}
+                          </Button>
+                        </div>
                       {showTemplates && (
                         <Space wrap size={[6, 6]}>
                           {[
@@ -2906,7 +2942,9 @@ const StrategicDashboard = () => {
                           ))}
                         </Space>
                       )}
-                    </div>
+                      </div>
+                    )}
+                    {/* End of conditional query templates */}
 
                     {/* P3 #28: Voice Input - HIDDEN TEMPORARILY */}
                     <div style={{ marginTop: 8, display: 'none' }}>

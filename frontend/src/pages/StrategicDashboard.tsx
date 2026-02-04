@@ -1223,6 +1223,15 @@ const StrategicDashboard = () => {
     return recommendations.sort((a, b) => a.priority - b.priority);
   }, [stats]);
 
+  // Split recommendations into quick alerts (critical/warning) and AI insights (optimization/insight)
+  const quickAlerts = useMemo(() => {
+    return aiRecommendations.filter(r => r.type === 'critical' || r.type === 'warning');
+  }, [aiRecommendations]);
+
+  const aiInsights = useMemo(() => {
+    return aiRecommendations.filter(r => r.type === 'optimization' || r.type === 'insight');
+  }, [aiRecommendations]);
+
   // Drill-down function
   const handleDrilldown = useCallback(async (filterType: string, filterValue: string, title: string) => {
     setDrilldownLoading(true);
@@ -3168,7 +3177,7 @@ const StrategicDashboard = () => {
                         label: (
                           <Space>
                             <HistoryOutlined style={{ color: '#8c8c8c' }} />
-                            <Text type="secondary" style={{ fontSize: 12 }}>Lịch sử gần đây</Text>
+                            <Text type="secondary" style={{ fontSize: 12 }}>Lịch sử hội thoại</Text>
                           </Space>
                         ),
                         children: (
@@ -3183,7 +3192,10 @@ const StrategicDashboard = () => {
                                   background: 'white',
                                   border: '1px solid #d9d9d9',
                                 }}
-                                onClick={() => setAiQuery(q)}
+                                onClick={() => {
+                                  setAiQuery(q);
+                                  setConversationSidebarVisible(true);
+                                }}
                               >
                                 {q.length > 30 ? q.substring(0, 30) + '...' : q}
                               </Tag>

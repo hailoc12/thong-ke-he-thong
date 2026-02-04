@@ -2267,6 +2267,57 @@ CHỈ trả về JSON."""
             # Process answer to replace any template variables
             processed_answer = replace_template_vars(answer, query_result)
 
+            # Generate strategic follow-up suggestions based on query context
+            def generate_strategic_suggestions(query_text, data):
+                """Generate strategic follow-up questions for leadership decision-making"""
+                query_lower = query_text.lower()
+
+                # Default strategic suggestions
+                suggestions = []
+
+                # Context-aware suggestions based on query type
+                if any(word in query_lower for word in ['bao nhiêu', 'số lượng', 'count', 'tổng']):
+                    suggestions = [
+                        'Đánh giá rủi ro của các hệ thống này?',
+                        'Phân tích xu hướng tăng trưởng trong 3 năm qua?',
+                        'Ưu tiên đầu tư nâng cấp cho hệ thống nào?'
+                    ]
+                elif any(word in query_lower for word in ['an toàn', 'bảo mật', 'attt', 'security', 'mfa', 'firewall']):
+                    suggestions = [
+                        'Lộ trình tăng cường ATTT cho các hệ thống yếu?',
+                        'Ước tính ngân sách cần thiết cho bảo mật?',
+                        'Hệ thống nào cần ưu tiên audit ATTT ngay?'
+                    ]
+                elif any(word in query_lower for word in ['công nghệ', 'tech', 'framework', 'ngôn ngữ', 'database']):
+                    suggestions = [
+                        'Rủi ro công nghệ lỗi thời trong các hệ thống?',
+                        'Kế hoạch hiện đại hóa công nghệ?',
+                        'Nguồn lực cần thiết để nâng cấp công nghệ?'
+                    ]
+                elif any(word in query_lower for word in ['dung lượng', 'storage', 'data', 'dữ liệu']):
+                    suggestions = [
+                        'Dự báo nhu cầu lưu trữ trong 2-3 năm tới?',
+                        'Ngân sách cho hạ tầng lưu trữ?',
+                        'Tối ưu hóa chi phí lưu trữ dữ liệu?'
+                    ]
+                elif any(word in query_lower for word in ['tích hợp', 'api', 'integration', 'liên thông']):
+                    suggestions = [
+                        'Lộ trình tích hợp và liên thông dữ liệu?',
+                        'Rủi ro từ tích hợp chưa chuẩn hóa?',
+                        'Ưu tiên tích hợp hệ thống nào trước?'
+                    ]
+                else:
+                    # Generic strategic suggestions
+                    suggestions = [
+                        'Đánh giá rủi ro tổng thể hệ thống?',
+                        'Ưu tiên đầu tư ngân sách cho mảng nào?',
+                        'Lộ trình chuyển đổi số trong 3 năm tới?'
+                    ]
+
+                return suggestions[:3]  # Return max 3 suggestions
+
+            strategic_suggestions = generate_strategic_suggestions(query, query_result)
+
             # Final result (no Phase 3, no Phase 4 for quick mode)
             final_response = {
                 'query': query,
@@ -2274,10 +2325,7 @@ CHỈ trả về JSON."""
                 'response': {
                     'greeting': '',
                     'main_answer': processed_answer or answer or f'Tìm thấy **{query_result.get("total_rows", 0)}** kết quả.',
-                    'follow_up_suggestions': [
-                        'Xem chi tiết dữ liệu',
-                        'Phân tích sâu với chế độ chuyên sâu'
-                    ]
+                    'follow_up_suggestions': strategic_suggestions
                 },
                 'data': query_result,
                 'chart_type': chart_type,

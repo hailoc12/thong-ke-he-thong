@@ -630,13 +630,15 @@ const StrategicDashboard = () => {
   }, [activeTab, investmentStats, integrationStats, optimizationStats, monitoringStats, insightsStats, roadmapStats]);
 
   // AI Query handler with SSE streaming for real-time progress
-  const handleAIQuery = useCallback(async () => {
-    if (!aiQuery.trim()) {
+  const handleAIQuery = useCallback(async (queryText?: string) => {
+    // Use provided queryText or fall back to aiQuery state
+    const currentQuery = queryText || aiQuery;
+
+    if (!currentQuery.trim()) {
       message.warning('Vui lòng nhập câu hỏi');
       return;
     }
 
-    const currentQuery = aiQuery;
     setAiQuery(''); // Clear input immediately
     setAiQueryLoading(true);
     // FIX Bug #1: Don't clear previous response, keep in conversation history
@@ -3080,7 +3082,7 @@ const StrategicDashboard = () => {
                               }}
                               onClick={() => {
                                 setAiQuery(template);
-                                setTimeout(() => handleAIQuery(), 0);
+                                handleAIQuery(template);
                               }}
                             >
                               {template}

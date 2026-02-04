@@ -2688,7 +2688,7 @@ const StrategicDashboard = () => {
                                 {/* Details - HIDDEN per user request: "hide hoàn toàn phần Chi tiết dữ liệu" */}
                                 {false && aiQueryResponse.response?.details && (
                                   <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
-                                    <Text type="secondary" style={{ fontSize: 13 }}>{aiQueryResponse.response.details}</Text>
+                                    <Text type="secondary" style={{ fontSize: 13 }}>{aiQueryResponse.response?.details}</Text>
                                   </div>
                                 )}
 
@@ -2814,20 +2814,8 @@ const StrategicDashboard = () => {
                                     </div>
                                   )}
 
-                                  {/* Multi-row data display - Show only if has System data AND answer has no HTML table */}
-                                  {(() => {
-                                    // Check if data has system_name column
-                                    const hasSystemData = aiQueryResponse.data?.columns?.some(col =>
-                                      col === 'system_name' || col === 'tên hệ thống' || col === 'ten_he_thong'
-                                    );
-                                    // Check if answer contains HTML table
-                                    const hasHtmlTable = (aiQueryResponse.response?.main_answer || '')
-                                      .toLowerCase()
-                                      .includes('<table');
-                                    // Show if has system data AND no HTML table in answer
-                                    // HIDDEN per user request: "hide hoàn toàn phần Chi tiết dữ liệu"
-                                    return false; // Previously: hasSystemData && !hasHtmlTable
-                                  })() && aiQueryResponse.data && ((aiQueryResponse.data?.rows?.length || 0) > 1 || (aiQueryResponse.data?.columns?.length || 0) > 1) && (
+                                  {/* Multi-row data display - HIDDEN per user request: "hide hoàn toàn phần Chi tiết dữ liệu" */}
+                                  {false && aiQueryResponse.data && ((aiQueryResponse.data?.rows?.length || 0) > 1 || (aiQueryResponse.data?.columns?.length || 0) > 1) && (
                                     <>
                                       <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
                                         <LineChartOutlined style={{ marginRight: 6 }} />

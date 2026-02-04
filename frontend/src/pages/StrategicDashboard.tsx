@@ -647,6 +647,21 @@ const StrategicDashboard = () => {
     // Reset progress states
     setAiProgressTasks([]);
 
+    // Show user's question immediately in chat before processing
+    const pendingConversationIndex = conversationHistory.length;
+    setConversationHistory(prev => [
+      ...prev,
+      {
+        query: currentQuery,
+        response: {
+          query: currentQuery,
+          mode: aiMode,
+          loading: true // Mark as loading
+        } as any, // Temporary placeholder
+        timestamp: Date.now()
+      }
+    ]);
+
     // Get token from localStorage or sessionStorage
     const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
     if (!token) {
@@ -828,15 +843,26 @@ const StrategicDashboard = () => {
           console.log('[AI DEBUG] Setting aiQueryResponse state:', data);
           setAiQueryResponse(data);
 
-          // FIX Bug #1: Add to conversation history instead of replacing
-          setConversationHistory(prev => [
-            ...prev,
-            {
-              query: currentQuery,
-              response: data,
-              timestamp: Date.now()
+          // FIX Bug #1: Update the placeholder entry instead of adding new one
+          setConversationHistory(prev => {
+            const updated = [...prev];
+            if (updated[pendingConversationIndex]) {
+              // Update the placeholder entry with actual response
+              updated[pendingConversationIndex] = {
+                query: currentQuery,
+                response: data,
+                timestamp: Date.now()
+              };
+            } else {
+              // Fallback: add new entry if placeholder not found (shouldn't happen)
+              updated.push({
+                query: currentQuery,
+                response: data,
+                timestamp: Date.now()
+              });
             }
-          ]);
+            return updated;
+          });
 
           console.log('[AI DEBUG] Setting aiQueryLoading to false');
           setAiQueryHistory(prev => [currentQuery, ...prev.filter(q => q !== currentQuery)].slice(0, 10));
@@ -2088,7 +2114,8 @@ const StrategicDashboard = () => {
                       </div>
 
                       {/* Enhanced Progress Section - BEFORE AI Response - Show immediately when loading */}
-                      {(aiQueryLoading || aiProgressTasks.length > 0) && (
+                      {/* Only show progress for the last (current) conversation that's loading */}
+                      {(idx === conversationHistory.length - 1 && (aiQueryLoading || aiProgressTasks.length > 0)) && (
                         <div style={{ marginBottom: 16 }}>
                           <Collapse
                             defaultActiveKey={['progress']}
@@ -2380,7 +2407,15 @@ const StrategicDashboard = () => {
                             boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                           }}
                         >
-                          {(aiQueryResponse.error || aiQueryResponse.ai_response?.error) ? (
+                          {/* Show loading spinner if response is still loading */}
+                          {(aiQueryResponse as any).loading ? (
+                            <Space direction="vertical" size={8} align="center" style={{ width: '100%', padding: '20px 0' }}>
+                              <Spin size="default" />
+                              <Text type="secondary" style={{ fontSize: 13 }}>
+                                Đang phân tích câu hỏi...
+                              </Text>
+                            </Space>
+                          ) : (aiQueryResponse.error || aiQueryResponse.ai_response?.error) ? (
                             <Space direction="vertical" size={8} style={{ width: '100%' }}>
                               <Alert
                                 type="error"

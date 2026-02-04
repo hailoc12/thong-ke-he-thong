@@ -464,6 +464,34 @@ interface AIQueryResponse {
   loading?: boolean; // Add loading field for placeholder
 }
 
+interface ProgressTask {
+  id: number;
+  name: string;
+  description: string;
+  status: 'in_progress' | 'completed';
+  startTime?: number;
+  endTime?: number;
+  duration?: string;
+
+  // Phase-specific data (Phase 1: SQL Generation)
+  thinking?: string;
+  sql?: string;
+  sqlPreview?: string;
+
+  // Phase 1.5: Smart Data Details
+  dataAnalysis?: string;
+  enhanced?: boolean;
+  addedInfo?: string[];
+
+  // Phase 2: Data Query
+  resultCount?: number;
+  sampleRows?: any[];
+  columns?: string[];
+
+  // Phase 4: Self-Review
+  reviewPassed?: boolean;
+}
+
 interface DrilldownSystem {
   id: number;
   system_name: string;
@@ -501,7 +529,7 @@ const StrategicDashboard = () => {
     query: string;
     response: AIQueryResponse;
     timestamp: number;
-    progressTasks?: Array<any>; // Add progressTasks field for storing AI analysis progress
+    progressTasks?: ProgressTask[]; // Strongly typed progress tasks for Deep mode transparency
   }>>([]);
 
   // Query history with localStorage persistence (P0 #3: Fix history lost on refresh)
@@ -866,6 +894,10 @@ const StrategicDashboard = () => {
 
           // FIX Bug #1: Update the placeholder entry instead of adding new one
           // ALSO: Save progress tasks for this conversation
+          // FIX Deep Mode Bug: Deep copy progress tasks to preserve detailed info
+          const savedProgressTasks = JSON.parse(JSON.stringify(aiProgressTasks));
+          console.log('[SAVE] Saving conversation with', savedProgressTasks.length, 'progress tasks');
+
           setConversationHistory(prev => {
             const updated = [...prev];
             if (updated[pendingConversationIndex]) {
@@ -874,7 +906,7 @@ const StrategicDashboard = () => {
                 query: currentQuery,
                 response: data,
                 timestamp: Date.now(),
-                progressTasks: [...aiProgressTasks] // Save a copy of progress tasks
+                progressTasks: savedProgressTasks // Deep copy to preserve all details
               };
             } else {
               // Fallback: add new entry if placeholder not found (shouldn't happen)
@@ -882,11 +914,17 @@ const StrategicDashboard = () => {
                 query: currentQuery,
                 response: data,
                 timestamp: Date.now(),
-                progressTasks: [...aiProgressTasks]
+                progressTasks: savedProgressTasks
               });
             }
             return updated;
           });
+
+          // Clear global progress tasks to prevent contamination in next query
+          setTimeout(() => {
+            setAiProgressTasks([]);
+            console.log('[CLEAR] Global progress tasks cleared');
+          }, 100);
 
           console.log('[AI DEBUG] Setting aiQueryLoading to false');
           setAiQueryHistory(prev => [currentQuery, ...prev.filter(q => q !== currentQuery)].slice(0, 10));
@@ -2159,10 +2197,27 @@ const StrategicDashboard = () => {
                   {conversationHistory.map((conv, idx) => {
                     // Use local variable to avoid changing all references below
                     const aiQueryResponse = conv.response;
-                    // Get progress tasks for this conversation
-                    // Use saved tasks if available, otherwise use current global tasks if this is the last/loading conversation
-                    const conversationProgressTasks = (conv as any).progressTasks ||
-                      (idx === conversationHistory.length - 1 ? aiProgressTasks : []);
+
+                    // Get progress tasks for this conversation with defensive logic
+                    // FIX Deep Mode Bug: Prioritize saved tasks over global state
+                    const conversationProgressTasks = (() => {
+                      // If conversation has saved progress tasks, use them (completed conversations)
+                      if ((conv as any).progressTasks && (conv as any).progressTasks.length > 0) {
+                        console.log('[RENDER] Conv', idx, 'using saved', (conv as any).progressTasks.length, 'tasks');
+                        return (conv as any).progressTasks;
+                      }
+
+                      // If this is the current (last) conversation, use global progress (in-progress conversations)
+                      if (idx === conversationHistory.length - 1) {
+                        console.log('[RENDER] Conv', idx, 'using global', aiProgressTasks.length, 'tasks');
+                        return aiProgressTasks;
+                      }
+
+                      // Otherwise, no progress to show (old conversations without saved progress)
+                      console.log('[RENDER] Conv', idx, 'has no progress tasks');
+                      return [];
+                    })();
+
                     const isCurrentConversation = idx === conversationHistory.length - 1;
 
                     return (

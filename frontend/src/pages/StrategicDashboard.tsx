@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Card,
   Row,
@@ -472,6 +473,7 @@ interface DrilldownSystem {
 }
 
 const StrategicDashboard = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<StrategicStats | null>(null);
   const [investmentStats, setInvestmentStats] = useState<InvestmentStats | null>(null);
@@ -973,6 +975,43 @@ const StrategicDashboard = () => {
     }
 
     return text;
+  }, []);
+
+  // Utility: Add system links to response text
+  const addSystemLinks = useCallback((text: string, data?: { columns: string[], rows: any[] }): string => {
+    if (!text || !data?.rows || data.rows.length === 0) return text;
+
+    // Find system_name and id columns
+    const nameCol = data.columns.find(col =>
+      col === 'system_name' || col === 'tên hệ thống' || col === 'ten_he_thong'
+    );
+    const idCol = data.columns.find(col =>
+      col === 'id' || col === 'system_id'
+    );
+
+    if (!nameCol || !idCol) return text;
+
+    // Build a map of system_name -> system_id
+    const systemMap = new Map<string, number>();
+    data.rows.forEach(row => {
+      const name = row[nameCol];
+      const id = row[idCol];
+      if (name && id) {
+        systemMap.set(String(name).trim(), Number(id));
+      }
+    });
+
+    // Replace system names in text with markdown links
+    let result = text;
+    systemMap.forEach((id, name) => {
+      // Escape special regex characters in system name
+      const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Match the name but avoid replacing if it's already in a link
+      const regex = new RegExp(`(?<!\\[)\\b${escapedName}\\b(?!\\])`, 'g');
+      result = result.replace(regex, `[${name}](/systems/${id})`);
+    });
+
+    return result;
   }, []);
 
   // Utility: Generate smart conversation title (P0 #2)
@@ -2394,9 +2433,36 @@ const StrategicDashboard = () => {
                                       p: ({ children }) => (
                                         <p style={{ margin: '4px 0' }}>{children}</p>
                                       ),
+                                      a: ({ href, children }) => {
+                                        // Handle internal system links
+                                        if (href?.startsWith('/systems/')) {
+                                          return (
+                                            <a
+                                              href={href}
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                navigate(href);
+                                              }}
+                                              style={{
+                                                color: '#1890ff',
+                                                textDecoration: 'underline',
+                                                cursor: 'pointer',
+                                              }}
+                                            >
+                                              {children}
+                                            </a>
+                                          );
+                                        }
+                                        // External links open in new tab
+                                        return (
+                                          <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#1890ff', textDecoration: 'underline' }}>
+                                            {children}
+                                          </a>
+                                        );
+                                      },
                                     }}
                                   >
-                                    {sanitizeResponse(aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả')}
+                                    {sanitizeResponse(addSystemLinks(aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả', aiQueryResponse.data))}
                                   </ReactMarkdown>
                                 </div>
 
@@ -2606,8 +2672,8 @@ const StrategicDashboard = () => {
                                     </div>
                                   )}
 
-                                  {/* Multi-row data display */}
-                                  {(aiQueryResponse.data.rows.length > 1 || aiQueryResponse.data.columns.length > 1) && (
+                                  {/* Multi-row data display - HIDDEN per user request */}
+                                  {false && (aiQueryResponse.data.rows.length > 1 || aiQueryResponse.data.columns.length > 1) && (
                                     <>
                                       <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
                                         <LineChartOutlined style={{ marginRight: 6 }} />

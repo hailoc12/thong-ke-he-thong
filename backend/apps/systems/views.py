@@ -2155,9 +2155,10 @@ Xử lý: Dùng data_volume_gb (NUMERIC) để tính SUM, KHÔNG dùng data_volu
 Example 4 - Tìm hệ thống theo điều kiện:
 User: "Hệ thống nào dùng Java và có MFA?"
 SQL: SELECT system_name, framework FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id WHERE s.is_deleted = false AND s.programming_language = 'Java' AND ss.has_mfa = true
-Answer: "Danh sách hệ thống dùng Java và có MFA"
+Answer: "Danh sách các hệ thống dùng Java và có MFA. Bảng hiển thị Tên hệ thống và Framework."
 Chart: "table"
 Xử lý: JOIN nhiều bảng, WHERE với điều kiện cụ thể, chart_type="table" để hiển thị danh sách
+LƯU Ý: Trong answer, dùng "Tên hệ thống" và "Framework" (canonical names), KHÔNG viết "system_name" hay "framework" (database names)
 
 Example 5 - An toàn thông tin:
 User: "Có bao nhiêu hệ thống chưa có Firewall?"
@@ -2179,6 +2180,8 @@ QUAN TRỌNG:
 - Dùng field _gb (NUMERIC) cho tính toán, field TEXT chỉ để hiển thị
 - Placeholder: {{{{column_name}}}} hoặc [column_name]
 - Chart type: "bar" (thống kê nhóm), "pie" (phần trăm), "table" (danh sách), null (số đơn)
+- **KHI VIẾT CÂU TRẢ LỜI: Dùng tên tiếng Việt (canonical name) của field, KHÔNG dùng database field name**
+  VD: Viết "Tên hệ thống" thay vì "system_name", "Trạng thái" thay vì "status"
 
 Trả về JSON:
 {{
@@ -2624,6 +2627,8 @@ QUAN TRỌNG:
 - Deep mode cần SQL chi tiết hơn Quick mode
 - Dùng LEFT JOIN nếu có thể thiếu data trong bảng phụ
 - CASE WHEN để tính toán conditional aggregates
+- **KHI VIẾT CÂU TRẢ LỜI: Dùng tên tiếng Việt (canonical name) của field, KHÔNG dùng database field name**
+  VD: Viết "Tên hệ thống" thay vì "system_name", "Trạng thái" thay vì "status"
 
 Trả về JSON:
 {{
@@ -2841,6 +2846,8 @@ CHỈ trả về JSON."""
 2. INSIGHT: Thêm strategic_insight về ý nghĩa chiến lược của dữ liệu
 3. HÀNH ĐỘNG: Thêm recommended_action gợi ý bước tiếp theo
 4. KHÔNG liệt kê chi tiết trong main_answer - data chi tiết sẽ hiển thị riêng
+5. **CANONICAL NAMES: Dùng tên tiếng Việt (canonical name) của field, KHÔNG dùng database field name**
+   VD: Viết "Tên hệ thống" thay vì "system_name", "Trạng thái" thay vì "status"
 
 === CÂU HỎI ===
 {query}

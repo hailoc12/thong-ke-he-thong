@@ -91,10 +91,11 @@ const MainLayout = () => {
           label: 'Dashboard Chiến lược',
         }] : []),
         // Unit Dashboard menu - only for non-admin users
+        // Show "Dashboard Admin" for lanhdaobo, "Dashboard Đơn vị" for others
         ...(!isAdmin ? [{
           key: '/dashboard/unit',
           icon: <DashboardOutlined />,
-          label: 'Dashboard Đơn vị',
+          label: isLeader ? 'Dashboard Admin' : 'Dashboard Đơn vị',
         }] : []),
         {
           key: '/systems',

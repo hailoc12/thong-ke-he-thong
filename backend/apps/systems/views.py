@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.views import APIView
 from rest_framework.renderers import BaseRenderer
 from django_filters.rest_framework import DjangoFilterBackend
@@ -3839,7 +3839,7 @@ class AIResponseFeedbackViewSet(viewsets.ModelViewSet):
 
     queryset = AIResponseFeedback.objects.all()
     serializer_class = AIResponseFeedbackSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """Users can only see their own feedback"""
@@ -3847,7 +3847,7 @@ class AIResponseFeedbackViewSet(viewsets.ModelViewSet):
             return self.queryset
         return self.queryset.filter(user=self.request.user)
 
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAdminUser])
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
     def stats(self, request):
         """Get feedback statistics (admin only)"""
         from .models import AIResponseFeedback
@@ -3857,7 +3857,7 @@ class AIResponseFeedbackViewSet(viewsets.ModelViewSet):
         serializer = FeedbackStatsSerializer(stats)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAdminUser])
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
     def policies(self, request):
         """Get generated improvement policies (admin only)"""
         from .models import AIResponseFeedback

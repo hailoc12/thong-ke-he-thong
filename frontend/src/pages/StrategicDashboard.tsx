@@ -79,6 +79,8 @@ import {
   UndoOutlined,
   BulbOutlined as LightBulbOutlined,
   DatabaseOutlined,
+  LikeOutlined,
+  DislikeOutlined,
 } from '@ant-design/icons';
 import {
   PieChart,
@@ -109,6 +111,7 @@ import api, {
   getConversation,
   addConversationMessage,
   deleteConversation,
+  submitAIFeedback,
 } from '../config/api';
 import { shadows, borderRadius, spacing } from '../theme/tokens';
 import AIDataModal from '../components/AIDataModal';
@@ -559,6 +562,12 @@ const StrategicDashboard = () => {
   const [conversations, setConversations] = useState<AIConversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<AIConversation | null>(null);
   const [conversationSidebarVisible, setConversationSidebarVisible] = useState(false);
+
+  // Feedback state - Track per conversation index
+  const [feedbackRatings, setFeedbackRatings] = useState<Map<number, 'positive' | 'negative'>>(new Map());
+  const [feedbackTexts, setFeedbackTexts] = useState<Map<number, string>>(new Map());
+  const [showFeedbackForm, setShowFeedbackForm] = useState<Set<number>>(new Set());
+  const [submittingFeedback, setSubmittingFeedback] = useState<Set<number>>(new Set());
 
   // Conversation enhancements (P0 #1: Load full timeline, P1 #3: Search/filter)
   // Note: _conversationTimeline is loaded but not yet displayed (future feature)
@@ -1065,6 +1074,59 @@ const StrategicDashboard = () => {
 
     return text;
   }, []);
+
+  // AI Feedback Handler
+  const handleFeedbackSubmit = useCallback(async (
+    conversationIndex: number,
+    rating: 'positive' | 'negative',
+    feedbackText?: string
+  ) => {
+    const conv = conversationHistory[conversationIndex];
+    if (!conv) {
+      message.error('Không tìm thấy conversation');
+      return;
+    }
+
+    // Mark as submitting
+    setSubmittingFeedback(prev => new Set(prev).add(conversationIndex));
+
+    try {
+      await submitAIFeedback({
+        query: conv.query,
+        mode: (conv.response as any).mode || aiMode,
+        response_data: conv.response,
+        conversation_context: {
+          conversation_index: conversationIndex,
+          total_conversations: conversationHistory.length,
+          progress_tasks: conv.progressTasks || [],
+        },
+        rating,
+        feedback_text: feedbackText || undefined,
+      });
+
+      // Save rating locally
+      setFeedbackRatings(prev => new Map(prev).set(conversationIndex, rating));
+
+      // Hide feedback form after successful submit
+      setShowFeedbackForm(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(conversationIndex);
+        return newSet;
+      });
+
+      message.success(rating === 'positive' ? 'Cảm ơn đánh giá tích cực!' : 'Cảm ơn phản hồi! Chúng tôi sẽ cải thiện.');
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+      message.error('Không thể gửi đánh giá. Vui lòng thử lại.');
+    } finally {
+      // Remove from submitting set
+      setSubmittingFeedback(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(conversationIndex);
+        return newSet;
+      });
+    }
+  }, [conversationHistory, aiMode]);
 
   // Utility: Add system links to response text
   const addSystemLinks = useCallback((text: string, data?: { columns: string[], rows: any[] }): string => {
@@ -3014,6 +3076,135 @@ const StrategicDashboard = () => {
                                   )}
                                 </div>
                               )}
+
+                              {/* AI Response Feedback - Rating & Optional Text */}
+                              <div style={{
+                                marginTop: 16,
+                                marginBottom: 12,
+                                padding: '12px 16px',
+                                background: 'rgba(0, 0, 0, 0.02)',
+                                borderRadius: 8,
+                                border: '1px solid #f0f0f0',
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                                  <Text type="secondary" style={{ fontSize: 12 }}>
+                                    Câu trả lời này có hữu ích không?
+                                  </Text>
+                                  <Space size={8}>
+                                    {/* Thumbs Up */}
+                                    <Tooltip title="Hữu ích">
+                                      <Button
+                                        type={feedbackRatings.get(idx) === 'positive' ? 'primary' : 'default'}
+                                        size="small"
+                                        icon={<LikeOutlined />}
+                                        onClick={() => {
+                                          if (feedbackRatings.get(idx) !== 'positive') {
+                                            handleFeedbackSubmit(idx, 'positive');
+                                          }
+                                        }}
+                                        loading={submittingFeedback.has(idx)}
+                                        disabled={feedbackRatings.has(idx)}
+                                        style={{
+                                          borderRadius: 16,
+                                          ...(feedbackRatings.get(idx) === 'positive' ? {
+                                            background: '#52c41a',
+                                            borderColor: '#52c41a',
+                                          } : {})
+                                        }}
+                                      />
+                                    </Tooltip>
+
+                                    {/* Thumbs Down */}
+                                    <Tooltip title="Chưa hữu ích">
+                                      <Button
+                                        type={feedbackRatings.get(idx) === 'negative' ? 'primary' : 'default'}
+                                        size="small"
+                                        icon={<DislikeOutlined />}
+                                        onClick={() => {
+                                          if (feedbackRatings.get(idx) !== 'negative') {
+                                            // Show feedback form for negative rating
+                                            setShowFeedbackForm(prev => new Set(prev).add(idx));
+                                          }
+                                        }}
+                                        disabled={feedbackRatings.has(idx)}
+                                        style={{
+                                          borderRadius: 16,
+                                          ...(feedbackRatings.get(idx) === 'negative' ? {
+                                            background: '#ff4d4f',
+                                            borderColor: '#ff4d4f',
+                                          } : {})
+                                        }}
+                                      />
+                                    </Tooltip>
+                                  </Space>
+                                </div>
+
+                                {/* Collapsible Feedback Form for Negative Rating */}
+                                {showFeedbackForm.has(idx) && !feedbackRatings.has(idx) && (
+                                  <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    style={{ marginTop: 12 }}
+                                  >
+                                    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>
+                                      Vui lòng cho chúng tôi biết vấn đề gặp phải (tùy chọn):
+                                    </Text>
+                                    <Input.TextArea
+                                      placeholder="Ví dụ: Câu trả lời không chính xác, thiếu thông tin, SQL sai..."
+                                      rows={3}
+                                      maxLength={500}
+                                      showCount
+                                      value={feedbackTexts.get(idx) || ''}
+                                      onChange={(e) => {
+                                        setFeedbackTexts(prev => new Map(prev).set(idx, e.target.value));
+                                      }}
+                                      style={{ marginBottom: 8, fontSize: 13 }}
+                                    />
+                                    <Space>
+                                      <Button
+                                        type="primary"
+                                        size="small"
+                                        onClick={() => {
+                                          handleFeedbackSubmit(idx, 'negative', feedbackTexts.get(idx));
+                                        }}
+                                        loading={submittingFeedback.has(idx)}
+                                        style={{ borderRadius: 16 }}
+                                      >
+                                        Gửi phản hồi
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        onClick={() => {
+                                          setShowFeedbackForm(prev => {
+                                            const newSet = new Set(prev);
+                                            newSet.delete(idx);
+                                            return newSet;
+                                          });
+                                          setFeedbackTexts(prev => {
+                                            const newMap = new Map(prev);
+                                            newMap.delete(idx);
+                                            return newMap;
+                                          });
+                                        }}
+                                        style={{ borderRadius: 16 }}
+                                      >
+                                        Hủy
+                                      </Button>
+                                    </Space>
+                                  </motion.div>
+                                )}
+
+                                {/* Thank you message after rating */}
+                                {feedbackRatings.has(idx) && (
+                                  <Text type="secondary" style={{ fontSize: 12, fontStyle: 'italic', display: 'block', marginTop: 8 }}>
+                                    {feedbackRatings.get(idx) === 'positive'
+                                      ? '✓ Cảm ơn đánh giá của bạn!'
+                                      : '✓ Cảm ơn phản hồi! Chúng tôi sẽ cải thiện câu trả lời.'}
+                                  </Text>
+                                )}
+                              </div>
 
                               {/* Follow-up Suggestions - P1 #11: Contextual, P1 #12: No auto-submit, P2 #13: Visual feedback */}
                               <div>

@@ -3824,3 +3824,64 @@ class AIConversationViewSet(viewsets.ModelViewSet):
         messages = conversation.messages.all()
         serializer = AIMessageSerializer(messages, many=True)
         return Response(serializer.data)
+
+
+class AIResponseFeedbackViewSet(viewsets.ModelViewSet):
+    """
+    API for AI Response Feedback
+    - POST /api/systems/ai-feedback/ : Submit feedback
+    - GET /api/systems/ai-feedback/ : Get user's feedback history
+    - GET /api/systems/ai-feedback/stats/ : Get feedback statistics (admin only)
+    - GET /api/systems/ai-feedback/policies/ : Get generated improvement policies (admin only)
+    """
+    from .models import AIResponseFeedback
+    from .serializers_feedback import AIResponseFeedbackSerializer, FeedbackStatsSerializer, ImprovementPolicySerializer
+
+    queryset = AIResponseFeedback.objects.all()
+    serializer_class = AIResponseFeedbackSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Users can only see their own feedback"""
+        if self.request.user.is_staff:
+            return self.queryset
+        return self.queryset.filter(user=self.request.user)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAdminUser])
+    def stats(self, request):
+        """Get feedback statistics (admin only)"""
+        from .models import AIResponseFeedback
+        from .serializers_feedback import FeedbackStatsSerializer
+        
+        stats = AIResponseFeedback.get_feedback_stats()
+        serializer = FeedbackStatsSerializer(stats)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAdminUser])
+    def policies(self, request):
+        """Get generated improvement policies (admin only)"""
+        from .models import AIResponseFeedback
+        from .serializers_feedback import ImprovementPolicySerializer
+        
+        policies = AIResponseFeedback.generate_improvement_policies()
+        serializer = ImprovementPolicySerializer(policies, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def active_policies(self, request):
+        """
+        Get currently active policies that are being injected into system prompts
+        Available to all authenticated users so they know what policies are in effect
+        """
+        from .models import AIResponseFeedback
+        
+        policies = AIResponseFeedback.generate_improvement_policies()
+        
+        # Filter to only high and medium priority policies
+        active = [p for p in policies if p['priority'] in ['high', 'medium']]
+        
+        return Response({
+            'active_policies': active,
+            'total_policies': len(policies),
+            'active_count': len(active),
+        })

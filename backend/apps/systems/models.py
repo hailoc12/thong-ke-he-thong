@@ -1846,3 +1846,92 @@ class AIRequestLog(models.Model):
             return 0
         total = sum(req.get('estimated_cost_usd', 0) for req in self.llm_requests)
         return total
+
+class AIResponseFeedback(models.Model):
+    """Store user feedback on AI responses to generate improvement policies"""
+
+    RATING_CHOICES = [
+        ('positive', 'Thumbs Up - Helpful'),
+        ('negative', 'Thumbs Down - Not Helpful'),
+    ]
+
+    # Core fields
+    user = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.CASCADE,
+        related_name='ai_feedbacks',
+        verbose_name='User'
+    )
+
+    # Query context
+    query = models.TextField(
+        verbose_name='User Question',
+        help_text='The original question asked by user'
+    )
+
+    mode = models.CharField(
+        max_length=20,
+        choices=[('quick', 'Quick Mode'), ('deep', 'Deep Mode')],
+        verbose_name='AI Mode',
+        default='quick'
+    )
+
+    # Response data (store full response for analysis)
+    response_data = models.JSONField(
+        verbose_name='AI Response Data',
+        help_text='Full response from AI including thinking, sql, answer, etc.'
+    )
+
+    # Conversation context (for follow-up questions)
+    conversation_context = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='Conversation Context',
+        help_text='Previous Q&A context if this was a follow-up question'
+    )
+
+    # User feedback
+    rating = models.CharField(
+        max_length=20,
+        choices=RATING_CHOICES,
+        verbose_name='Rating'
+    )
+
+    feedback_text = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Detailed Feedback',
+        help_text='Optional: User can provide detailed feedback explaining the rating'
+    )
+
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Created At')
+
+    # Policy generation tracking
+    analyzed = models.BooleanField(
+        default=False,
+        verbose_name='Analyzed for Policy',
+        help_text='Whether this feedback has been analyzed to generate policies'
+    )
+
+    generated_policies = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name='Generated Policies',
+        help_text='Policy rules extracted from this feedback'
+    )
+
+    class Meta:
+        db_table = 'systems_ai_response_feedback'
+        verbose_name = 'AI Response Feedback'
+        verbose_name_plural = 'AI Response Feedbacks'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['rating']),
+            models.Index(fields=['analyzed']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.rating} - {self.query[:50]}"

@@ -157,3 +157,61 @@ export const updateConversation = async (id: number, title: string): Promise<AIC
   const response = await api.patch(`/ai-conversations/${id}/`, { title });
   return response.data;
 };
+
+
+// ========================================
+// AI Response Feedback API
+// ========================================
+
+export interface AIResponseFeedback {
+  id?: number;
+  query: string;
+  mode: 'quick' | 'deep';
+  response_data: any;
+  conversation_context?: any;
+  rating: 'positive' | 'negative';
+  feedback_text?: string;
+  created_at?: string;
+}
+
+export interface ImprovementPolicy {
+  category: string;
+  rule: string;
+  priority: 'high' | 'medium' | 'low';
+  evidence_count: number;
+  examples: string[];
+}
+
+export interface FeedbackStats {
+  total_count: number;
+  positive_count: number;
+  negative_count: number;
+  positive_percentage: number;
+  negative_percentage: number;
+  recent_feedbacks: AIResponseFeedback[];
+}
+
+// Submit AI response feedback
+export const submitAIFeedback = async (data: {
+  query: string;
+  mode: 'quick' | 'deep';
+  response_data: any;
+  conversation_context?: any;
+  rating: 'positive' | 'negative';
+  feedback_text?: string;
+}): Promise<AIResponseFeedback> => {
+  const response = await api.post('/systems/ai-feedback/', data);
+  return response.data;
+};
+
+// Get active improvement policies
+export const getActivePolicies = async (): Promise<ImprovementPolicy[]> => {
+  const response = await api.get('/systems/ai-feedback/active_policies/');
+  return response.data;
+};
+
+// Get feedback statistics
+export const getFeedbackStats = async (): Promise<FeedbackStats> => {
+  const response = await api.get('/systems/ai-feedback/stats/');
+  return response.data;
+};

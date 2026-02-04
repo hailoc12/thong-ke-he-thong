@@ -12,6 +12,7 @@ from .models import (
     SystemSecurity,
     Attachment,
     AIRequestLog,
+    AIResponseFeedback,
 )
 
 
@@ -351,3 +352,47 @@ class AIRequestLogAdmin(admin.ModelAdmin):
     def has_view_permission(self, request, obj=None):
         """Only superusers can view AI logs"""
         return request.user and request.user.is_superuser
+
+
+@admin.register(AIResponseFeedback)
+class AIResponseFeedbackAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'rating', 'mode', 'query_preview', 'created_at', 'analyzed']
+    list_filter = ['rating', 'mode', 'analyzed', 'created_at']
+    search_fields = ['query', 'feedback_text', 'user__username']
+    readonly_fields = ['created_at']
+    list_per_page = 50
+    
+    def query_preview(self, obj):
+        return obj.query[:80] + '...' if len(obj.query) > 80 else obj.query
+    query_preview.short_description = 'Query'
+    
+    fieldsets = (
+        ('User & Query', {
+            'fields': ('user', 'query', 'mode')
+        }),
+        ('Response', {
+            'fields': ('response_data', 'conversation_context')
+        }),
+        ('Feedback', {
+            'fields': ('rating', 'feedback_text')
+        }),
+        ('Policy Generation', {
+            'fields': ('analyzed', 'generated_policies')
+        }),
+        ('Metadata', {
+            'fields': ('created_at',)
+        }),
+    )
+    
+    actions = ['mark_as_analyzed', 'generate_policies_for_selected']
+    
+    def mark_as_analyzed(self, request, queryset):
+        queryset.update(analyzed=True)
+        self.message_user(request, f"{queryset.count()} feedback(s) marked as analyzed")
+    mark_as_analyzed.short_description = "Mark selected as analyzed"
+    
+    def generate_policies_for_selected(self, request, queryset):
+        """Generate improvement policies from selected negative feedbacks"""
+        policies = AIResponseFeedback.generate_improvement_policies()
+        self.message_user(request, f"Generated {len(policies)} improvement policies")
+    generate_policies_for_selected.short_description = "Generate improvement policies"

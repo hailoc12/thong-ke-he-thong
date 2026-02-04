@@ -1223,15 +1223,6 @@ const StrategicDashboard = () => {
     return recommendations.sort((a, b) => a.priority - b.priority);
   }, [stats]);
 
-  // Split recommendations into quick alerts (critical/warning) and AI insights (optimization/insight)
-  const quickAlerts = useMemo(() => {
-    return aiRecommendations.filter(r => r.type === 'critical' || r.type === 'warning');
-  }, [aiRecommendations]);
-
-  const aiInsights = useMemo(() => {
-    return aiRecommendations.filter(r => r.type === 'optimization' || r.type === 'insight');
-  }, [aiRecommendations]);
-
   // Drill-down function
   const handleDrilldown = useCallback(async (filterType: string, filterValue: string, title: string) => {
     setDrilldownLoading(true);

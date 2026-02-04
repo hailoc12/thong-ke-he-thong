@@ -78,6 +78,7 @@ import {
   FormOutlined,
   UndoOutlined,
   BulbOutlined as LightBulbOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons';
 import {
   PieChart,
@@ -2357,34 +2358,39 @@ const StrategicDashboard = () => {
                                             </Tag>
                                           )}
 
-                                          {/* Sample Rows for Debugging */}
+                                          {/* Query Results - Detailed View */}
                                           {task.sampleRows && task.sampleRows.length > 0 && (
                                             <div style={{
                                               marginTop: 8,
-                                              padding: 8,
-                                              background: '#f5f5f5',
-                                              borderRadius: 4,
+                                              padding: 10,
+                                              background: 'linear-gradient(135deg, #f9f0ff 0%, #fff5f5 100%)',
+                                              borderRadius: 6,
+                                              border: '1px solid #d3adf7',
                                               fontSize: 11,
-                                              maxHeight: 200,
+                                              maxHeight: 400,
                                               overflowY: 'auto'
                                             }}>
-                                              <div style={{ fontWeight: 600, marginBottom: 4, color: '#722ed1' }}>
-                                                📊 Mẫu dữ liệu ({task.sampleRows.length} dòng đầu):
+                                              <div style={{ fontWeight: 600, marginBottom: 6, color: '#722ed1', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <DatabaseOutlined style={{ fontSize: 14 }} />
+                                                <span>Kết quả truy vấn: Hiển thị {task.sampleRows.length} / {task.resultCount || task.sampleRows.length} dòng</span>
                                               </div>
                                               <table style={{
                                                 width: '100%',
                                                 borderCollapse: 'collapse',
-                                                fontSize: 10,
-                                                background: 'white'
+                                                fontSize: 11,
+                                                background: 'white',
+                                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                                               }}>
                                                 <thead>
-                                                  <tr style={{ background: '#fafafa' }}>
+                                                  <tr style={{ background: 'linear-gradient(135deg, #f0f0f0 0%, #fafafa 100%)' }}>
                                                     {task.columns?.map((col, idx) => (
                                                       <th key={idx} style={{
                                                         border: '1px solid #d9d9d9',
-                                                        padding: '4px 6px',
+                                                        padding: '6px 8px',
                                                         textAlign: 'left',
-                                                        fontWeight: 600
+                                                        fontWeight: 600,
+                                                        color: '#722ed1',
+                                                        fontSize: 10
                                                       }}>
                                                         {col}
                                                       </th>
@@ -2393,16 +2399,21 @@ const StrategicDashboard = () => {
                                                 </thead>
                                                 <tbody>
                                                   {task.sampleRows.map((row, rowIdx) => (
-                                                    <tr key={rowIdx}>
+                                                    <tr key={rowIdx} style={{
+                                                      background: rowIdx % 2 === 0 ? 'white' : '#fafafa'
+                                                    }}>
                                                       {task.columns?.map((col, colIdx) => (
                                                         <td key={colIdx} style={{
-                                                          border: '1px solid #d9d9d9',
-                                                          padding: '4px 6px',
-                                                          maxWidth: 150,
+                                                          border: '1px solid #e8e8e8',
+                                                          padding: '5px 8px',
+                                                          maxWidth: 200,
                                                           overflow: 'hidden',
                                                           textOverflow: 'ellipsis',
-                                                          whiteSpace: 'nowrap'
-                                                        }}>
+                                                          whiteSpace: 'nowrap',
+                                                          fontSize: 10
+                                                        }}
+                                                        title={row[col] !== null && row[col] !== undefined ? String(row[col]) : '—'}
+                                                        >
                                                           {row[col] !== null && row[col] !== undefined ? String(row[col]) : '—'}
                                                         </td>
                                                       ))}

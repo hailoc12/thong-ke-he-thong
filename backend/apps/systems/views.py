@@ -2315,8 +2315,8 @@ CHỈ trả về JSON."""
                     logger.error(f"SQL review error: {e}")
                     yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.5, 'error': str(e)})}\n\n"
             else:
-                # Include sample rows for debugging
-                sample_rows = query_result.get('rows', [])[:5]  # First 5 rows
+                # Include sample rows for debugging (more rows for detailed analysis)
+                sample_rows = query_result.get('rows', [])[:15]  # First 15 rows for detailed view
                 yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': query_result.get('total_rows', 0), 'sample_rows': sample_rows, 'columns': query_result.get('columns', [])})}\n\n"
 
             # Replace template variables in answer with actual data
@@ -2848,8 +2848,8 @@ CHỈ trả về JSON."""
                             if retry_result and retry_result.get('total_rows', 0) > 0:
                                 query_result = retry_result
                                 sql_query = fixed_sql
-                                # Include sample rows for debugging
-                                sample_rows = query_result.get('rows', [])[:5]
+                                # Include sample rows for debugging (15 rows for detail)
+                                sample_rows = query_result.get('rows', [])[:15]
                                 yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.6, 'total_rows': query_result.get('total_rows', 0), 'sample_rows': sample_rows, 'columns': query_result.get('columns', []), 'success': True})}\n\n"
                             else:
                                 yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.6, 'total_rows': 0, 'success': False})}\n\n"
@@ -2860,8 +2860,8 @@ CHỈ trả về JSON."""
                     logger.error(f"Deep SQL review error: {e}")
                     yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.5, 'error': str(e)})}\n\n"
             else:
-                # Include sample rows for debugging
-                sample_rows = query_result.get('rows', [])[:5]  # First 5 rows
+                # Include sample rows for debugging (more rows for detailed analysis)
+                sample_rows = query_result.get('rows', [])[:15]  # First 15 rows for detailed view
                 yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': query_result.get('total_rows', 0), 'sample_rows': sample_rows, 'columns': query_result.get('columns', [])})}\n\n"
 
             # Phase 3: Generate Response

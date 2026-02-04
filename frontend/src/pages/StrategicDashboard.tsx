@@ -3074,7 +3074,7 @@ const StrategicDashboard = () => {
                       {showTemplates && (
                         <Space wrap size={[6, 6]}>
                           {[
-                            'Có bao nhiêu hệ thống đang hoạt động?',
+                            'Bộ KH&CN hiện có bao nhiêu hệ thống CNTT?',
                             'Top 5 hệ thống tốn kém nhất?',
                             'Đơn vị nào có nhiều hệ thống nhất?',
                             'Hệ thống nào hết hạn bảo mật?',

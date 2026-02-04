@@ -3003,9 +3003,9 @@ const StrategicDashboard = () => {
                                               response: {
                                                 ...updated[idx].response,
                                                 response: {
-                                                  ...updated[idx].response.response,
+                                                  ...updated[idx].response.response!,
                                                   follow_up_suggestions: newSuggestions
-                                                }
+                                                } as AIResponseContent
                                               }
                                             };
                                             return updated;

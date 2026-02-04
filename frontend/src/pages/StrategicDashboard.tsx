@@ -1070,7 +1070,8 @@ const StrategicDashboard = () => {
     currentQuery: string,
     responseData?: AIQueryResponse
   ): string[] => {
-    const suggestions: string[] = [];
+    // Build a pool of contextual suggestions based on keywords
+    const pool: string[] = [];
 
     // Extract keywords from query
     const keywords = currentQuery.toLowerCase();
@@ -1078,38 +1079,98 @@ const StrategicDashboard = () => {
     const hasSystem = keywords.includes('hệ thống');
     const hasCost = keywords.includes('chi phí') || keywords.includes('ngân sách') || keywords.includes('đầu tư');
     const hasRisk = keywords.includes('rủi ro') || keywords.includes('bảo mật');
+    const hasData = keywords.includes('dữ liệu') || keywords.includes('database') || keywords.includes('csdl');
+    const hasTech = keywords.includes('công nghệ') || keywords.includes('ngôn ngữ') || keywords.includes('framework');
+    const hasStatus = keywords.includes('trạng thái') || keywords.includes('hoạt động') || keywords.includes('vận hành');
 
-    // Generate contextual suggestions
-    if (hasSystem && responseData?.data?.rows && responseData.data.rows.length > 5) {
-      suggestions.push('Top 5 kết quả quan trọng nhất?');
-      suggestions.push('Lọc theo điều kiện cụ thể?');
-    }
-
-    if (hasOrg) {
-      suggestions.push('So sánh giữa các đơn vị?');
-      suggestions.push('Chi tiết từng đơn vị cụ thể?');
-    }
-
-    if (hasCost) {
-      suggestions.push('Phân tích chi phí theo thời gian?');
-      suggestions.push('Đơn vị có chi phí cao nhất?');
-    }
-
-    if (hasRisk) {
-      suggestions.push('Các biện pháp giảm thiểu rủi ro?');
-      suggestions.push('Đánh giá mức độ nghiêm trọng?');
-    }
-
-    // Add generic suggestions if needed
-    if (suggestions.length < 3) {
-      suggestions.push(
-        'Phân tích chuyên sâu hơn?',
-        'So sánh với giai đoạn trước?',
-        'Đề xuất giải pháp cụ thể?'
+    // Add contextual suggestions based on keywords
+    if (hasSystem) {
+      pool.push(
+        'Top 5 kết quả quan trọng nhất?',
+        'Lọc theo điều kiện cụ thể?',
+        'Hệ thống nào cần nâng cấp gấp?',
+        'Phân bố hệ thống theo đơn vị?',
+        'Xu hướng phát triển hệ thống?',
+        'Hệ thống có rủi ro cao?'
       );
     }
 
-    return suggestions.slice(0, 4);
+    if (hasOrg) {
+      pool.push(
+        'So sánh giữa các đơn vị?',
+        'Chi tiết từng đơn vị cụ thể?',
+        'Đơn vị nào đầu tư nhiều nhất?',
+        'Xếp hạng đơn vị theo hiệu suất?',
+        'Phân tích chênh lệch giữa các đơn vị?'
+      );
+    }
+
+    if (hasCost) {
+      pool.push(
+        'Phân tích chi phí theo thời gian?',
+        'Đơn vị có chi phí cao nhất?',
+        'Tối ưu hóa ngân sách như thế nào?',
+        'Dự báo chi phí năm sau?',
+        'Chi phí trung bình trên hệ thống?'
+      );
+    }
+
+    if (hasRisk) {
+      pool.push(
+        'Các biện pháp giảm thiểu rủi ro?',
+        'Đánh giá mức độ nghiêm trọng?',
+        'Lộ trình khắc phục rủi ro?',
+        'Hệ thống có bảo mật yếu?'
+      );
+    }
+
+    if (hasData) {
+      pool.push(
+        'Dung lượng dữ liệu trung bình?',
+        'Hệ thống nào dữ liệu lớn nhất?',
+        'Xu hướng tăng trưởng dữ liệu?',
+        'Chiến lược backup dữ liệu?'
+      );
+    }
+
+    if (hasTech) {
+      pool.push(
+        'Công nghệ nào phổ biến nhất?',
+        'Đề xuất stack công nghệ mới?',
+        'Hệ thống dùng công nghệ lỗi thời?',
+        'So sánh hiệu suất các công nghệ?'
+      );
+    }
+
+    if (hasStatus) {
+      pool.push(
+        'Hệ thống nào ngừng hoạt động?',
+        'Tỷ lệ uptime trung bình?',
+        'Nguyên nhân downtime phổ biến?',
+        'Cải thiện độ ổn định thế nào?'
+      );
+    }
+
+    // Generic suggestions (always available)
+    const genericPool = [
+      'Phân tích chuyên sâu hơn?',
+      'So sánh với giai đoạn trước?',
+      'Đề xuất giải pháp cụ thể?',
+      'Thống kê tổng quan?',
+      'Xu hướng trong tương lai?',
+      'Các điểm cần cải thiện?',
+      'Best practices áp dụng được?',
+      'Lessons learned từ dữ liệu?',
+      'Yếu tố rủi ro tiềm ẩn?',
+      'Cơ hội tối ưu hóa?'
+    ];
+
+    // Combine pools
+    const allSuggestions = pool.length > 0 ? [...pool, ...genericPool] : genericPool;
+
+    // Shuffle and pick 4 random suggestions
+    const shuffled = allSuggestions.sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 4);
   }, []);
 
   // Utility: Filter conversations (P1 #3)

@@ -844,21 +844,24 @@ const StrategicDashboard = () => {
           setAiQueryResponse(data);
 
           // FIX Bug #1: Update the placeholder entry instead of adding new one
+          // ALSO: Save progress tasks for this conversation
           setConversationHistory(prev => {
             const updated = [...prev];
             if (updated[pendingConversationIndex]) {
-              // Update the placeholder entry with actual response
+              // Update the placeholder entry with actual response and save progress tasks
               updated[pendingConversationIndex] = {
                 query: currentQuery,
                 response: data,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                progressTasks: [...aiProgressTasks] // Save a copy of progress tasks
               };
             } else {
               // Fallback: add new entry if placeholder not found (shouldn't happen)
               updated.push({
                 query: currentQuery,
                 response: data,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                progressTasks: [...aiProgressTasks]
               });
             }
             return updated;
@@ -2135,6 +2138,11 @@ const StrategicDashboard = () => {
                   {conversationHistory.map((conv, idx) => {
                     // Use local variable to avoid changing all references below
                     const aiQueryResponse = conv.response;
+                    // Get progress tasks for this conversation
+                    // Use saved tasks if available, otherwise use current global tasks if this is the last/loading conversation
+                    const conversationProgressTasks = (conv as any).progressTasks ||
+                      (idx === conversationHistory.length - 1 ? aiProgressTasks : []);
+                    const isCurrentConversation = idx === conversationHistory.length - 1;
 
                     return (
                       <div key={idx} style={{ marginBottom: 20 }}>
@@ -2174,9 +2182,9 @@ const StrategicDashboard = () => {
                         </div>
                       </div>
 
-                      {/* Enhanced Progress Section - BEFORE AI Response - Show immediately when loading */}
-                      {/* Only show progress for the last (current) conversation that's loading */}
-                      {(idx === conversationHistory.length - 1 && (aiQueryLoading || aiProgressTasks.length > 0)) && (
+                      {/* Enhanced Progress Section - BEFORE AI Response - Show for each conversation */}
+                      {/* Show progress if: (1) current conversation is loading, OR (2) this conversation has saved progress tasks */}
+                      {((isCurrentConversation && aiQueryLoading) || conversationProgressTasks.length > 0) && (
                         <div style={{ marginBottom: 16 }}>
                           <Collapse
                             defaultActiveKey={['progress']}
@@ -2187,7 +2195,7 @@ const StrategicDashboard = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <RobotOutlined style={{ color: '#722ed1', fontSize: 16 }} />
                                   <Text strong style={{ fontSize: 13, color: '#722ed1' }}>
-                                    AI PHÂN TÍCH ({aiProgressTasks.filter(t => t.status === 'completed').length}/{aiProgressTasks.length})
+                                    AI PHÂN TÍCH ({conversationProgressTasks.filter(t => t.status === 'completed').length}/{conversationProgressTasks.length})
                                   </Text>
                                 </div>
                               ),
@@ -2215,7 +2223,7 @@ const StrategicDashboard = () => {
                                     </div>
                                     <div style={{ flex: 1 }}>
                                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                        {aiProgressTasks.map((task) => {
+                                        {conversationProgressTasks.map((task) => {
                                           const isExpanded = expandedTaskIds.has(task.id);
                                           const hasDebugInfo = task.sqlPreview || task.dataAnalysis || task.resultCount !== undefined || task.reviewPassed !== undefined;
                                           return (
@@ -2416,7 +2424,7 @@ const StrategicDashboard = () => {
                                           );
                                         })}
 
-                                        {aiProgressTasks.length === 0 && (
+                                        {conversationProgressTasks.length === 0 && isCurrentConversation && aiQueryLoading && (
                                           <div style={{
                                             display: 'flex',
                                             alignItems: 'center',

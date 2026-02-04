@@ -441,6 +441,7 @@ interface AIQueryResponse {
   query: string;
   thinking?: AIThinking;
   response?: AIResponseContent;
+  sql?: string; // Add sql field for context passing
   // Legacy format support
   ai_response?: {
     sql?: string;
@@ -459,6 +460,8 @@ interface AIQueryResponse {
     total_rows: number;
   };
   error?: string;
+  mode?: 'quick' | 'deep'; // Add mode field
+  loading?: boolean; // Add loading field for placeholder
 }
 
 interface DrilldownSystem {
@@ -498,6 +501,7 @@ const StrategicDashboard = () => {
     query: string;
     response: AIQueryResponse;
     timestamp: number;
+    progressTasks?: Array<any>; // Add progressTasks field for storing AI analysis progress
   }>>([]);
 
   // Query history with localStorage persistence (P0 #3: Fix history lost on refresh)
@@ -1088,7 +1092,7 @@ const StrategicDashboard = () => {
   // Utility: Generate contextual follow-up suggestions (P1 #11)
   const generateContextualSuggestions = useCallback((
     currentQuery: string,
-    responseData?: AIQueryResponse
+    _responseData?: AIQueryResponse // Prefix with _ to indicate intentionally unused
   ): string[] => {
     // Build a pool of contextual suggestions based on keywords
     const pool: string[] = [];
@@ -2212,7 +2216,7 @@ const StrategicDashboard = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <RobotOutlined style={{ color: '#722ed1', fontSize: 16 }} />
                                   <Text strong style={{ fontSize: 13, color: '#722ed1' }}>
-                                    AI PHÂN TÍCH ({conversationProgressTasks.filter(t => t.status === 'completed').length}/{conversationProgressTasks.length})
+                                    AI PHÂN TÍCH ({conversationProgressTasks.filter((t: any) => t.status === 'completed').length}/{conversationProgressTasks.length})
                                   </Text>
                                   {/* Show mode indicator */}
                                   {conv.response && (conv.response as any).mode && (
@@ -2246,7 +2250,7 @@ const StrategicDashboard = () => {
                                     </div>
                                     <div style={{ flex: 1 }}>
                                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                        {conversationProgressTasks.map((task) => {
+                                        {conversationProgressTasks.map((task: any) => {
                                           const isExpanded = expandedTaskIds.has(task.id);
                                           const hasDebugInfo = task.sqlPreview || task.dataAnalysis || task.resultCount !== undefined || task.reviewPassed !== undefined;
                                           return (
@@ -2357,7 +2361,7 @@ const StrategicDashboard = () => {
                                                   </Text>
                                                   {task.addedInfo && task.addedInfo.length > 0 && (
                                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-                                                      {task.addedInfo.map((info, idx) => (
+                                                      {task.addedInfo.map((info: any, idx: number) => (
                                                         <Tag key={idx} color="cyan" style={{ fontSize: 10, margin: 0 }}>
                                                           {info}
                                                         </Tag>
@@ -2405,7 +2409,7 @@ const StrategicDashboard = () => {
                                               }}>
                                                 <thead>
                                                   <tr style={{ background: 'linear-gradient(135deg, #f0f0f0 0%, #fafafa 100%)' }}>
-                                                    {task.columns?.map((col, idx) => (
+                                                    {task.columns?.map((col: any, idx: number) => (
                                                       <th key={idx} style={{
                                                         border: '1px solid #d9d9d9',
                                                         padding: '6px 8px',
@@ -2420,11 +2424,11 @@ const StrategicDashboard = () => {
                                                   </tr>
                                                 </thead>
                                                 <tbody>
-                                                  {task.sampleRows.map((row, rowIdx) => (
+                                                  {task.sampleRows.map((row: any, rowIdx: number) => (
                                                     <tr key={rowIdx} style={{
                                                       background: rowIdx % 2 === 0 ? 'white' : '#fafafa'
                                                     }}>
-                                                      {task.columns?.map((col, colIdx) => (
+                                                      {task.columns?.map((col: any, colIdx: number) => (
                                                         <td key={colIdx} style={{
                                                           border: '1px solid #e8e8e8',
                                                           padding: '5px 8px',

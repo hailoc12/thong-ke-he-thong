@@ -2462,7 +2462,7 @@ const StrategicDashboard = () => {
                                       },
                                     }}
                                   >
-                                    {sanitizeResponse(addSystemLinks(aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả', aiQueryResponse.data))}
+                                    {sanitizeResponse(addSystemLinks(aiQueryResponse.response?.main_answer || aiQueryResponse.ai_response?.explanation || 'Không có kết quả', aiQueryResponse.data || undefined))}
                                   </ReactMarkdown>
                                 </div>
 
@@ -2673,7 +2673,7 @@ const StrategicDashboard = () => {
                                   )}
 
                                   {/* Multi-row data display - HIDDEN per user request */}
-                                  {false && (aiQueryResponse.data.rows.length > 1 || aiQueryResponse.data.columns.length > 1) && (
+                                  {false && aiQueryResponse.data && (aiQueryResponse.data.rows.length > 1 || aiQueryResponse.data.columns.length > 1) && (
                                     <>
                                       <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
                                         <LineChartOutlined style={{ marginRight: 6 }} />

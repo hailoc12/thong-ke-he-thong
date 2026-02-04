@@ -2061,19 +2061,29 @@ Trả về JSON với SQL đã sửa."""
 
             # Schema context (abbreviated for quick mode)
             schema_context = """Database Schema:
-- organizations: id, name, organization_type, code
-- systems: id, system_name, status, criticality_level, org_id, hosting_platform, has_encryption, is_deleted,
-  storage_capacity (text), data_volume (text), data_volume_gb (decimal),
+- organizations: id, name, code, description, contact_person
+- systems: id, system_name, system_code, status, criticality_level, org_id, hosting_platform, has_encryption, is_deleted,
+  storage_capacity (text), data_volume (text), data_volume_gb (numeric),
   programming_language, framework, database_name,
   users_total, users_mau, users_dau, total_accounts,
-  api_provided_count, api_consumed_count
-- system_architecture: system_id, architecture_type, scalability_level
-- system_assessment: system_id, performance_rating, recommendation
-- system_security: system_id, auth_methods, encryption_type, has_security_audit
+  api_provided_count, api_consumed_count, authentication_method, compliance_standards_list,
+  business_owner, technical_owner, go_live_date, server_configuration, backup_plan, disaster_recovery_plan
+- system_architecture: system_id, architecture_type, backend_tech, frontend_tech, database_type, mobile_app,
+  hosting_type, cloud_provider, api_style, has_cicd, cicd_tool, is_multi_tenant, containerization
+- system_assessment: system_id, performance_rating, recommendation, uptime_percent, technical_debt_level,
+  needs_replacement, modernization_priority
+- system_data_info: system_id, data_classification, storage_size_gb, growth_rate_percent,
+  has_personal_data, has_sensitive_data, record_count
+- system_integration: system_id, has_api_gateway, integration_count, api_provided_count, api_consumed_count,
+  has_integration, uses_standard_api, api_gateway_name
+- system_security: system_id, auth_method, has_mfa, has_rbac, has_data_encryption_at_rest,
+  has_data_encryption_in_transit, has_firewall, has_waf, has_ids_ips, has_antivirus,
+  last_security_audit_date, has_vulnerability_scanning
 
 Lưu ý:
-- Dùng is_deleted = false khi query bảng systems
-- data_volume_gb là NUMERIC - dùng để tính SUM/AVG"""
+- LUÔN dùng WHERE is_deleted = false khi query bảng systems
+- data_volume_gb là NUMERIC - dùng để tính SUM/AVG
+- storage_capacity, data_volume là TEXT - chỉ để hiển thị"""
 
             # Phase 1: Combined SQL Generation + Answer
             yield f"event: phase_start\ndata: {json.dumps({'phase': 1, 'name': 'Phân tích nhanh', 'description': 'Đang tạo câu trả lời...', 'mode': 'quick'})}\n\n"
@@ -2316,25 +2326,32 @@ CHỈ trả về JSON."""
 
             # Schema context (abbreviated for SSE)
             schema_context = """Database Schema:
-- organizations: id, name, organization_type, code
-- systems: id, system_name, status, criticality_level, org_id, hosting_platform, has_encryption, is_deleted,
-  storage_capacity (text), data_volume (text), data_volume_gb (decimal),
+- organizations: id, name, code, description, contact_person
+- systems: id, system_name, system_code, status, criticality_level, org_id, hosting_platform, has_encryption, is_deleted,
+  storage_capacity (text), data_volume (text), data_volume_gb (numeric),
   server_configuration, backup_plan, disaster_recovery_plan,
   programming_language, framework, database_name,
   users_total, users_mau, users_dau, total_accounts,
   api_provided_count, api_consumed_count,
   authentication_method, compliance_standards_list,
   business_owner, technical_owner, go_live_date
-- system_architecture: system_id, architecture_type, scalability_level
-- system_assessment: system_id, performance_rating, recommendation
-- system_data_info: system_id, data_classification
-- system_integration: system_id, has_api_gateway, integration_level
-- system_security: system_id, auth_methods, encryption_type, has_security_audit
+- system_architecture: system_id, architecture_type, backend_tech, frontend_tech, database_type, mobile_app,
+  hosting_type, cloud_provider, api_style, has_cicd, cicd_tool, is_multi_tenant, containerization
+- system_assessment: system_id, performance_rating, recommendation, uptime_percent, technical_debt_level,
+  needs_replacement, modernization_priority
+- system_data_info: system_id, data_classification, storage_size_gb, growth_rate_percent,
+  has_personal_data, has_sensitive_data, record_count
+- system_integration: system_id, has_api_gateway, integration_count, api_provided_count, api_consumed_count,
+  has_integration, uses_standard_api, api_gateway_name
+- system_security: system_id, auth_method, has_mfa, has_rbac, has_data_encryption_at_rest,
+  has_data_encryption_in_transit, has_firewall, has_waf, has_ids_ips, has_antivirus,
+  last_security_audit_date, has_vulnerability_scanning
 
 Lưu ý:
-- Dùng is_deleted = false khi query bảng systems
-- storage_capacity, data_volume là TEXT (100GB, 1TB) - dùng để hiển thị
-- data_volume_gb là NUMERIC (decimal) - dùng để tính SUM/AVG"""
+- QUAN TRỌNG: LUÔN dùng WHERE is_deleted = false khi query bảng systems
+- CHÍNH XÁC: CHỈ dùng columns có trong schema. KHÔNG dùng scalability_level, integration_level, organization_type
+- storage_capacity, data_volume là TEXT (100GB, 1TB) - chỉ để hiển thị, không dùng cho SUM/AVG
+- data_volume_gb, storage_size_gb là NUMERIC - dùng để tính SUM/AVG"""
 
             phase1_prompt = f"""Bạn là AI assistant chuyên phân tích dữ liệu hệ thống CNTT cho Bộ KH&CN.
 

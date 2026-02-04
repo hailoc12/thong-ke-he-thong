@@ -2175,6 +2175,16 @@ Chart: null
 Xử lý: QUAN TRỌNG - "đang hoạt động" = status = 'operating', KHÔNG phải 'active' hay 'running'
 LƯU Ý: Các giá trị status: 'operating' (Đang vận hành), 'pilot' (Thí điểm), 'testing' (Đang thử nghiệm), 'stopped' (Dừng), 'replacing' (Sắp thay thế)
 
+Example 7 - Tìm hệ thống theo tên (FULL-TEXT SEARCH):
+User: "Thông tin về hệ thống Portal"
+SQL: SELECT system_name, status, programming_language, organization FROM systems WHERE is_deleted = false AND system_name ILIKE '%Portal%'
+Answer: "Danh sách các hệ thống có tên chứa 'Portal'. Bảng hiển thị Tên hệ thống, Trạng thái, Ngôn ngữ lập trình, Đơn vị."
+Chart: "table"
+Xử lý: QUAN TRỌNG - Dùng ILIKE '%keyword%' để tìm kiếm gần đúng, KHÔNG dùng = 'exact name'
+Lý do: User thường không nhớ chính xác tên đầy đủ của hệ thống, ILIKE cho kết quả linh hoạt hơn
+VÍ DỤ SAI: system_name = 'Portal' (sẽ không tìm thấy 'Portal VNNIC' hay 'Portal Cục SHTT')
+VÍ DỤ ĐÚNG: system_name ILIKE '%Portal%' (tìm được tất cả hệ thống có chứa 'Portal')
+
 ---
 
 Câu hỏi: {query}
@@ -2190,6 +2200,9 @@ QUAN TRỌNG:
 - Chart type: "bar" (thống kê nhóm), "pie" (phần trăm), "table" (danh sách), null (số đơn)
 - **KHI VIẾT CÂU TRẢ LỜI: Dùng tên tiếng Việt (canonical name) của field, KHÔNG dùng database field name**
   VD: Viết "Tên hệ thống" thay vì "system_name", "Trạng thái" thay vì "status"
+- **KHI LỌC THEO TÊN HỆ THỐNG: Dùng ILIKE với % (full-text search), KHÔNG dùng = (exact match)**
+  VD: system_name ILIKE '%Portal%' thay vì system_name = 'Portal VNNIC'
+  Lý do: Exact search rất khó vì user không nhớ chính xác tên đầy đủ
 
 Trả về JSON:
 {{
@@ -2621,6 +2634,15 @@ SQL: SELECT COUNT(*) as total_systems, COUNT(CASE WHEN ss.has_mfa = false OR ss.
 Chart: null
 Xử lý: Multiple CASE WHEN để đếm nhiều điều kiện, LEFT JOIN để bao gồm cả hệ thống chưa có security info
 
+Example 4 - Phân tích hệ thống theo tên (FULL-TEXT SEARCH):
+User: "Phân tích chi tiết các hệ thống Portal"
+Thinking: {{"plan": "Tìm tất cả hệ thống có chứa 'Portal' trong tên, JOIN các bảng để lấy thông tin chi tiết về công nghệ, ATTT, đánh giá", "tasks": ["Query systems với ILIKE", "JOIN security info", "JOIN assessment", "Aggregate data"]}}
+SQL: SELECT s.system_name, s.status, s.programming_language, s.organization, ss.has_mfa, ss.has_firewall, sa.technical_debt_level, sa.modernization_priority FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id LEFT JOIN system_assessment sa ON s.id = sa.system_id WHERE s.is_deleted = false AND s.system_name ILIKE '%Portal%' ORDER BY s.system_name
+Chart: "table"
+Xử lý: QUAN TRỌNG - Dùng ILIKE '%keyword%' để full-text search, KHÔNG dùng = 'exact name'. Multiple LEFT JOIN để lấy thông tin từ nhiều bảng
+Lý do: ILIKE linh hoạt hơn exact match, tìm được nhiều hệ thống liên quan
+VÍ DỤ: Câu hỏi "Portal" sẽ tìm được: "Portal VNNIC", "Portal Cục SHTT", "Portal thông tin", etc.
+
 ---
 
 Câu hỏi: {query}
@@ -2637,6 +2659,9 @@ QUAN TRỌNG:
 - CASE WHEN để tính toán conditional aggregates
 - **KHI VIẾT CÂU TRẢ LỜI: Dùng tên tiếng Việt (canonical name) của field, KHÔNG dùng database field name**
   VD: Viết "Tên hệ thống" thay vì "system_name", "Trạng thái" thay vì "status"
+- **KHI LỌC THEO TÊN HỆ THỐNG: Dùng ILIKE với % (full-text search), KHÔNG dùng = (exact match)**
+  VD: system_name ILIKE '%Portal%' thay vì system_name = 'Portal VNNIC'
+  Lý do: Exact search rất khó vì user không nhớ chính xác tên đầy đủ
 
 Trả về JSON:
 {{

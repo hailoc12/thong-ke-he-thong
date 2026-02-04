@@ -2845,7 +2845,13 @@ const StrategicDashboard = () => {
                                       icon={<ReloadOutlined />}
                                       onClick={() => {
                                         // Regenerate contextual suggestions and update state
-                                        const newSuggestions = generateContextualSuggestions(aiQuery, aiQueryResponse);
+                                        if (!aiQueryResponse) {
+                                          message.info('Vui lòng hỏi một câu hỏi trước');
+                                          return;
+                                        }
+
+                                        const newSuggestions = generateContextualSuggestions(aiQuery || aiQueryResponse.query || '', aiQueryResponse);
+
                                         if (aiQueryResponse.response) {
                                           setAiQueryResponse({
                                             ...aiQueryResponse,
@@ -2854,6 +2860,9 @@ const StrategicDashboard = () => {
                                               follow_up_suggestions: newSuggestions
                                             }
                                           });
+                                          message.success('Đã làm mới gợi ý');
+                                        } else {
+                                          message.warning('Không thể làm mới gợi ý lúc này');
                                         }
                                         setSelectedSuggestion(null);
                                       }}
@@ -2892,16 +2901,16 @@ const StrategicDashboard = () => {
                                         onMouseEnter={() => setHoveredSuggestion(suggestion)}
                                         onMouseLeave={() => setHoveredSuggestion(null)}
                                         onClick={() => {
-                                          // P1 #12: Just fill input, don't auto-submit
+                                          // Auto-submit follow-up suggestion
                                           setAiQuery(suggestion);
                                           setSelectedSuggestion(suggestion);
+                                          handleAIQuery(suggestion);
 
-                                          // Focus input for immediate edit
+                                          // Focus input for next question
                                           setTimeout(() => {
                                             const inputElement = document.querySelector('.ai-query-input') as HTMLInputElement;
                                             if (inputElement) {
                                               inputElement.focus();
-                                              inputElement.setSelectionRange(inputElement.value.length, inputElement.value.length);
                                             }
                                           }, 50);
 

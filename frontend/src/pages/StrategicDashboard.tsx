@@ -739,9 +739,8 @@ const StrategicDashboard = () => {
               // SQL Generation phase
               updated.thinking = data.thinking;
               updated.sql = data.sql;
-              updated.sqlPreview = data.sql ?
-                (data.sql.length > 80 ? data.sql.substring(0, 80) + '...' : data.sql)
-                : undefined;
+              // Show full SQL without trimming
+              updated.sqlPreview = data.sql;
             } else if (data.phase === 1.5) {
               // Smart Data Details phase
               updated.dataAnalysis = data.analysis;
@@ -2215,9 +2214,9 @@ const StrategicDashboard = () => {
                                               fontSize: 11,
                                               fontFamily: 'Monaco, Consolas, monospace',
                                               color: '#d73a49',
-                                              overflow: 'hidden',
-                                              textOverflow: 'ellipsis',
-                                              whiteSpace: 'nowrap'
+                                              overflowX: 'auto',
+                                              whiteSpace: 'pre-wrap',
+                                              wordBreak: 'break-all'
                                             }}>
                                               {task.sqlPreview}
                                             </div>

@@ -2167,6 +2167,14 @@ Answer: "Có {{{{count}}}} hệ thống chưa có Firewall."
 Chart: null
 Xử lý: JOIN với system_security, check has_firewall = false OR IS NULL
 
+Example 6 - Lọc theo trạng thái hoạt động:
+User: "Có bao nhiêu hệ thống đang hoạt động?"
+SQL: SELECT COUNT(*) as count FROM systems WHERE is_deleted = false AND status = 'operating'
+Answer: "Có {{{{count}}}} hệ thống đang hoạt động."
+Chart: null
+Xử lý: QUAN TRỌNG - "đang hoạt động" = status = 'operating', KHÔNG phải 'active' hay 'running'
+LƯU Ý: Các giá trị status: 'operating' (Đang vận hành), 'pilot' (Thí điểm), 'testing' (Đang thử nghiệm), 'stopped' (Dừng), 'replacing' (Sắp thay thế)
+
 ---
 
 Câu hỏi: {query}

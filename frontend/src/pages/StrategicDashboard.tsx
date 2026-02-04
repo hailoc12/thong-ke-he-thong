@@ -396,6 +396,8 @@ interface AIThinkingTask {
   sql?: string;
   sqlPreview?: string;
   resultCount?: number;
+  sampleRows?: any[]; // Sample data rows for debugging
+  columns?: string[]; // Column names
   reviewPassed?: boolean;
 
   // Phase 1.5: Smart Data Details
@@ -744,6 +746,8 @@ const StrategicDashboard = () => {
             } else if (data.phase === 2) {
               // Data Query phase
               updated.resultCount = data.total_rows;
+              updated.sampleRows = data.sample_rows; // For debugging
+              updated.columns = data.columns;
             } else if (data.phase === 4) {
               // Self-Review phase
               updated.reviewPassed = data.review_passed;
@@ -2215,6 +2219,62 @@ const StrategicDashboard = () => {
                                             <Tag color="blue" style={{ fontSize: 11, width: 'fit-content' }}>
                                               Tìm thấy {task.resultCount} dòng
                                             </Tag>
+                                          )}
+
+                                          {/* Sample Rows for Debugging */}
+                                          {task.sampleRows && task.sampleRows.length > 0 && (
+                                            <div style={{
+                                              marginTop: 8,
+                                              padding: 8,
+                                              background: '#f5f5f5',
+                                              borderRadius: 4,
+                                              fontSize: 11,
+                                              maxHeight: 200,
+                                              overflowY: 'auto'
+                                            }}>
+                                              <div style={{ fontWeight: 600, marginBottom: 4, color: '#722ed1' }}>
+                                                📊 Mẫu dữ liệu ({task.sampleRows.length} dòng đầu):
+                                              </div>
+                                              <table style={{
+                                                width: '100%',
+                                                borderCollapse: 'collapse',
+                                                fontSize: 10,
+                                                background: 'white'
+                                              }}>
+                                                <thead>
+                                                  <tr style={{ background: '#fafafa' }}>
+                                                    {task.columns?.map((col, idx) => (
+                                                      <th key={idx} style={{
+                                                        border: '1px solid #d9d9d9',
+                                                        padding: '4px 6px',
+                                                        textAlign: 'left',
+                                                        fontWeight: 600
+                                                      }}>
+                                                        {col}
+                                                      </th>
+                                                    ))}
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  {task.sampleRows.map((row, rowIdx) => (
+                                                    <tr key={rowIdx}>
+                                                      {task.columns?.map((col, colIdx) => (
+                                                        <td key={colIdx} style={{
+                                                          border: '1px solid #d9d9d9',
+                                                          padding: '4px 6px',
+                                                          maxWidth: 150,
+                                                          overflow: 'hidden',
+                                                          textOverflow: 'ellipsis',
+                                                          whiteSpace: 'nowrap'
+                                                        }}>
+                                                          {row[col] !== null && row[col] !== undefined ? String(row[col]) : '—'}
+                                                        </td>
+                                                      ))}
+                                                    </tr>
+                                                  ))}
+                                                </tbody>
+                                              </table>
+                                            </div>
                                           )}
 
                                                   {task.reviewPassed !== undefined && (

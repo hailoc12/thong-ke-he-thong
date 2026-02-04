@@ -2059,31 +2059,68 @@ Trả về JSON với SQL đã sửa."""
                 except Exception as e:
                     return None, str(e)
 
-            # Schema context (abbreviated for quick mode)
-            schema_context = """Database Schema:
-- organizations: id, name, code, description, contact_person
-- systems: id, system_name, system_code, status, criticality_level, org_id, hosting_platform, has_encryption, is_deleted,
-  storage_capacity (text), data_volume (text), data_volume_gb (numeric),
-  programming_language, framework, database_name,
-  users_total, users_mau, users_dau, total_accounts,
-  api_provided_count, api_consumed_count, authentication_method, compliance_standards_list,
-  business_owner, technical_owner, go_live_date, server_configuration, backup_plan, disaster_recovery_plan
-- system_architecture: system_id, architecture_type, backend_tech, frontend_tech, database_type, mobile_app,
-  hosting_type, cloud_provider, api_style, has_cicd, cicd_tool, is_multi_tenant, containerization
-- system_assessment: system_id, performance_rating, recommendation, uptime_percent, technical_debt_level,
-  needs_replacement, modernization_priority
-- system_data_info: system_id, data_classification, storage_size_gb, growth_rate_percent,
-  has_personal_data, has_sensitive_data, record_count
-- system_integration: system_id, has_api_gateway, integration_count, api_provided_count, api_consumed_count,
-  has_integration, uses_standard_api, api_gateway_name
-- system_security: system_id, auth_method, has_mfa, has_rbac, has_data_encryption_at_rest,
-  has_data_encryption_in_transit, has_firewall, has_waf, has_ids_ips, has_antivirus,
-  last_security_audit_date, has_vulnerability_scanning
+            # Schema context (abbreviated for quick mode) - WITH VIETNAMESE LABELS
+            schema_context = """Database Schema (với tên tiếng Việt):
 
-Lưu ý:
-- LUÔN dùng WHERE is_deleted = false khi query bảng systems
-- data_volume_gb là NUMERIC - dùng để tính SUM/AVG
-- storage_capacity, data_volume là TEXT - chỉ để hiển thị"""
+- organizations:
+  id, name (Tên tổ chức), code (Mã), description (Mô tả), contact_person (Người liên hệ)
+
+- systems (Bảng hệ thống chính):
+  id, system_name (Tên hệ thống), system_code (Mã hệ thống), status (Trạng thái),
+  criticality_level (Mức độ quan trọng), org_id (Tổ chức),
+  hosting_platform (Nền tảng triển khai), has_encryption (Mã hóa dữ liệu), is_deleted,
+  storage_capacity (Dung lượng lưu trữ - TEXT), data_volume (Khối lượng dữ liệu - TEXT),
+  data_volume_gb (Khối lượng dữ liệu GB - NUMERIC),
+  programming_language (Ngôn ngữ lập trình), framework (Framework/Thư viện),
+  database_name (Cơ sở dữ liệu),
+  users_total (Tổng người dùng), users_mau (MAU), users_dau (DAU),
+  total_accounts (Tổng số tài khoản),
+  api_provided_count (Số API cung cấp), api_consumed_count (Số API tiêu thụ),
+  authentication_method (Phương thức xác thực), compliance_standards_list (Chuẩn tuân thủ),
+  business_owner (Người chịu trách nhiệm), technical_owner (Người quản trị kỹ thuật),
+  go_live_date (Thời gian đưa vào vận hành),
+  server_configuration (Cấu hình máy chủ), backup_plan (Phương án sao lưu),
+  disaster_recovery_plan (Kế hoạch khôi phục thảm họa)
+
+- system_architecture (Kiến trúc hệ thống):
+  system_id, architecture_type (Loại kiến trúc), backend_tech (Backend Technology),
+  frontend_tech (Frontend Technology), database_type (Loại CSDL), mobile_app (Ứng dụng di động),
+  hosting_type (Loại hosting), cloud_provider (Nhà cung cấp cloud),
+  api_style (API Style), has_cicd (CI/CD Pipeline), cicd_tool (CI/CD Tool),
+  is_multi_tenant (Multi-tenant), containerization (Container hóa)
+
+- system_assessment (Đánh giá hệ thống):
+  system_id, performance_rating (Đánh giá hiệu năng), recommendation (Đề xuất của đơn vị),
+  uptime_percent (Thời gian hoạt động %), technical_debt_level (Mức nợ kỹ thuật),
+  needs_replacement (Cần thay thế), modernization_priority (Ưu tiên hiện đại hóa)
+
+- system_data_info (Thông tin dữ liệu):
+  system_id, data_classification (Phân loại dữ liệu),
+  storage_size_gb (Dung lượng CSDL hiện tại GB - NUMERIC),
+  growth_rate_percent (Tốc độ tăng trưởng dữ liệu %),
+  has_personal_data (Có dữ liệu cá nhân), has_sensitive_data (Có dữ liệu nhạy cảm),
+  record_count (Số bản ghi)
+
+- system_integration (Tích hợp hệ thống):
+  system_id, has_api_gateway (Có API Gateway), integration_count (Số tích hợp),
+  api_provided_count (Số API cung cấp), api_consumed_count (Số API tiêu thụ),
+  has_integration (Có tích hợp), uses_standard_api (Dùng API chuẩn),
+  api_gateway_name (Tên API Gateway)
+
+- system_security (An toàn thông tin):
+  system_id, auth_method (Phương thức xác thực), has_mfa (Có MFA), has_rbac (Có RBAC),
+  has_data_encryption_at_rest (Mã hóa dữ liệu lưu trữ),
+  has_data_encryption_in_transit (Mã hóa dữ liệu truyền tải),
+  has_firewall (Có Firewall), has_waf (Có WAF), has_ids_ips (Có IDS/IPS),
+  has_antivirus (Có Antivirus),
+  last_security_audit_date (Ngày audit ATTT gần nhất),
+  has_vulnerability_scanning (Có quét lỗ hổng)
+
+Lưu ý quan trọng:
+- LUÔN LUÔN dùng WHERE is_deleted = false khi query bảng systems
+- data_volume_gb, storage_size_gb là NUMERIC - dùng để tính SUM/AVG
+- storage_capacity, data_volume là TEXT - chỉ để hiển thị, KHÔNG dùng cho phép tính
+- Khi user hỏi bằng tiếng Việt, map sang đúng field name tiếng Anh trong database"""
 
             # Phase 1: Combined SQL Generation + Answer
             yield f"event: phase_start\ndata: {json.dumps({'phase': 1, 'name': 'Phân tích nhanh', 'description': 'Đang tạo câu trả lời...', 'mode': 'quick'})}\n\n"
@@ -2092,23 +2129,61 @@ Lưu ý:
 
 {schema_context}
 
+VÍ DỤ CÁCH XỬ LÝ:
+
+Example 1 - Đếm số lượng:
+User: "Có bao nhiêu hệ thống?"
+SQL: SELECT COUNT(*) as count FROM systems WHERE is_deleted = false
+Answer: "Tổng số hệ thống là {{{{count}}}}."
+Chart: null
+Xử lý: Dùng COUNT(*), LUÔN có WHERE is_deleted = false, placeholder {{{{count}}}} sẽ được replace bằng số thực tế
+
+Example 2 - Thống kê theo nhóm:
+User: "Có bao nhiêu hệ thống dùng từng ngôn ngữ lập trình?"
+SQL: SELECT programming_language, COUNT(*) as count FROM systems WHERE is_deleted = false AND programming_language IS NOT NULL GROUP BY programming_language ORDER BY count DESC
+Answer: "Thống kê hệ thống theo ngôn ngữ lập trình"
+Chart: "bar"
+Xử lý: GROUP BY để thống kê, ORDER BY count DESC, chart_type="bar" để hiển thị biểu đồ
+
+Example 3 - Tổng/trung bình:
+User: "Tổng dung lượng dữ liệu của các hệ thống?"
+SQL: SELECT SUM(data_volume_gb) as total_gb, COUNT(*) as count FROM systems WHERE is_deleted = false AND data_volume_gb IS NOT NULL
+Answer: "Tổng dung lượng dữ liệu là {{{{total_gb}}}} GB từ {{{{count}}}} hệ thống."
+Chart: null
+Xử lý: Dùng data_volume_gb (NUMERIC) để tính SUM, KHÔNG dùng data_volume (TEXT)
+
+Example 4 - Tìm hệ thống theo điều kiện:
+User: "Hệ thống nào dùng Java và có MFA?"
+SQL: SELECT system_name, framework FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id WHERE s.is_deleted = false AND s.programming_language = 'Java' AND ss.has_mfa = true
+Answer: "Danh sách hệ thống dùng Java và có MFA"
+Chart: "table"
+Xử lý: JOIN nhiều bảng, WHERE với điều kiện cụ thể, chart_type="table" để hiển thị danh sách
+
+Example 5 - An toàn thông tin:
+User: "Có bao nhiêu hệ thống chưa có Firewall?"
+SQL: SELECT COUNT(*) as count FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id WHERE s.is_deleted = false AND (ss.has_firewall = false OR ss.has_firewall IS NULL)
+Answer: "Có {{{{count}}}} hệ thống chưa có Firewall."
+Chart: null
+Xử lý: JOIN với system_security, check has_firewall = false OR IS NULL
+
+---
+
 Câu hỏi: {query}
 
 NHIỆM VỤ:
-1. Tạo SQL query để lấy dữ liệu
-2. Viết câu trả lời NGẮN GỌN (1-2 câu) sử dụng kết quả truy vấn
+1. Tạo SQL query để lấy dữ liệu (học theo examples)
+2. Viết câu trả lời NGẮN GỌN (1-2 câu) sử dụng placeholder
 
-QUAN TRỌNG - Về câu trả lời:
-- PHẢI sử dụng placeholder {{{{column_name}}}} hoặc [column_name] cho các giá trị từ SQL
-- KHÔNG sử dụng "X", "<variable>", hoặc text placeholder khác
-- VÍ DỤ TỐT: "answer": "Có {{{{count}}}} hệ thống đang vận hành"
-- VÍ DỤ TỐT: "answer": "Tổng số hệ thống là [total_systems]"
-- VÍ DỤ SAI: "answer": "Có X hệ thống" hoặc "Có <count> hệ thống"
+QUAN TRỌNG:
+- LUÔN có WHERE is_deleted = false khi query bảng systems
+- Dùng field _gb (NUMERIC) cho tính toán, field TEXT chỉ để hiển thị
+- Placeholder: {{{{column_name}}}} hoặc [column_name]
+- Chart type: "bar" (thống kê nhóm), "pie" (phần trăm), "table" (danh sách), null (số đơn)
 
 Trả về JSON:
 {{
     "sql": "SELECT query here",
-    "answer": "Câu trả lời với {{{{column_name}}}} placeholder (VD: 'Có {{{{count}}}} hệ thống đang sử dụng Java')",
+    "answer": "Câu trả lời với {{{{column_name}}}} placeholder",
     "chart_type": "bar|pie|table|null"
 }}
 
@@ -2125,6 +2200,9 @@ CHỈ trả về JSON."""
                 sql_query = phase1_data.get('sql')
                 answer = phase1_data.get('answer')
                 chart_type = phase1_data.get('chart_type')
+
+                # Emit phase 1 complete with details (like Deep mode)
+                yield f"event: phase_complete\ndata: {json.dumps({'phase': 1, 'sql': sql_query, 'answer_template': answer, 'chart_type': chart_type})}\n\n"
 
             except Exception as e:
                 logger.error(f"Quick mode phase 1 error: {e}")
@@ -2324,52 +2402,119 @@ CHỈ trả về JSON."""
             # Phase 1: SQL Generation
             yield f"event: phase_start\ndata: {json.dumps({'phase': 1, 'name': 'Phân tích yêu cầu', 'description': 'Đang phân tích câu hỏi và tạo truy vấn SQL...'})}\n\n"
 
-            # Schema context (abbreviated for SSE)
-            schema_context = """Database Schema:
-- organizations: id, name, code, description, contact_person
-- systems: id, system_name, system_code, status, criticality_level, org_id, hosting_platform, has_encryption, is_deleted,
-  storage_capacity (text), data_volume (text), data_volume_gb (numeric),
-  server_configuration, backup_plan, disaster_recovery_plan,
-  programming_language, framework, database_name,
-  users_total, users_mau, users_dau, total_accounts,
-  api_provided_count, api_consumed_count,
-  authentication_method, compliance_standards_list,
-  business_owner, technical_owner, go_live_date
-- system_architecture: system_id, architecture_type, backend_tech, frontend_tech, database_type, mobile_app,
-  hosting_type, cloud_provider, api_style, has_cicd, cicd_tool, is_multi_tenant, containerization
-- system_assessment: system_id, performance_rating, recommendation, uptime_percent, technical_debt_level,
-  needs_replacement, modernization_priority
-- system_data_info: system_id, data_classification, storage_size_gb, growth_rate_percent,
-  has_personal_data, has_sensitive_data, record_count
-- system_integration: system_id, has_api_gateway, integration_count, api_provided_count, api_consumed_count,
-  has_integration, uses_standard_api, api_gateway_name
-- system_security: system_id, auth_method, has_mfa, has_rbac, has_data_encryption_at_rest,
-  has_data_encryption_in_transit, has_firewall, has_waf, has_ids_ips, has_antivirus,
-  last_security_audit_date, has_vulnerability_scanning
+            # Schema context (abbreviated for SSE) - WITH VIETNAMESE LABELS
+            schema_context = """Database Schema (với tên tiếng Việt):
 
-Lưu ý:
-- QUAN TRỌNG: LUÔN dùng WHERE is_deleted = false khi query bảng systems
+- organizations:
+  id, name (Tên tổ chức), code (Mã), description (Mô tả), contact_person (Người liên hệ)
+
+- systems (Bảng hệ thống chính):
+  id, system_name (Tên hệ thống), system_code (Mã hệ thống), status (Trạng thái),
+  criticality_level (Mức độ quan trọng), org_id (Tổ chức),
+  hosting_platform (Nền tảng triển khai), has_encryption (Mã hóa dữ liệu), is_deleted,
+  storage_capacity (Dung lượng lưu trữ - TEXT), data_volume (Khối lượng dữ liệu - TEXT),
+  data_volume_gb (Khối lượng dữ liệu GB - NUMERIC),
+  programming_language (Ngôn ngữ lập trình), framework (Framework/Thư viện),
+  database_name (Cơ sở dữ liệu),
+  users_total (Tổng người dùng), users_mau (MAU), users_dau (DAU),
+  total_accounts (Tổng số tài khoản),
+  api_provided_count (Số API cung cấp), api_consumed_count (Số API tiêu thụ),
+  authentication_method (Phương thức xác thực), compliance_standards_list (Chuẩn tuân thủ),
+  business_owner (Người chịu trách nhiệm), technical_owner (Người quản trị kỹ thuật),
+  go_live_date (Thời gian đưa vào vận hành),
+  server_configuration (Cấu hình máy chủ), backup_plan (Phương án sao lưu),
+  disaster_recovery_plan (Kế hoạch khôi phục thảm họa)
+
+- system_architecture (Kiến trúc hệ thống):
+  system_id, architecture_type (Loại kiến trúc), backend_tech (Backend Technology),
+  frontend_tech (Frontend Technology), database_type (Loại CSDL), mobile_app (Ứng dụng di động),
+  hosting_type (Loại hosting), cloud_provider (Nhà cung cấp cloud),
+  api_style (API Style), has_cicd (CI/CD Pipeline), cicd_tool (CI/CD Tool),
+  is_multi_tenant (Multi-tenant), containerization (Container hóa)
+
+- system_assessment (Đánh giá hệ thống):
+  system_id, performance_rating (Đánh giá hiệu năng), recommendation (Đề xuất của đơn vị),
+  uptime_percent (Thời gian hoạt động %), technical_debt_level (Mức nợ kỹ thuật),
+  needs_replacement (Cần thay thế), modernization_priority (Ưu tiên hiện đại hóa)
+
+- system_data_info (Thông tin dữ liệu):
+  system_id, data_classification (Phân loại dữ liệu),
+  storage_size_gb (Dung lượng CSDL hiện tại GB - NUMERIC),
+  growth_rate_percent (Tốc độ tăng trưởng dữ liệu %),
+  has_personal_data (Có dữ liệu cá nhân), has_sensitive_data (Có dữ liệu nhạy cảm),
+  record_count (Số bản ghi)
+
+- system_integration (Tích hợp hệ thống):
+  system_id, has_api_gateway (Có API Gateway), integration_count (Số tích hợp),
+  api_provided_count (Số API cung cấp), api_consumed_count (Số API tiêu thụ),
+  has_integration (Có tích hợp), uses_standard_api (Dùng API chuẩn),
+  api_gateway_name (Tên API Gateway)
+
+- system_security (An toàn thông tin):
+  system_id, auth_method (Phương thức xác thực), has_mfa (Có MFA), has_rbac (Có RBAC),
+  has_data_encryption_at_rest (Mã hóa dữ liệu lưu trữ),
+  has_data_encryption_in_transit (Mã hóa dữ liệu truyền tải),
+  has_firewall (Có Firewall), has_waf (Có WAF), has_ids_ips (Có IDS/IPS),
+  has_antivirus (Có Antivirus),
+  last_security_audit_date (Ngày audit ATTT gần nhất),
+  has_vulnerability_scanning (Có quét lỗ hổng)
+
+Lưu ý quan trọng:
+- QUAN TRỌNG: LUÔN LUÔN dùng WHERE is_deleted = false khi query bảng systems
 - CHÍNH XÁC: CHỈ dùng columns có trong schema. KHÔNG dùng scalability_level, integration_level, organization_type
-- storage_capacity, data_volume là TEXT (100GB, 1TB) - chỉ để hiển thị, không dùng cho SUM/AVG
-- data_volume_gb, storage_size_gb là NUMERIC - dùng để tính SUM/AVG"""
+- storage_capacity, data_volume là TEXT (100GB, 1TB) - chỉ để hiển thị, KHÔNG dùng cho SUM/AVG
+- data_volume_gb, storage_size_gb là NUMERIC - dùng để tính SUM/AVG
+- Khi user hỏi bằng tiếng Việt, map sang đúng field name tiếng Anh trong database"""
 
             phase1_prompt = f"""Bạn là AI assistant chuyên phân tích dữ liệu hệ thống CNTT cho Bộ KH&CN.
 
 QUAN TRỌNG - NGỮ CẢNH:
 Người dùng đang HỎI VỀ DỮ LIỆU được khai báo trong database, KHÔNG phải hỏi về database engine/infrastructure.
 
-Ví dụ:
-- "Tổng dung lượng CSDL?" → Hỏi về SUM(data_volume_gb) của các hệ thống (dùng _gb field cho tính toán)
-- "Có bao nhiêu hệ thống?" → Hỏi về COUNT(*) trong bảng systems
-- "Dung lượng trung bình?" → Hỏi về AVG(data_volume_gb)
-- KHÔNG phải hỏi về: PostgreSQL database size, table count, database performance metrics
-
 {schema_context}
 
-Phân tích câu hỏi và tạo SQL query. Trả về JSON:
+VÍ DỤ CÁCH XỬ LÝ:
+
+Example 1 - Phân tích tình trạng hệ thống:
+User: "Phân tích tình trạng hệ thống hiện tại"
+Thinking: {{"plan": "Lấy thống kê tổng quan về số lượng, trạng thái, công nghệ, an toàn thông tin", "tasks": ["Đếm tổng số hệ thống", "Thống kê theo trạng thái", "Phân tích công nghệ", "Kiểm tra ATTT"]}}
+SQL: SELECT s.status, COUNT(*) as count, COUNT(CASE WHEN ss.has_mfa = true THEN 1 END) as has_mfa_count, COUNT(CASE WHEN ss.has_firewall = true THEN 1 END) as has_firewall_count FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id WHERE s.is_deleted = false GROUP BY s.status
+Chart: "bar"
+Xử lý: Deep mode cần SQL phức tạp hơn với JOIN nhiều bảng, GROUP BY, CASE WHEN để phân tích sâu
+
+Example 2 - Hệ thống cần nâng cấp:
+User: "Hệ thống nào cần nâng cấp?"
+Thinking: {{"plan": "Tìm hệ thống có modernization_priority cao, technical_debt_level cao, needs_replacement = true", "tasks": ["Query bảng assessment", "JOIN với systems", "Filter theo điều kiện"]}}
+SQL: SELECT s.system_name, sa.technical_debt_level, sa.modernization_priority, sa.recommendation FROM systems s JOIN system_assessment sa ON s.id = sa.system_id WHERE s.is_deleted = false AND (sa.needs_replacement = true OR sa.modernization_priority IN ('high', 'critical') OR sa.technical_debt_level IN ('high', 'critical')) ORDER BY sa.modernization_priority DESC, sa.technical_debt_level DESC
+Chart: "table"
+Xử lý: JOIN system_assessment, multiple conditions trong WHERE, ORDER BY priority
+
+Example 3 - Đánh giá rủi ro ATTT:
+User: "Đánh giá rủi ro bảo mật?"
+Thinking: {{"plan": "Phân tích các hệ thống thiếu biện pháp ATTT: không có MFA, Firewall, WAF, mã hóa", "tasks": ["Query system_security", "Đếm hệ thống thiếu từng biện pháp", "Tính phần trăm"]}}
+SQL: SELECT COUNT(*) as total_systems, COUNT(CASE WHEN ss.has_mfa = false OR ss.has_mfa IS NULL THEN 1 END) as no_mfa, COUNT(CASE WHEN ss.has_firewall = false OR ss.has_firewall IS NULL THEN 1 END) as no_firewall, COUNT(CASE WHEN ss.has_waf = false OR ss.has_waf IS NULL THEN 1 END) as no_waf, COUNT(CASE WHEN ss.has_data_encryption_at_rest = false OR ss.has_data_encryption_at_rest IS NULL THEN 1 END) as no_encryption FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id WHERE s.is_deleted = false
+Chart: null
+Xử lý: Multiple CASE WHEN để đếm nhiều điều kiện, LEFT JOIN để bao gồm cả hệ thống chưa có security info
+
+---
+
+Câu hỏi: {query}
+
+NHIỆM VỤ:
+1. Phân tích sâu câu hỏi (thinking)
+2. Tạo SQL query phức tạp với JOIN, GROUP BY, CASE WHEN nếu cần
+3. Chọn chart type phù hợp
+
+QUAN TRỌNG:
+- LUÔN có WHERE is_deleted = false
+- Deep mode cần SQL chi tiết hơn Quick mode
+- Dùng LEFT JOIN nếu có thể thiếu data trong bảng phụ
+- CASE WHEN để tính toán conditional aggregates
+
+Trả về JSON:
 {{
-    "thinking": {{"plan": "Kế hoạch phân tích", "tasks": ["task1", "task2"]}},
-    "sql": "SELECT query here",
+    "thinking": {{"plan": "Kế hoạch phân tích chi tiết", "tasks": ["task1", "task2", "..."]}},
+    "sql": "SELECT query here (có thể phức tạp với nhiều JOIN)",
     "chart_type": "bar|pie|line|table|null"
 }}
 

@@ -18,6 +18,23 @@ from .models import System, Attachment, AIConversation, AIMessage, AIRequestLog
 
 logger = logging.getLogger(__name__)
 
+# JSON Serialization Helper for SSE - handles Decimal, date, datetime
+def serialize_for_json(obj):
+    """Convert non-JSON-serializable types to JSON-safe formats"""
+    from decimal import Decimal
+    from datetime import date, datetime
+
+    if isinstance(obj, dict):
+        return {k: serialize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [serialize_for_json(item) for item in obj]
+    elif isinstance(obj, Decimal):
+        return float(obj)
+    elif isinstance(obj, (date, datetime)):
+        return obj.isoformat()
+    else:
+        return obj
+
 # AI Model Cost Estimation (USD per 1M tokens)
 # Pricing as of 2025
 AI_MODEL_PRICING = {
@@ -2322,7 +2339,15 @@ CHỈ trả về JSON."""
                                 sql_query = fixed_sql  # Update for logging
                                 # Include sample rows for debugging
                                 sample_rows = query_result.get('rows', [])[:5]
-                                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.6, 'total_rows': query_result.get('total_rows', 0), 'sample_rows': sample_rows, 'columns': query_result.get('columns', []), 'success': True})}\n\n"
+                                # Serialize data to handle Decimal and date types
+                                phase_data = serialize_for_json({
+                                    'phase': 2.6,
+                                    'total_rows': query_result.get('total_rows', 0),
+                                    'sample_rows': sample_rows,
+                                    'columns': query_result.get('columns', []),
+                                    'success': True
+                                })
+                                yield f"event: phase_complete\ndata: {json.dumps(phase_data)}\n\n"
                             else:
                                 # Still 0 results after retry
                                 yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.6, 'total_rows': 0, 'success': False})}\n\n"
@@ -2336,7 +2361,14 @@ CHỈ trả về JSON."""
             else:
                 # Include sample rows for debugging (more rows for detailed analysis)
                 sample_rows = query_result.get('rows', [])[:15]  # First 15 rows for detailed view
-                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': query_result.get('total_rows', 0), 'sample_rows': sample_rows, 'columns': query_result.get('columns', [])})}\n\n"
+                # Serialize data to handle Decimal and date types
+                phase_data = serialize_for_json({
+                    'phase': 2,
+                    'total_rows': query_result.get('total_rows', 0),
+                    'sample_rows': sample_rows,
+                    'columns': query_result.get('columns', [])
+                })
+                yield f"event: phase_complete\ndata: {json.dumps(phase_data)}\n\n"
 
             # Replace template variables in answer with actual data
             # AI might return "{{column_name}}" or "[column_name]" which needs to be replaced
@@ -2878,7 +2910,15 @@ CHỈ trả về JSON."""
                                 sql_query = fixed_sql
                                 # Include sample rows for debugging (15 rows for detail)
                                 sample_rows = query_result.get('rows', [])[:15]
-                                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.6, 'total_rows': query_result.get('total_rows', 0), 'sample_rows': sample_rows, 'columns': query_result.get('columns', []), 'success': True})}\n\n"
+                                # Serialize data to handle Decimal and date types
+                                phase_data = serialize_for_json({
+                                    'phase': 2.6,
+                                    'total_rows': query_result.get('total_rows', 0),
+                                    'sample_rows': sample_rows,
+                                    'columns': query_result.get('columns', []),
+                                    'success': True
+                                })
+                                yield f"event: phase_complete\ndata: {json.dumps(phase_data)}\n\n"
                             else:
                                 yield f"event: phase_complete\ndata: {json.dumps({'phase': 2.6, 'total_rows': 0, 'success': False})}\n\n"
                         else:
@@ -2890,7 +2930,14 @@ CHỈ trả về JSON."""
             else:
                 # Include sample rows for debugging (more rows for detailed analysis)
                 sample_rows = query_result.get('rows', [])[:15]  # First 15 rows for detailed view
-                yield f"event: phase_complete\ndata: {json.dumps({'phase': 2, 'total_rows': query_result.get('total_rows', 0), 'sample_rows': sample_rows, 'columns': query_result.get('columns', [])})}\n\n"
+                # Serialize data to handle Decimal and date types
+                phase_data = serialize_for_json({
+                    'phase': 2,
+                    'total_rows': query_result.get('total_rows', 0),
+                    'sample_rows': sample_rows,
+                    'columns': query_result.get('columns', [])
+                })
+                yield f"event: phase_complete\ndata: {json.dumps(phase_data)}\n\n"
 
             # Phase 3: Generate Response
             yield f"event: phase_start\ndata: {json.dumps({'phase': 3, 'name': 'Tạo báo cáo', 'description': 'Đang tạo báo cáo chiến lược...'})}\n\n"

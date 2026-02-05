@@ -1505,17 +1505,10 @@ GROUP BY o.id, o.name;
         MAX_RETRIES = 3
 
         # ====== PHASE 1 PROMPT: Generate SQL + Thinking ======
+        critical_context = self._get_critical_context()
         phase1_prompt = f"""Bạn là Trợ lý AI phân tích dữ liệu hệ thống CNTT. Nhiệm vụ của bạn là PHÂN TÍCH yêu cầu và VIẾT SQL query.
 
-=== CRITICAL RULE - MUST FOLLOW ===
-Context: Database của HỆ THỐNG THỐNG KÊ CNTT CỦA BỘ KHOA HỌC VÀ CÔNG NGHỆ.
-Database chứa TẤT CẢ các hệ thống của Bộ KH&CN (từ tất cả đơn vị trực thuộc).
-
-RULE: Khi user hỏi "Bộ KH&CN có bao nhiêu hệ thống?" hoặc "Bộ có bao nhiêu hệ thống?":
-→ SQL PHẢI LÀ: SELECT ... FROM systems s LEFT JOIN organizations o ON s.org_id = o.id WHERE s.is_deleted = false
-→ KHÔNG ĐƯỢC filter theo o.name (vì KHÔNG CÓ org nào tên "Bộ KH&CN")
-→ CHỈ filter org KHI user nói TÊN ĐƠN VỊ CỤ THỂ (VD: "Văn phòng Bộ", "VNNIC")
-===================================
+{critical_context}
 
 {schema_context}
 
@@ -1957,6 +1950,23 @@ Trả về JSON với SQL đã sửa."""
         else:
             return self._deep_analysis_stream(query, user, context)
 
+    def _get_critical_context(self):
+        """
+        Get critical context about "Bộ KH&CN" queries to prevent org name filtering bug.
+        This context is shared between ai_query and ai_query_stream prompts.
+        """
+        return """
+=== CRITICAL RULE - MUST FOLLOW ===
+Context: Database của HỆ THỐNG THỐNG KÊ CNTT CỦA BỘ KHOA HỌC VÀ CÔNG NGHỆ.
+Database chứa TẤT CẢ các hệ thống của Bộ KH&CN (từ tất cả đơn vị trực thuộc).
+
+RULE: Khi user hỏi "Bộ KH&CN có bao nhiêu hệ thống?" hoặc "Bộ có bao nhiêu hệ thống?":
+→ SQL PHẢI LÀ: SELECT ... FROM systems s LEFT JOIN organizations o ON s.org_id = o.id WHERE s.is_deleted = false
+→ KHÔNG ĐƯỢC filter theo o.name (vì KHÔNG CÓ org nào tên "Bộ KH&CN")
+→ CHỈ filter org KHI user nói TÊN ĐƠN VỊ CỤ THỂ (VD: "Văn phòng Bộ", "VNNIC")
+===================================
+"""
+
     def _get_active_policies_text(self):
         """
         Get active improvement policies and format as text to inject into system prompt
@@ -2200,18 +2210,10 @@ Lưu ý quan trọng:
             # Get active improvement policies from user feedback
             policies_text = self._get_active_policies_text()
 
+            critical_context = self._get_critical_context()
             quick_prompt = f"""Bạn là AI assistant phân tích dữ liệu CNTT.
 
-=== CRITICAL RULE - MUST FOLLOW ===
-Context: Database của HỆ THỐNG THỐNG KÊ CNTT CỦA BỘ KHOA HỌC VÀ CÔNG NGHỆ.
-Database chứa TẤT CẢ các hệ thống của Bộ KH&CN (từ tất cả đơn vị trực thuộc).
-
-RULE: Khi user hỏi "Bộ KH&CN có bao nhiêu hệ thống?" hoặc "Bộ có bao nhiêu hệ thống?":
-→ SQL PHẢI LÀ: SELECT COUNT(*) as count FROM systems WHERE is_deleted = false
-→ KHÔNG ĐƯỢC JOIN organizations
-→ KHÔNG ĐƯỢC filter theo o.name (vì KHÔNG CÓ org nào tên "Bộ KH&CN")
-→ CHỈ filter org KHI user nói TÊN ĐƠN VỊ CỤ THỂ (VD: "Văn phòng Bộ", "VNNIC")
-===================================
+{critical_context}
 
 {schema_context}
 {policies_text}

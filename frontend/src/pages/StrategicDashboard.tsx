@@ -904,8 +904,14 @@ const StrategicDashboard = () => {
           // FIX Bug #1: Update the placeholder entry instead of adding new one
           // ALSO: Save progress tasks for this conversation
           // FIX Deep Mode Bug: Deep copy progress tasks to preserve detailed info
+          console.log('[SAVE] Current aiProgressTasks:', aiProgressTasks);
           const savedProgressTasks = JSON.parse(JSON.stringify(aiProgressTasks));
           console.log('[SAVE] Saving conversation with', savedProgressTasks.length, 'progress tasks');
+
+          // DEBUG: Log if tasks are empty
+          if (savedProgressTasks.length === 0) {
+            console.error('[BUG] aiProgressTasks is EMPTY when saving! This will cause "AI PHÂN TÍCH" section to disappear.');
+          }
 
           setConversationHistory(prev => {
             const updated = [...prev];
@@ -929,12 +935,10 @@ const StrategicDashboard = () => {
             return updated;
           });
 
-          // Clear global progress tasks to prevent contamination in next query
-          // FIX: Use longer timeout to ensure state commit completes first
-          setTimeout(() => {
-            setAiProgressTasks([]);
-            console.log('[CLEAR] Global progress tasks cleared');
-          }, 500); // Increased from 100ms to 500ms to avoid race condition
+          // CRITICAL FIX: Do NOT clear aiProgressTasks immediately
+          // Keep it for the current conversation to display "AI PHÂN TÍCH" section
+          // Will be cleared when user starts a NEW query (in handleAskAI)
+          console.log('[SAVE] Progress tasks saved to conversation. NOT clearing aiProgressTasks to keep section visible.');
 
           console.log('[AI DEBUG] Setting aiQueryLoading to false');
           setAiQueryHistory(prev => [currentQuery, ...prev.filter(q => q !== currentQuery)].slice(0, 10));

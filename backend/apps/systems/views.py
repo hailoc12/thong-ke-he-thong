@@ -713,8 +713,12 @@ def _generate_d3_table_data(rows, columns, request=None):
         }
 
         # Determine column type
-        if col == system_col or col == org_col:
+        if col == system_col:
             col_def['type'] = 'link'
+            col_def['linkType'] = 'system'
+        elif col == org_col:
+            col_def['type'] = 'link'
+            col_def['linkType'] = 'organization'
         elif 'count' in col.lower() or 'total' in col.lower() or 'number' in col.lower():
             col_def['type'] = 'number'
         else:

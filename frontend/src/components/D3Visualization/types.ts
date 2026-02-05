@@ -7,6 +7,7 @@ export interface D3TableColumn {
   key: string;
   label: string;
   type?: 'text' | 'number' | 'link';
+  linkType?: 'system' | 'organization';  // Specify which type of entity this link points to
   sortable?: boolean;
   searchable?: boolean;
 }

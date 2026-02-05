@@ -70,11 +70,11 @@ export const D3Table: React.FC<D3TableProps> = ({
         render: (text, record) => {
           // Special handling for organization and system links
           if (col.type === 'link' && baseUrl) {
-            // Priority: organization link first, then system link
-            const linkUrl = record._organization_id
-              ? `${baseUrl}/organizations/${record._organization_id}/`
-              : record._system_id
+            // Use linkType to determine which ID to use
+            const linkUrl = col.linkType === 'system' && record._system_id
               ? `${baseUrl}/systems/${record._system_id}/`
+              : col.linkType === 'organization' && record._organization_id
+              ? `${baseUrl}/organizations/${record._organization_id}/`
               : null;
 
             if (linkUrl) {

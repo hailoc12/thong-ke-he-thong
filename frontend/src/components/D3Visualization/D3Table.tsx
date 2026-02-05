@@ -123,7 +123,7 @@ export const D3Table: React.FC<D3TableProps> = ({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 16, fontWeight: 600 }}>
-            📊 {data.columns.find(c => c.label)?.label || 'Danh sách'}
+            📊 Danh sách chi tiết
           </span>
         </div>
         <div style={{ fontSize: 14, fontWeight: 500 }}>

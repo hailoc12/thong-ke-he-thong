@@ -3647,10 +3647,11 @@ Viết lại câu trả lời CHÍNH XÁC với dữ liệu. Số liệu trong m
 
                     # STEP 2: Generate interactive visualization AFTER answer is ready
                     # This 2-step approach ensures better quality
-                    visualization_html = generate_visualization(query_result, query, request)
-                    response_content['visualization_html'] = visualization_html
+                    # OLD: HTML string visualization (deprecated - causes duplicate tables)
+                    # visualization_html = generate_visualization(query_result, query, request)
+                    # response_content['visualization_html'] = visualization_html
 
-                    # NEW: Also generate structured data for React components
+                    # NEW: Generate structured data for React components (D3Table with pagination)
                     visualization_data = generate_visualization_data(query_result, query, request)
                     response_content['visualization_data'] = visualization_data
 
@@ -5034,13 +5035,14 @@ Trả về JSON: {{"is_consistent": true/false, "issues": []}}"""
 
             # STEP 2: Generate interactive visualization AFTER answer is ready
             # This 2-step approach ensures better quality: answer first, then visualization
-            visualization_html = generate_visualization(query_result, query, request)
+            # OLD: HTML string visualization (deprecated - causes duplicate tables)
+            # visualization_html = generate_visualization(query_result, query, request)
 
-            # NEW: Also generate structured data for React components
+            # NEW: Generate structured data for React components (D3Table with pagination)
             visualization_data = generate_visualization_data(query_result, query, request)
 
             # Add visualization to response content
-            response_content['visualization_html'] = visualization_html
+            # response_content['visualization_html'] = visualization_html  # REMOVED - causes duplicate
             response_content['visualization_data'] = visualization_data
 
             # Clean up: Remove old visualization fields (AI sometimes adds them despite instructions)

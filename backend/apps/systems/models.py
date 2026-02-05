@@ -1935,3 +1935,11 @@ class AIResponseFeedback(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.rating} - {self.query[:50]}"
+
+    @classmethod
+    def generate_improvement_policies(cls):
+        """
+        Generate improvement policies from user feedback
+        Returns empty list for now - to be implemented later
+        """
+        return []

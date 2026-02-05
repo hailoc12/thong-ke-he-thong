@@ -115,6 +115,7 @@ import api, {
 } from '../config/api';
 import { shadows, borderRadius, spacing } from '../theme/tokens';
 import AIDataModal from '../components/AIDataModal';
+import { D3Table, getBaseUrl } from '../components/D3Visualization';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -428,14 +429,19 @@ interface AIResponseContent {
   details?: string | null;
   strategic_insight?: string;
   recommended_action?: string;
-  chart_type?: 'bar' | 'pie' | 'table' | 'number';
-  chart_config?: {
-    x_field?: string;
-    y_field?: string;
-    title?: string;
-    x_label?: string;
-    y_label?: string;
-    unit?: string;
+  visualization_html?: string;  // Legacy: HTML-based interactive visualization
+  visualization_data?: {        // NEW: Structured data for React components
+    type: 'table' | 'bar' | 'pie' | 'line';
+    data: {
+      columns: Array<{key: string; label: string; type?: string; sortable?: boolean}>;
+      rows: Array<Record<string, any>>;
+      totalRows: number;
+    };
+    config?: {
+      pagination?: {pageSize: number; showSizeChanger?: boolean; showTotal?: boolean};
+      baseUrl?: string;
+      [key: string]: any;
+    };
   };
   follow_up_suggestions?: string[];
 }
@@ -445,6 +451,7 @@ interface AIQueryResponse {
   thinking?: AIThinking;
   response?: AIResponseContent;
   sql?: string; // Add sql field for context passing
+  visualization?: string; // Add visualization HTML field
   // Legacy format support
   ai_response?: {
     sql?: string;
@@ -623,6 +630,26 @@ const StrategicDashboard = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Setup global navigation functions for visualization links
+  useEffect(() => {
+    // @ts-ignore
+    window.navigateToSystem = (systemId: number) => {
+      navigate(`/systems/${systemId}`);
+    };
+    // @ts-ignore
+    window.navigateToDashboard = (orgId: number) => {
+      navigate(`/dashboard/unit?org=${orgId}`);
+    };
+
+    return () => {
+      // Cleanup
+      // @ts-ignore
+      delete window.navigateToSystem;
+      // @ts-ignore
+      delete window.navigateToDashboard;
+    };
+  }, [navigate]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -2812,6 +2839,27 @@ const StrategicDashboard = () => {
                                   </div>
                                 )}
 
+                                {/* Interactive Visualization - NEW: React Components */}
+                                {aiQueryResponse.response?.visualization_data?.type === 'table' && (
+                                  <D3Table
+                                    data={aiQueryResponse.response.visualization_data.data}
+                                    pagination={aiQueryResponse.response.visualization_data.config?.pagination}
+                                    searchable={true}
+                                    sortable={true}
+                                    baseUrl={aiQueryResponse.response.visualization_data.config?.baseUrl || getBaseUrl()}
+                                    loading={false}
+                                  />
+                                )}
+
+                                {/* Fallback: Legacy HTML visualization (if no structured data) */}
+                                {!aiQueryResponse.response?.visualization_data && aiQueryResponse.response?.visualization_html && (
+                                  <div
+                                    className="ai-visualization-container"
+                                    dangerouslySetInnerHTML={{ __html: aiQueryResponse.response.visualization_html }}
+                                    style={{ marginTop: 16, marginBottom: 16 }}
+                                  />
+                                )}
+
                                 {/* Details - HIDDEN per user request: "hide hoàn toàn phần Chi tiết dữ liệu" */}
                                 {false && aiQueryResponse.response?.details && (
                                   <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
@@ -2936,153 +2984,9 @@ const StrategicDashboard = () => {
                                         {Object.values(aiQueryResponse.data.rows[0])[0]?.toLocaleString() || '0'}
                                       </Text>
                                       <Text type="secondary" style={{ display: 'block', fontSize: 13, marginTop: 4 }}>
-                                        {aiQueryResponse.response?.chart_config?.unit || getVietnameseUnit(aiQueryResponse.data.columns[0])}
+                                        {getVietnameseUnit(aiQueryResponse.data.columns[0])}
                                       </Text>
                                     </div>
-                                  )}
-
-                                  {/* Multi-row data display - HIDDEN per user request: "hide hoàn toàn phần Chi tiết dữ liệu" */}
-                                  {false && aiQueryResponse.data && ((aiQueryResponse.data?.rows?.length || 0) > 1 || (aiQueryResponse.data?.columns?.length || 0) > 1) && (
-                                    <>
-                                      <Text type="secondary" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>
-                                        <LineChartOutlined style={{ marginRight: 6 }} />
-                                        Chi tiết dữ liệu ({Math.min(aiQueryResponse.data?.rows?.length || 0, 5)} / {aiQueryResponse.data?.total_rows || 0} kết quả)
-                                        {aiQueryResponse.response?.chart_config?.unit && (
-                                          <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>
-                                            Đơn vị: {getVietnameseUnit(aiQueryResponse.response?.chart_config?.unit || '')}
-                                          </Tag>
-                                        )}
-                                      </Text>
-
-                                      {/* Simple Visual Bars for numeric data */}
-                                      {aiQueryResponse.data?.rows?.slice(0, 5).map((row: any, idx: number) => {
-                                        const chartConfig = aiQueryResponse.response?.chart_config;
-                                        const columns = aiQueryResponse.data!.columns;
-
-                                        // Smart label detection: prioritize name columns over IDs
-                                        let label = '';
-                                        if (chartConfig?.x_field && row[chartConfig.x_field] !== undefined) {
-                                          label = String(row[chartConfig.x_field]);
-                                        } else {
-                                          // Priority order for label columns (most specific to least)
-                                          const labelPriority = [
-                                            'system_name', 'tên hệ thống', 'ten_he_thong',
-                                            'name', 'tên', 'ten',
-                                            'org_name', 'tên đơn vị', 'ten_don_vi',
-                                            'title', 'tiêu đề'
-                                          ];
-
-                                          // Find best matching column for label
-                                          let labelCol = columns.find(col =>
-                                            labelPriority.some(p => col.toLowerCase().includes(p))
-                                          );
-
-                                          // If no name column, find first string column (but not 'id' columns)
-                                          if (!labelCol) {
-                                            labelCol = columns.find(col =>
-                                              typeof row[col] === 'string' &&
-                                              !col.toLowerCase().includes('id') &&
-                                              !col.toLowerCase().includes('code')
-                                            );
-                                          }
-
-                                          // Fall back to first column if nothing else works
-                                          if (!labelCol) {
-                                            labelCol = columns[0];
-                                          }
-
-                                          label = row[labelCol] || `Dòng ${idx + 1}`;
-                                        }
-
-                                        // Smart value detection: use y_field from config, or first numeric column (but not 'id')
-                                        let numericValue: number | undefined;
-                                        if (chartConfig?.y_field && typeof row[chartConfig.y_field] === 'number') {
-                                          numericValue = row[chartConfig.y_field];
-                                        } else {
-                                          // Find first numeric column that's not an ID
-                                          const numCol = columns.find(col =>
-                                            typeof row[col] === 'number' &&
-                                            !col.toLowerCase().includes('id')
-                                          );
-                                          numericValue = numCol ? row[numCol] : undefined;
-                                        }
-
-                                        // Calculate max value excluding ID columns
-                                        const maxVal = Math.max(...aiQueryResponse.data!.rows.slice(0, 5).map((r: any) => {
-                                          if (chartConfig?.y_field) return r[chartConfig.y_field] || 0;
-                                          // Get numeric values except from ID columns
-                                          const numericValues = Object.entries(r)
-                                            .filter(([key, val]) =>
-                                              typeof val === 'number' &&
-                                              !key.toLowerCase().includes('id')
-                                            )
-                                            .map(([, val]) => val as number);
-                                          return numericValues.length > 0 ? Math.max(...numericValues) : 0;
-                                        }), 1);
-                                        const unit = chartConfig?.unit || '';
-
-                                        return (
-                                          <div key={idx} style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 12,
-                                            marginBottom: idx < 4 ? 8 : 0,
-                                            padding: '6px 0',
-                                          }}>
-                                            <Text style={{ minWidth: 150, fontSize: 13, flex: '0 0 auto' }} ellipsis title={label}>
-                                              {label}
-                                            </Text>
-                                            <div style={{
-                                              flex: 1,
-                                              height: 24,
-                                              background: '#e8e8e8',
-                                              borderRadius: 4,
-                                              overflow: 'hidden',
-                                            }}>
-                                              {numericValue !== undefined && numericValue > 0 && (
-                                                <motion.div
-                                                  initial={{ width: 0 }}
-                                                  animate={{ width: `${Math.max((numericValue / maxVal) * 100, 8)}%` }}
-                                                  transition={{ duration: 0.5, delay: idx * 0.1 }}
-                                                  style={{
-                                                    height: '100%',
-                                                    background: `linear-gradient(90deg, ${COLORS[idx % COLORS.length]}88, ${COLORS[idx % COLORS.length]})`,
-                                                    borderRadius: 4,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'flex-end',
-                                                    paddingRight: 8,
-                                                  }}
-                                                >
-                                                  <Text style={{ fontSize: 12, color: 'white', fontWeight: 600 }}>
-                                                    {numericValue.toLocaleString()}{unit ? ` ${unit}` : ''}
-                                                  </Text>
-                                                </motion.div>
-                                              )}
-                                              {(numericValue === undefined || numericValue === 0) && (
-                                                <div style={{ padding: '4px 8px' }}>
-                                                  <Text style={{ fontSize: 12, color: '#999' }}>0{unit ? ` ${unit}` : ''}</Text>
-                                                </div>
-                                              )}
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-
-                                      {(aiQueryResponse.data?.rows?.length || 0) > 5 && (
-                                        <Button
-                                          type="primary"
-                                          size="small"
-                                          onClick={() => {
-                                            setDataModalVisible(true);
-                                          }}
-                                          style={{ marginTop: 8, borderRadius: 16 }}
-                                          icon={<EyeOutlined />}
-                                        >
-                                          Xem đầy đủ {aiQueryResponse.data?.total_rows || 0} kết quả
-                                        </Button>
-                                      )}
-                                    </>
                                   )}
                                 </div>
                               )}

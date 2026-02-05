@@ -54,42 +54,200 @@ AI_MODEL_PRICING = {
 # Interactive Data Visualization Generator
 # ========================================
 
-def generate_visualization(query_result, query_text=""):
+def generate_visualization(query_result, query_text="", request=None):
     """
-    Generate interactive HTML/JS visualization based on data type
+    Generate interactive D3.js visualization with auto-recovery
 
-    Auto-detects best visualization:
-    - Table: For list/detailed data
-    - Bar Chart: For comparisons
-    - Pie Chart: For distributions
-    - Line Chart: For trends
+    Features:
+    - D3.js for dynamic, impressive visualizations
+    - Auto-detection of best viz type
+    - Error handling with fallback
+    - Vietnamese labels throughout
+    - Smooth animations and interactions
 
-    Returns HTML string with embedded JavaScript
+    Returns HTML string with embedded D3.js code
     """
+    logger.info(f"[VIZ] Generating D3.js visualization for: {query_text[:50]}")
+
     if not query_result or not query_result.get('rows'):
+        logger.warning(f"[VIZ] No data - returning None")
         return None
 
     rows = query_result.get('rows', [])
     columns = query_result.get('columns', [])
-    total_rows = query_result.get('total_rows', 0)
 
     if not rows or not columns:
         return None
 
-    # Detect visualization type
+    # Detect best visualization type
     viz_type = _detect_visualization_type(rows, columns, query_text)
+    logger.info(f"[VIZ] Detected type: {viz_type}")
 
-    if viz_type == 'table':
-        return _generate_interactive_table(rows, columns, query_text)
-    elif viz_type == 'bar':
-        return _generate_bar_chart(rows, columns, query_text)
-    elif viz_type == 'pie':
-        return _generate_pie_chart(rows, columns, query_text)
-    elif viz_type == 'line':
-        return _generate_line_chart(rows, columns, query_text)
-    else:
-        # Default to table
-        return _generate_interactive_table(rows, columns, query_text)
+    try:
+        # Try to generate visualization
+        if viz_type == 'table':
+            html = _generate_d3_table(rows, columns, query_text, request)
+        elif viz_type == 'bar':
+            html = _generate_d3_bar_chart(rows, columns, query_text)
+        elif viz_type == 'pie':
+            html = _generate_d3_pie_chart(rows, columns, query_text)
+        elif viz_type == 'line':
+            html = _generate_d3_line_chart(rows, columns, query_text)
+        else:
+            html = _generate_d3_table(rows, columns, query_text, request)
+
+        # Validate HTML before returning
+        if html and len(html) > 100 and '<div' in html:
+            logger.info(f"[VIZ] Successfully generated {viz_type} visualization ({len(html)} chars)")
+            return html
+        else:
+            raise ValueError("Invalid HTML output")
+
+    except Exception as e:
+        logger.error(f"[VIZ] Error generating {viz_type}: {e}")
+        # Fallback to simple table
+        try:
+            html = _generate_d3_table(rows, columns, query_text, request)
+            logger.info(f"[VIZ] Fallback table generated successfully")
+            return html
+        except Exception as fallback_error:
+            logger.error(f"[VIZ] Fallback also failed: {fallback_error}")
+            return None
+
+
+def generate_visualization_data(query_result, query_text="", request=None):
+    """
+    Generate structured visualization data for React components (NEW APPROACH)
+
+    Returns dict with visualization data instead of HTML string.
+    This allows proper React component rendering with pagination, search, etc.
+
+    Returns:
+        dict or None: {
+            'type': 'table'|'bar'|'pie'|'line',
+            'data': {...},  # Structure depends on type
+            'config': {...}  # Visualization configuration
+        }
+    """
+    logger.info(f"[VIZ-DATA] Generating structured visualization data for: {query_text[:50]}")
+
+    if not query_result or not query_result.get('rows'):
+        logger.warning(f"[VIZ-DATA] No data - returning None")
+        return None
+
+    rows = query_result.get('rows', [])
+    columns = query_result.get('columns', [])
+
+    if not rows or not columns:
+        return None
+
+    # Detect best visualization type
+    viz_type = _detect_visualization_type(rows, columns, query_text)
+    logger.info(f"[VIZ-DATA] Detected type: {viz_type}")
+
+    try:
+        # Generate structured data based on type
+        if viz_type == 'table':
+            viz_data = _generate_d3_table_data(rows, columns, request)
+        elif viz_type == 'bar':
+            # TODO: Implement structured bar chart data
+            viz_data = _generate_d3_table_data(rows, columns, request)  # Fallback for now
+        elif viz_type == 'pie':
+            # TODO: Implement structured pie chart data
+            viz_data = _generate_d3_table_data(rows, columns, request)  # Fallback for now
+        elif viz_type == 'line':
+            # TODO: Implement structured line chart data
+            viz_data = _generate_d3_table_data(rows, columns, request)  # Fallback for now
+        else:
+            viz_data = _generate_d3_table_data(rows, columns, request)
+
+        # Validate data before returning
+        if viz_data and 'type' in viz_data and 'data' in viz_data:
+            logger.info(f"[VIZ-DATA] Successfully generated {viz_type} visualization data")
+            return viz_data
+        else:
+            raise ValueError("Invalid visualization data structure")
+
+    except Exception as e:
+        logger.error(f"[VIZ-DATA] Error generating {viz_type}: {e}")
+        # Fallback to simple table data
+        try:
+            viz_data = _generate_d3_table_data(rows, columns, request)
+            logger.info(f"[VIZ-DATA] Fallback table data generated successfully")
+            return viz_data
+        except Exception as fallback_error:
+            logger.error(f"[VIZ-DATA] Fallback also failed: {fallback_error}")
+            return None
+
+
+def _vietnamize_column_name(col_name):
+    """Convert English column names to Vietnamese"""
+    mapping = {
+        # Common fields
+        'id': 'ID',
+        'count': 'Số lượng',
+        'total': 'Tổng',
+        'sum': 'Tổng cộng',
+        'avg': 'Trung bình',
+        'average': 'Trung bình',
+        'min': 'Tối thiểu',
+        'max': 'Tối đa',
+
+        # System fields
+        'system_name': 'Tên hệ thống',
+        'system_code': 'Mã hệ thống',
+        'system_id': 'ID hệ thống',
+
+        # Organization fields
+        'org_name': 'Đơn vị',
+        'org_id': 'ID đơn vị',
+        'organization': 'Tổ chức',
+        'organization_name': 'Tên tổ chức',
+
+        # Status and classification
+        'status': 'Trạng thái',
+        'type': 'Loại',
+        'category': 'Danh mục',
+        'group': 'Nhóm',
+
+        # Technical fields
+        'programming_language': 'Ngôn ngữ lập trình',
+        'framework': 'Framework',
+        'database': 'Cơ sở dữ liệu',
+        'hosting': 'Nền tảng triển khai',
+
+        # Security
+        'security_level': 'Mức độ bảo mật',
+        'has_firewall': 'Firewall',
+        'has_mfa': 'MFA',
+
+        # Metrics
+        'user_count': 'Số người dùng',
+        'data_volume': 'Dung lượng dữ liệu',
+        'performance': 'Hiệu năng',
+        'uptime': 'Thời gian hoạt động',
+
+        # Time fields
+        'created_at': 'Ngày tạo',
+        'updated_at': 'Ngày cập nhật',
+        'year': 'Năm',
+        'month': 'Tháng',
+        'date': 'Ngày',
+    }
+
+    col_lower = str(col_name).lower().strip()
+
+    # Exact match
+    if col_lower in mapping:
+        return mapping[col_lower]
+
+    # Partial match
+    for eng, vie in mapping.items():
+        if eng in col_lower:
+            return vie
+
+    # Return original with capitalization if no match
+    return str(col_name).title()
 
 
 def _detect_visualization_type(rows, columns, query_text):
@@ -148,48 +306,71 @@ def _generate_interactive_table(rows, columns, query_text):
     # Build HTML table
     html_parts = []
     html_parts.append('''
-    <div class="ai-visualization" style="margin-top: 16px;">
+    <div class="ai-visualization" style="margin-top: 16px; margin-bottom: 16px;">
         <style>
             .ai-viz-table {
                 width: 100%;
-                border-collapse: collapse;
-                font-size: 13px;
-                background: white;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                border-radius: 6px;
+                border-collapse: separate;
+                border-spacing: 0;
+                font-size: 14px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: #ffffff;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                border-radius: 8px;
                 overflow: hidden;
+                border: 1px solid #e8e8e8;
             }
             .ai-viz-table thead {
-                background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+                background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
                 color: white;
             }
             .ai-viz-table th {
-                padding: 10px 12px;
+                padding: 14px 16px;
                 text-align: left;
                 font-weight: 600;
-                border-bottom: 2px solid #0050b3;
+                font-size: 13px;
+                letter-spacing: 0.3px;
+                text-transform: uppercase;
+                border-bottom: 3px solid #0958d9;
+                white-space: nowrap;
             }
             .ai-viz-table td {
-                padding: 8px 12px;
+                padding: 12px 16px;
                 border-bottom: 1px solid #f0f0f0;
+                color: #262626;
+                line-height: 1.6;
+            }
+            .ai-viz-table tbody tr {
+                transition: all 0.2s ease;
             }
             .ai-viz-table tbody tr:hover {
-                background-color: #e6f7ff;
+                background-color: #f0f7ff;
+                transform: scale(1.001);
+            }
+            .ai-viz-table tbody tr:last-child td {
+                border-bottom: none;
             }
             .ai-viz-link {
-                color: #1890ff;
-                text-decoration: underline;
+                color: #1677ff;
+                text-decoration: none;
                 cursor: pointer;
                 font-weight: 500;
+                border-bottom: 1px solid transparent;
+                transition: all 0.2s ease;
             }
             .ai-viz-link:hover {
-                color: #096dd9;
+                color: #0958d9;
+                border-bottom-color: #0958d9;
             }
             .ai-viz-footer {
-                margin-top: 8px;
+                margin-top: 12px;
+                padding: 8px 12px;
                 text-align: right;
-                font-size: 12px;
+                font-size: 13px;
                 color: #8c8c8c;
+                background: #fafafa;
+                border-radius: 6px;
+                border: 1px solid #f0f0f0;
             }
         </style>
         <table class="ai-viz-table">
@@ -197,9 +378,10 @@ def _generate_interactive_table(rows, columns, query_text):
                 <tr>
     ''')
 
-    # Table headers
+    # Table headers - Vietnamized
     for col in columns:
-        html_parts.append(f'<th>{html.escape(str(col))}</th>')
+        col_vietnamese = _vietnamize_column_name(col)
+        html_parts.append(f'<th>{html.escape(col_vietnamese)}</th>')
 
     html_parts.append('</tr></thead><tbody>')
 
@@ -274,7 +456,7 @@ def _generate_bar_chart(rows, columns, query_text):
     chart_id = f"chart_{hash(query_text) % 10000}"
 
     html_output = f'''
-    <div class="ai-visualization" style="margin-top: 16px;">
+    <div class="ai-visualization" style="margin-top: 16px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
         <canvas id="{chart_id}" style="max-height: 400px;"></canvas>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
         <script>
@@ -286,7 +468,7 @@ def _generate_bar_chart(rows, columns, query_text):
                     data: {{
                         labels: {json.dumps([d['label'] for d in chart_data])},
                         datasets: [{{
-                            label: '{html.escape(str(value_col))}',
+                            label: '{html.escape(_vietnamize_column_name(value_col))}',
                             data: {json.dumps([d['value'] for d in chart_data])},
                             backgroundColor: 'rgba(24, 144, 255, 0.6)',
                             borderColor: 'rgba(24, 144, 255, 1)',
@@ -355,7 +537,7 @@ def _generate_pie_chart(rows, columns, query_text):
     chart_id = f"chart_{hash(query_text) % 10000}"
 
     html_output = f'''
-    <div class="ai-visualization" style="margin-top: 16px;">
+    <div class="ai-visualization" style="margin-top: 16px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
         <canvas id="{chart_id}" style="max-height: 400px;"></canvas>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
         <script>
@@ -426,7 +608,7 @@ def _generate_line_chart(rows, columns, query_text):
     chart_id = f"chart_{hash(query_text) % 10000}"
 
     html_output = f'''
-    <div class="ai-visualization" style="margin-top: 16px;">
+    <div class="ai-visualization" style="margin-top: 16px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
         <canvas id="{chart_id}" style="max-height: 400px;"></canvas>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
         <script>
@@ -438,7 +620,7 @@ def _generate_line_chart(rows, columns, query_text):
                     data: {{
                         labels: {json.dumps([d['label'] for d in chart_data])},
                         datasets: [{{
-                            label: '{html.escape(str(value_col))}',
+                            label: '{html.escape(_vietnamize_column_name(value_col))}',
                             data: {json.dumps([d['value'] for d in chart_data])},
                             borderColor: 'rgba(24, 144, 255, 1)',
                             backgroundColor: 'rgba(24, 144, 255, 0.1)',
@@ -468,6 +650,1157 @@ def _generate_line_chart(rows, columns, query_text):
                     }}
                 }});
             }}
+        }})();
+        </script>
+    </div>
+    '''
+
+    return html_output
+
+
+# ========================================
+# D3.js Visualization Functions
+# Beautiful, Interactive, Vietnamese
+# ========================================
+
+def _generate_d3_table_data(rows, columns, request=None):
+    """
+    Generate structured data for D3 table (React component approach)
+
+    Returns:
+        dict: Structured data for React D3Table component
+        {
+            'type': 'table',
+            'data': {
+                'columns': [{'key': 'col1', 'label': 'Vietnamese Label', 'type': 'text|number|link'}],
+                'rows': [{col1: value1, col2: value2, _system_id: 123}],
+                'totalRows': 87
+            },
+            'config': {
+                'pagination': {'pageSize': 10},
+                'baseUrl': 'https://hientrangcds.mindmaid.ai'
+            }
+        }
+    """
+    # Determine base URL based on environment
+    try:
+        if request and hasattr(request, 'get_host'):
+            host = request.get_host()
+            if 'mindmaid.ai' in host or ':8002' in host:
+                base_url = 'https://hientrangcds.mindmaid.ai'
+            else:
+                base_url = 'https://hientrangcds.mst.gov.vn'
+        else:
+            import os
+            port = os.environ.get('PORT', '8000')
+            base_url = 'https://hientrangcds.mindmaid.ai' if port == '8002' else 'https://hientrangcds.mst.gov.vn'
+    except Exception:
+        base_url = 'https://hientrangcds.mst.gov.vn'
+
+    # Detect system and org columns for links
+    system_col = next((col for col in columns if 'system_name' in col.lower() or col.lower() == 'name'), None)
+    org_col = next((col for col in columns if 'org' in col.lower() and 'name' in col.lower()), None)
+
+    # Generate column definitions
+    table_columns = []
+    for col in columns:
+        col_def = {
+            'key': col,
+            'label': _vietnamize_column_name(col),
+            'sortable': True,
+            'searchable': True,
+        }
+
+        # Determine column type
+        if col == system_col or col == org_col:
+            col_def['type'] = 'link'
+        elif 'count' in col.lower() or 'total' in col.lower() or 'number' in col.lower():
+            col_def['type'] = 'number'
+        else:
+            col_def['type'] = 'text'
+
+        table_columns.append(col_def)
+
+    # Prepare row data
+    table_rows = []
+    for row in rows:
+        row_data = {}
+        for col in columns:
+            value = row.get(col, '')
+            row_data[col] = str(value) if value is not None else ''
+
+            # Add IDs for linking
+            if col == system_col:
+                row_data['_system_id'] = row.get('id') or row.get('system_id')
+            elif col == org_col:
+                row_data['_organization_id'] = row.get('org_id') or row.get('organization_id')
+
+        table_rows.append(row_data)
+
+    return {
+        'type': 'table',
+        'data': {
+            'columns': table_columns,
+            'rows': table_rows,
+            'totalRows': len(rows),
+        },
+        'config': {
+            'pagination': {
+                'pageSize': 10,
+                'showSizeChanger': True,
+                'showTotal': True,
+            },
+            'baseUrl': base_url,
+        }
+    }
+
+
+def _generate_d3_table(rows, columns, query_text, request=None):
+    """
+    Generate beautiful interactive D3.js table
+
+    Features:
+    - Sortable columns (click header)
+    - Search functionality
+    - Hover effects with smooth transitions
+    - Clickable links to system/org details
+    - Fully Vietnamese labels
+    - Responsive design
+    - Pagination (max 10 rows per page)
+    """
+    import html
+    import json
+    from django.conf import settings
+
+    # Determine base URL based on environment
+    # UAT: https://hientrangcds.mindmaid.ai
+    # Production: https://hientrangcds.mst.gov.vn
+    try:
+        if request and hasattr(request, 'get_host'):
+            host = request.get_host()
+            if 'mindmaid.ai' in host:
+                base_url = 'https://hientrangcds.mindmaid.ai'
+            elif 'localhost:8002' in host or ':8002' in host:
+                # UAT running on port 8002
+                base_url = 'https://hientrangcds.mindmaid.ai'
+            elif 'localhost:8000' in host or ':8000' in host:
+                # Production running on port 8000
+                base_url = 'https://hientrangcds.mst.gov.vn'
+            else:
+                base_url = 'https://hientrangcds.mst.gov.vn'
+        else:
+            # Fallback: use environment or default to production
+            import os
+            # Check port from environment or default
+            port = os.environ.get('PORT', '8000')
+            if port == '8002':
+                base_url = 'https://hientrangcds.mindmaid.ai'
+            else:
+                base_url = 'https://hientrangcds.mst.gov.vn'
+    except Exception as e:
+        # If anything fails, default to production
+        base_url = 'https://hientrangcds.mst.gov.vn'
+
+    # Limit display
+    display_rows = rows[:100]
+    has_more = len(rows) > 100
+
+    # Vietnamize all column names
+    vie_columns = [_vietnamize_column_name(col) for col in columns]
+
+    # Detect system and org columns for links
+    system_col = next((col for col in columns if 'system_name' in col.lower() or col.lower() == 'name'), None)
+    org_col = next((col for col in columns if 'org' in col.lower() and 'name' in col.lower()), None)
+
+    # Prepare data as JSON for D3
+    table_data = []
+    for row in display_rows:
+        row_data = {}
+        for col in columns:
+            value = row.get(col, '')
+            row_data[col] = str(value) if value is not None else ''
+
+            # Add IDs for linking
+            if col == system_col:
+                row_data['_system_id'] = row.get('id') or row.get('system_id')
+            elif col == org_col:
+                row_data['_org_id'] = row.get('org_id') or row.get('organization_id')
+
+        table_data.append(row_data)
+
+    viz_id = f"d3table_{abs(hash(query_text)) % 100000}"
+
+    html_output = f'''
+    <div id="{viz_id}" class="d3-viz-container" style="margin: 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+        <style>
+            #{viz_id} .d3-table-wrapper {{
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                overflow: hidden;
+            }}
+            #{viz_id} .d3-table-header {{
+                background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
+                color: white;
+                padding: 16px 20px;
+                font-size: 16px;
+                font-weight: 600;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }}
+            #{viz_id} .d3-search-box {{
+                padding: 12px 20px;
+                background: #fafafa;
+                border-bottom: 1px solid #e8e8e8;
+            }}
+            #{viz_id} .d3-search-input {{
+                width: 300px;
+                padding: 8px 12px;
+                border: 1px solid #d9d9d9;
+                border-radius: 6px;
+                font-size: 14px;
+                transition: all 0.3s;
+            }}
+            #{viz_id} .d3-search-input:focus {{
+                outline: none;
+                border-color: #1677ff;
+                box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+            }}
+            #{viz_id} table {{
+                width: 100%;
+                border-collapse: collapse;
+            }}
+            #{viz_id} th {{
+                background: #f5f5f5;
+                padding: 14px 16px;
+                text-align: left;
+                font-weight: 600;
+                font-size: 13px;
+                color: #262626;
+                border-bottom: 2px solid #e8e8e8;
+                cursor: pointer;
+                user-select: none;
+                position: relative;
+                transition: background 0.2s;
+            }}
+            #{viz_id} th:hover {{
+                background: #e6f7ff;
+            }}
+            #{viz_id} th::after {{
+                content: '⇅';
+                position: absolute;
+                right: 8px;
+                opacity: 0.3;
+                font-size: 12px;
+            }}
+            #{viz_id} th.sort-asc::after {{
+                content: '↑';
+                opacity: 1;
+                color: #1677ff;
+            }}
+            #{viz_id} th.sort-desc::after {{
+                content: '↓';
+                opacity: 1;
+                color: #1677ff;
+            }}
+            #{viz_id} td {{
+                padding: 12px 16px;
+                border-bottom: 1px solid #f0f0f0;
+                color: #595959;
+                font-size: 14px;
+                transition: all 0.2s;
+            }}
+            #{viz_id} tr {{
+                transition: all 0.2s ease;
+            }}
+            #{viz_id} tbody tr:hover {{
+                background: linear-gradient(90deg, #e6f7ff 0%, #f0f7ff 100%);
+                transform: translateX(2px);
+            }}
+            #{viz_id} .d3-link {{
+                color: #1677ff;
+                text-decoration: none;
+                font-weight: 500;
+                border-bottom: 1px solid transparent;
+                transition: all 0.2s;
+            }}
+            #{viz_id} .d3-link:hover {{
+                color: #0958d9;
+                border-bottom-color: #0958d9;
+            }}
+            #{viz_id} .d3-footer {{
+                padding: 12px 20px;
+                background: #fafafa;
+                color: #8c8c8c;
+                font-size: 13px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-top: 1px solid #e8e8e8;
+            }}
+            #{viz_id} .d3-pagination {{
+                display: flex;
+                gap: 8px;
+                align-items: center;
+            }}
+            #{viz_id} .d3-page-btn {{
+                padding: 6px 12px;
+                border: 1px solid #d9d9d9;
+                border-radius: 6px;
+                background: white;
+                color: #262626;
+                cursor: pointer;
+                font-size: 13px;
+                transition: all 0.2s;
+                user-select: none;
+            }}
+            #{viz_id} .d3-page-btn:hover:not(:disabled) {{
+                border-color: #1677ff;
+                color: #1677ff;
+            }}
+            #{viz_id} .d3-page-btn:disabled {{
+                opacity: 0.4;
+                cursor: not-allowed;
+            }}
+            #{viz_id} .d3-page-btn.active {{
+                background: #1677ff;
+                color: white;
+                border-color: #1677ff;
+            }}
+            #{viz_id} .d3-page-info {{
+                font-size: 13px;
+                color: #595959;
+            }}
+            #{viz_id} .no-results {{
+                padding: 40px;
+                text-align: center;
+                color: #8c8c8c;
+                font-size: 14px;
+            }}
+        </style>
+
+        <div class="d3-table-wrapper">
+            <div class="d3-table-header">
+                <span>📊 {html.escape(query_text[:60])}</span>
+                <span id="{viz_id}-count">{len(display_rows)} kết quả</span>
+            </div>
+            <div class="d3-search-box">
+                <input type="text"
+                       class="d3-search-input"
+                       placeholder="🔍 Tìm kiếm..."
+                       id="{viz_id}-search">
+            </div>
+            <div style="overflow-x: auto; max-height: 600px;">
+                <table id="{viz_id}-table"></table>
+            </div>
+            <div class="d3-footer">
+                <span id="{viz_id}-footer" class="d3-page-info">
+                    {f'Hiển thị 100/{len(rows)} kết quả' if has_more else f'Tổng: {len(rows)} kết quả'}
+                </span>
+                <div id="{viz_id}-pagination" class="d3-pagination"></div>
+            </div>
+        </div>
+
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script>
+        (function() {{
+            const data = {json.dumps(table_data, ensure_ascii=False)};
+            const columns = {json.dumps(columns)};
+            const vieColumns = {json.dumps(vie_columns, ensure_ascii=False)};
+            const systemCol = {json.dumps(system_col)};
+            const orgCol = {json.dumps(org_col)};
+            const baseUrl = {json.dumps(base_url)};  // Base URL for links
+
+            let filteredData = data;
+            let sortColumn = null;
+            let sortAscending = true;
+            let currentPage = 1;
+            const pageSize = 10;  // Max 10 systems per page
+
+            function render() {{
+                const table = d3.select('#{viz_id}-table');
+                table.selectAll('*').remove();
+
+                // Header
+                const thead = table.append('thead').append('tr');
+                vieColumns.forEach((vieCol, i) => {{
+                    const th = thead.append('th')
+                        .text(vieCol)
+                        .classed('sort-asc', sortColumn === i && sortAscending)
+                        .classed('sort-desc', sortColumn === i && !sortAscending)
+                        .on('click', () => sortBy(i));
+                }});
+
+                // Body
+                const tbody = table.append('tbody');
+
+                if (filteredData.length === 0) {{
+                    tbody.append('tr').append('td')
+                        .attr('colspan', columns.length)
+                        .attr('class', 'no-results')
+                        .text('Không tìm thấy kết quả phù hợp');
+                    d3.select('#{viz_id}-count').text('0 kết quả');
+                    renderPagination();
+                    return;
+                }}
+
+                // Pagination: only show current page
+                const totalPages = Math.ceil(filteredData.length / pageSize);
+                const startIndex = (currentPage - 1) * pageSize;
+                const endIndex = Math.min(startIndex + pageSize, filteredData.length);
+                const pageData = filteredData.slice(startIndex, endIndex);
+
+                pageData.forEach(row => {{
+                    const tr = tbody.append('tr')
+                        .style('opacity', 0)
+                        .transition()
+                        .duration(300)
+                        .style('opacity', 1);
+
+                    columns.forEach(col => {{
+                        const td = tr.append('td');
+                        const value = row[col] || '';
+
+                        if (col === systemCol && row._system_id) {{
+                            // Direct URL to system detail page
+                            const systemUrl = baseUrl + '/systems/' + row._system_id + '/';
+                            td.append('a')
+                                .attr('href', systemUrl)
+                                .attr('class', 'd3-link')
+                                .attr('target', '_blank')
+                                .text(value);
+                        }} else if (col === orgCol && row._org_id) {{
+                            // Direct URL to organization dashboard
+                            const orgUrl = baseUrl + '/dashboard/?org_id=' + row._org_id;
+                            td.append('a')
+                                .attr('href', orgUrl)
+                                .attr('class', 'd3-link')
+                                .attr('target', '_blank')
+                                .text(value);
+                        }} else {{
+                            td.text(value);
+                        }}
+                    }});
+                }});
+
+                // Update footer info
+                d3.select('#{viz_id}-count').text(filteredData.length + ' kết quả');
+                d3.select('#{viz_id}-footer').text(
+                    `Hiển thị ${{startIndex + 1}}-${{endIndex}} / ${{filteredData.length}} kết quả`
+                );
+
+                renderPagination();
+            }}
+
+            function renderPagination() {{
+                const totalPages = Math.ceil(filteredData.length / pageSize);
+                const pagination = d3.select('#{viz_id}-pagination');
+                pagination.selectAll('*').remove();
+
+                if (totalPages <= 1) return;  // No pagination needed
+
+                // Previous button
+                pagination.append('button')
+                    .attr('class', 'd3-page-btn')
+                    .attr('disabled', currentPage === 1 ? true : null)
+                    .text('« Trước')
+                    .on('click', () => goToPage(currentPage - 1));
+
+                // Page numbers (show max 5 pages)
+                let startPage = Math.max(1, currentPage - 2);
+                let endPage = Math.min(totalPages, startPage + 4);
+                if (endPage - startPage < 4) {{
+                    startPage = Math.max(1, endPage - 4);
+                }}
+
+                if (startPage > 1) {{
+                    pagination.append('button')
+                        .attr('class', 'd3-page-btn')
+                        .text('1')
+                        .on('click', () => goToPage(1));
+                    if (startPage > 2) {{
+                        pagination.append('span').text('...');
+                    }}
+                }}
+
+                for (let i = startPage; i <= endPage; i++) {{
+                    pagination.append('button')
+                        .attr('class', 'd3-page-btn' + (i === currentPage ? ' active' : ''))
+                        .text(i)
+                        .on('click', () => goToPage(i));
+                }}
+
+                if (endPage < totalPages) {{
+                    if (endPage < totalPages - 1) {{
+                        pagination.append('span').text('...');
+                    }}
+                    pagination.append('button')
+                        .attr('class', 'd3-page-btn')
+                        .text(totalPages)
+                        .on('click', () => goToPage(totalPages));
+                }}
+
+                // Next button
+                pagination.append('button')
+                    .attr('class', 'd3-page-btn')
+                    .attr('disabled', currentPage === totalPages ? true : null)
+                    .text('Sau »')
+                    .on('click', () => goToPage(currentPage + 1));
+            }}
+
+            function goToPage(page) {{
+                const totalPages = Math.ceil(filteredData.length / pageSize);
+                if (page < 1 || page > totalPages) return;
+                currentPage = page;
+                render();
+            }}
+
+            function sortBy(colIndex) {{
+                if (sortColumn === colIndex) {{
+                    sortAscending = !sortAscending;
+                }} else {{
+                    sortColumn = colIndex;
+                    sortAscending = true;
+                }}
+
+                const col = columns[colIndex];
+                filteredData.sort((a, b) => {{
+                    let aVal = a[col] || '';
+                    let bVal = b[col] || '';
+
+                    // Try numeric comparison
+                    const aNum = parseFloat(aVal);
+                    const bNum = parseFloat(bVal);
+                    if (!isNaN(aNum) && !isNaN(bNum)) {{
+                        return sortAscending ? aNum - bNum : bNum - aNum;
+                    }}
+
+                    // String comparison
+                    const result = String(aVal).localeCompare(String(bVal), 'vi');
+                    return sortAscending ? result : -result;
+                }});
+
+                currentPage = 1;  // Reset to first page after sorting
+                render();
+            }}
+
+            function search(query) {{
+                const lowerQuery = query.toLowerCase();
+                if (!lowerQuery) {{
+                    filteredData = data;
+                }} else {{
+                    filteredData = data.filter(row => {{
+                        return columns.some(col => {{
+                            const value = String(row[col] || '').toLowerCase();
+                            return value.includes(lowerQuery);
+                        }});
+                    }});
+                }}
+                currentPage = 1;  // Reset to first page after search
+                render();
+            }}
+
+            d3.select('#{viz_id}-search').on('input', function() {{
+                search(this.value);
+            }});
+
+            // Initial render
+            render();
+        }})();
+        </script>
+    </div>
+    '''
+
+    return html_output
+
+
+def _generate_d3_bar_chart(rows, columns, query_text):
+    """Generate impressive D3.js bar chart with animations"""
+    import html
+    import json
+
+    # Find label and value columns
+    label_col = columns[0]
+    value_col = None
+
+    for col in columns:
+        if col != label_col:
+            try:
+                if isinstance(rows[0].get(col), (int, float)):
+                    value_col = col
+                    break
+            except:
+                pass
+
+    if not value_col:
+        return _generate_d3_table(rows, columns, query_text)
+
+    # Prepare data
+    chart_data = []
+    for row in rows[:20]:
+        label = str(row.get(label_col, ''))
+        value = float(row.get(value_col, 0))
+        chart_data.append({'label': label, 'value': value})
+
+    viz_id = f"d3bar_{abs(hash(query_text)) % 100000}"
+    value_label_vie = _vietnamize_column_name(value_col)
+
+    html_output = f'''
+    <div id="{viz_id}" class="d3-viz-container" style="margin: 16px 0;">
+        <style>
+            #{viz_id} .chart-wrapper {{
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                padding: 24px;
+            }}
+            #{viz_id} .chart-title {{
+                font-size: 16px;
+                font-weight: 600;
+                color: #262626;
+                margin-bottom: 20px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            }}
+            #{viz_id} .bar {{
+                transition: all 0.3s ease;
+            }}
+            #{viz_id} .bar:hover {{
+                opacity: 0.8;
+            }}
+            #{viz_id} .tooltip {{
+                position: absolute;
+                background: rgba(0, 0, 0, 0.85);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 13px;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 0.2s;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            }}
+        </style>
+
+        <div class="chart-wrapper">
+            <div class="chart-title">📊 {html.escape(query_text[:60])}</div>
+            <svg id="{viz_id}-svg"></svg>
+            <div id="{viz_id}-tooltip" class="tooltip"></div>
+        </div>
+
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script>
+        (function() {{
+            const data = {json.dumps(chart_data, ensure_ascii=False)};
+            const valueLabel = {json.dumps(value_label_vie, ensure_ascii=False)};
+
+            const margin = {{top: 20, right: 30, bottom: 80, left: 60}};
+            const width = 800 - margin.left - margin.right;
+            const height = 400 - margin.top - margin.bottom;
+
+            const svg = d3.select('#{viz_id}-svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                .append('g')
+                .attr('transform', `translate(${{margin.left}},${{margin.top}})`);
+
+            const x = d3.scaleBand()
+                .domain(data.map(d => d.label))
+                .range([0, width])
+                .padding(0.3);
+
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.value) * 1.1])
+                .nice()
+                .range([height, 0]);
+
+            // X axis
+            svg.append('g')
+                .attr('transform', `translate(0,${{height}})`)
+                .call(d3.axisBottom(x))
+                .selectAll('text')
+                .attr('transform', 'rotate(-45)')
+                .style('text-anchor', 'end')
+                .style('font-size', '12px');
+
+            // Y axis
+            svg.append('g')
+                .call(d3.axisLeft(y))
+                .style('font-size', '12px');
+
+            // Y axis label
+            svg.append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('y', -50)
+                .attr('x', -height / 2)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '13px')
+                .style('font-weight', '600')
+                .text(valueLabel);
+
+            const tooltip = d3.select('#{viz_id}-tooltip');
+
+            // Bars with animation
+            svg.selectAll('.bar')
+                .data(data)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('x', d => x(d.label))
+                .attr('y', height)
+                .attr('width', x.bandwidth())
+                .attr('height', 0)
+                .attr('fill', (d, i) => d3.interpolateBlues(0.4 + (i / data.length) * 0.5))
+                .attr('rx', 4)
+                .on('mouseover', function(event, d) {{
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .attr('fill', '#0958d9');
+
+                    tooltip
+                        .style('opacity', 1)
+                        .html(`<strong>${{d.label}}</strong><br/>${{valueLabel}}: ${{d.value.toLocaleString('vi-VN')}}`)
+                        .style('left', (event.pageX + 10) + 'px')
+                        .style('top', (event.pageY - 28) + 'px');
+                }})
+                .on('mouseout', function(event, d) {{
+                    const i = data.indexOf(d);
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .attr('fill', d3.interpolateBlues(0.4 + (i / data.length) * 0.5));
+
+                    tooltip.style('opacity', 0);
+                }})
+                .transition()
+                .duration(800)
+                .delay((d, i) => i * 50)
+                .attr('y', d => y(d.value))
+                .attr('height', d => height - y(d.value));
+
+            // Value labels on top of bars
+            svg.selectAll('.label')
+                .data(data)
+                .enter()
+                .append('text')
+                .attr('class', 'label')
+                .attr('x', d => x(d.label) + x.bandwidth() / 2)
+                .attr('y', height)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '11px')
+                .style('font-weight', '600')
+                .style('fill', '#595959')
+                .text(d => d.value.toLocaleString('vi-VN'))
+                .transition()
+                .duration(800)
+                .delay((d, i) => i * 50)
+                .attr('y', d => y(d.value) - 5);
+        }})();
+        </script>
+    </div>
+    '''
+
+    return html_output
+
+
+def _generate_d3_pie_chart(rows, columns, query_text):
+    """Generate impressive D3.js pie chart with animations"""
+    import html
+    import json
+
+    label_col = columns[0]
+    value_col = columns[1] if len(columns) > 1 else None
+
+    if not value_col:
+        return _generate_d3_table(rows, columns, query_text)
+
+    # Prepare data
+    chart_data = []
+    for row in rows[:10]:
+        label = str(row.get(label_col, ''))
+        value = float(row.get(value_col, 0))
+        if value > 0:
+            chart_data.append({'label': label, 'value': value})
+
+    if not chart_data:
+        return _generate_d3_table(rows, columns, query_text)
+
+    viz_id = f"d3pie_{abs(hash(query_text)) % 100000}"
+    value_label_vie = _vietnamize_column_name(value_col)
+
+    html_output = f'''
+    <div id="{viz_id}" class="d3-viz-container" style="margin: 16px 0;">
+        <style>
+            #{viz_id} .chart-wrapper {{
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                padding: 24px;
+            }}
+            #{viz_id} .chart-title {{
+                font-size: 16px;
+                font-weight: 600;
+                color: #262626;
+                margin-bottom: 20px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                text-align: center;
+            }}
+            #{viz_id} .arc {{
+                transition: all 0.3s ease;
+                cursor: pointer;
+            }}
+            #{viz_id} .tooltip {{
+                position: absolute;
+                background: rgba(0, 0, 0, 0.85);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 13px;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 0.2s;
+            }}
+            #{viz_id} .legend {{
+                font-size: 12px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            }}
+        </style>
+
+        <div class="chart-wrapper">
+            <div class="chart-title">🥧 {html.escape(query_text[:60])}</div>
+            <div style="display: flex; justify-content: center; align-items: center;">
+                <svg id="{viz_id}-svg"></svg>
+            </div>
+            <div id="{viz_id}-tooltip" class="tooltip"></div>
+        </div>
+
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script>
+        (function() {{
+            const data = {json.dumps(chart_data, ensure_ascii=False)};
+            const valueLabel = {json.dumps(value_label_vie, ensure_ascii=False)};
+
+            const width = 500;
+            const height = 400;
+            const radius = Math.min(width, height) / 2 - 40;
+
+            const svg = d3.select('#{viz_id}-svg')
+                .attr('width', width)
+                .attr('height', height)
+                .append('g')
+                .attr('transform', `translate(${{width / 2}},${{height / 2}})`);
+
+            const color = d3.scaleOrdinal()
+                .domain(data.map(d => d.label))
+                .range(d3.schemeSet2);
+
+            const pie = d3.pie()
+                .value(d => d.value)
+                .sort(null);
+
+            const arc = d3.arc()
+                .innerRadius(radius * 0.5)
+                .outerRadius(radius);
+
+            const arcHover = d3.arc()
+                .innerRadius(radius * 0.5)
+                .outerRadius(radius * 1.08);
+
+            const tooltip = d3.select('#{viz_id}-tooltip');
+
+            const arcs = svg.selectAll('.arc')
+                .data(pie(data))
+                .enter()
+                .append('g')
+                .attr('class', 'arc');
+
+            arcs.append('path')
+                .attr('d', arc)
+                .attr('fill', d => color(d.data.label))
+                .attr('stroke', 'white')
+                .attr('stroke-width', 2)
+                .style('opacity', 0)
+                .on('mouseover', function(event, d) {{
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .attr('d', arcHover);
+
+                    const percent = ((d.data.value / d3.sum(data, d => d.value)) * 100).toFixed(1);
+                    tooltip
+                        .style('opacity', 1)
+                        .html(`<strong>${{d.data.label}}</strong><br/>${{valueLabel}}: ${{d.data.value.toLocaleString('vi-VN')}}<br/>Tỷ lệ: ${{percent}}%`)
+                        .style('left', (event.pageX + 10) + 'px')
+                        .style('top', (event.pageY - 28) + 'px');
+                }})
+                .on('mouseout', function() {{
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .attr('d', arc);
+
+                    tooltip.style('opacity', 0);
+                }})
+                .transition()
+                .duration(800)
+                .delay((d, i) => i * 100)
+                .style('opacity', 1)
+                .attrTween('d', function(d) {{
+                    const i = d3.interpolate({{startAngle: 0, endAngle: 0}}, d);
+                    return t => arc(i(t));
+                }});
+
+            // Labels
+            arcs.append('text')
+                .attr('transform', d => `translate(${{arc.centroid(d)}})`)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '12px')
+                .style('font-weight', '600')
+                .style('fill', 'white')
+                .style('opacity', 0)
+                .text(d => {{
+                    const percent = ((d.data.value / d3.sum(data, d => d.value)) * 100);
+                    return percent > 5 ? percent.toFixed(0) + '%' : '';
+                }})
+                .transition()
+                .duration(800)
+                .delay((d, i) => i * 100 + 400)
+                .style('opacity', 1);
+        }})();
+        </script>
+    </div>
+    '''
+
+    return html_output
+
+
+def _generate_d3_line_chart(rows, columns, query_text):
+    """Generate impressive D3.js line chart for time series"""
+    import html
+    import json
+
+    # Find date and value columns
+    date_col = None
+    value_col = None
+
+    for col in columns:
+        col_lower = str(col).lower()
+        if 'date' in col_lower or 'time' in col_lower or 'năm' in col_lower or 'tháng' in col_lower:
+            date_col = col
+        elif isinstance(rows[0].get(col), (int, float)):
+            value_col = col
+
+    if not date_col or not value_col:
+        return _generate_d3_table(rows, columns, query_text)
+
+    # Prepare data
+    chart_data = []
+    for row in rows:
+        label = str(row.get(date_col, ''))
+        value = float(row.get(value_col, 0))
+        chart_data.append({'date': label, 'value': value})
+
+    viz_id = f"d3line_{abs(hash(query_text)) % 100000}"
+    value_label_vie = _vietnamize_column_name(value_col)
+    date_label_vie = _vietnamize_column_name(date_col)
+
+    html_output = f'''
+    <div id="{viz_id}" class="d3-viz-container" style="margin: 16px 0;">
+        <style>
+            #{viz_id} .chart-wrapper {{
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                padding: 24px;
+            }}
+            #{viz_id} .chart-title {{
+                font-size: 16px;
+                font-weight: 600;
+                color: #262626;
+                margin-bottom: 20px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            }}
+            #{viz_id} .line {{
+                fill: none;
+                stroke: #1677ff;
+                stroke-width: 3;
+            }}
+            #{viz_id} .area {{
+                fill: url(#gradient);
+                opacity: 0.3;
+            }}
+            #{viz_id} .dot {{
+                fill: #1677ff;
+                stroke: white;
+                stroke-width: 2;
+                cursor: pointer;
+                transition: all 0.2s;
+            }}
+            #{viz_id} .dot:hover {{
+                r: 8;
+                fill: #0958d9;
+            }}
+            #{viz_id} .tooltip {{
+                position: absolute;
+                background: rgba(0, 0, 0, 0.85);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 13px;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 0.2s;
+            }}
+        </style>
+
+        <div class="chart-wrapper">
+            <div class="chart-title">📈 {html.escape(query_text[:60])}</div>
+            <svg id="{viz_id}-svg"></svg>
+            <div id="{viz_id}-tooltip" class="tooltip"></div>
+        </div>
+
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script>
+        (function() {{
+            const data = {json.dumps(chart_data, ensure_ascii=False)};
+            const valueLabel = {json.dumps(value_label_vie, ensure_ascii=False)};
+            const dateLabel = {json.dumps(date_label_vie, ensure_ascii=False)};
+
+            const margin = {{top: 20, right: 30, bottom: 60, left: 70}};
+            const width = 800 - margin.left - margin.right;
+            const height = 400 - margin.top - margin.bottom;
+
+            const svg = d3.select('#{viz_id}-svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                .append('g')
+                .attr('transform', `translate(${{margin.left}},${{margin.top}})`);
+
+            // Gradient
+            const gradient = svg.append('defs')
+                .append('linearGradient')
+                .attr('id', 'gradient')
+                .attr('x1', '0%')
+                .attr('y1', '0%')
+                .attr('x2', '0%')
+                .attr('y2', '100%');
+
+            gradient.append('stop')
+                .attr('offset', '0%')
+                .attr('style', 'stop-color:#1677ff;stop-opacity:0.5');
+
+            gradient.append('stop')
+                .attr('offset', '100%')
+                .attr('style', 'stop-color:#1677ff;stop-opacity:0');
+
+            const x = d3.scaleBand()
+                .domain(data.map(d => d.date))
+                .range([0, width])
+                .padding(0.1);
+
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.value) * 1.1])
+                .nice()
+                .range([height, 0]);
+
+            // X axis
+            svg.append('g')
+                .attr('transform', `translate(0,${{height}})`)
+                .call(d3.axisBottom(x))
+                .selectAll('text')
+                .attr('transform', 'rotate(-45)')
+                .style('text-anchor', 'end')
+                .style('font-size', '12px');
+
+            // X axis label
+            svg.append('text')
+                .attr('x', width / 2)
+                .attr('y', height + 50)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '13px')
+                .style('font-weight', '600')
+                .text(dateLabel);
+
+            // Y axis
+            svg.append('g')
+                .call(d3.axisLeft(y))
+                .style('font-size', '12px');
+
+            // Y axis label
+            svg.append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('y', -55)
+                .attr('x', -height / 2)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '13px')
+                .style('font-weight', '600')
+                .text(valueLabel);
+
+            const line = d3.line()
+                .x(d => x(d.date) + x.bandwidth() / 2)
+                .y(d => y(d.value))
+                .curve(d3.curveMonotoneX);
+
+            const area = d3.area()
+                .x(d => x(d.date) + x.bandwidth() / 2)
+                .y0(height)
+                .y1(d => y(d.value))
+                .curve(d3.curveMonotoneX);
+
+            // Area with animation
+            const areaPath = svg.append('path')
+                .datum(data)
+                .attr('class', 'area')
+                .attr('d', area);
+
+            const areaLength = areaPath.node().getTotalLength();
+            areaPath
+                .attr('stroke-dasharray', areaLength + ' ' + areaLength)
+                .attr('stroke-dashoffset', areaLength)
+                .transition()
+                .duration(1500)
+                .attr('stroke-dashoffset', 0);
+
+            // Line with animation
+            const path = svg.append('path')
+                .datum(data)
+                .attr('class', 'line')
+                .attr('d', line);
+
+            const pathLength = path.node().getTotalLength();
+            path
+                .attr('stroke-dasharray', pathLength + ' ' + pathLength)
+                .attr('stroke-dashoffset', pathLength)
+                .transition()
+                .duration(1500)
+                .attr('stroke-dashoffset', 0);
+
+            const tooltip = d3.select('#{viz_id}-tooltip');
+
+            // Dots with animation
+            svg.selectAll('.dot')
+                .data(data)
+                .enter()
+                .append('circle')
+                .attr('class', 'dot')
+                .attr('cx', d => x(d.date) + x.bandwidth() / 2)
+                .attr('cy', d => y(d.value))
+                .attr('r', 0)
+                .on('mouseover', function(event, d) {{
+                    tooltip
+                        .style('opacity', 1)
+                        .html(`<strong>${{d.date}}</strong><br/>${{valueLabel}}: ${{d.value.toLocaleString('vi-VN')}}`)
+                        .style('left', (event.pageX + 10) + 'px')
+                        .style('top', (event.pageY - 28) + 'px');
+                }})
+                .on('mouseout', function() {{
+                    tooltip.style('opacity', 0);
+                }})
+                .transition()
+                .duration(500)
+                .delay((d, i) => i * 50 + 1000)
+                .attr('r', 5);
         }})();
         </script>
     </div>
@@ -1415,9 +2748,15 @@ class SystemViewSet(viewsets.ModelViewSet):
             'total_systems': total_systems,
         })
 
-    @action(detail=False, methods=['post'])
-    def ai_query(self, request):
+    # ============================================================================
+    # DEPRECATED: POST endpoint không được sử dụng - TẤT CẢ APIs đều dùng SSE
+    # Frontend gọi ai_query_stream (SSE), KHÔNG BAO GIỜ gọi endpoint POST này
+    # Comment out để tránh nhầm lẫn trong tương lai
+    # ============================================================================
+    # @action(detail=False, methods=['post'])
+    def ai_query_POST_DEPRECATED_DO_NOT_USE(self, request):
         """
+        [DEPRECATED - DO NOT USE]
         Strategic Dashboard - AI SQL Assistant
         Uses OpenAI to interpret natural language queries about system data.
         Only accessible by lanhdaobo role.
@@ -1431,6 +2770,7 @@ class SystemViewSet(viewsets.ModelViewSet):
             "query": "Có bao nhiêu hệ thống đang dùng Java?"
         }
         """
+        logger.info("[POST_ENDPOINT] ai_query POST function called!")
         user = request.user
         if user.role not in ['leader', 'admin']:
             return Response(
@@ -1954,9 +3294,7 @@ GROUP BY o.id, o.name;
         ],
         "sql_queries": ["SELECT ..."]
     }},
-    "sql": "SQL query chính để lấy dữ liệu",
-    "chart_type": "bar|pie|table|number",
-    "chart_config": {{"x_field": "tên cột", "y_field": "tên cột", "title": "Tiêu đề", "unit": "đơn vị"}}
+    "sql": "SQL query chính để lấy dữ liệu"
 }}
 
 === QUY TẮC TẠO TASKS (QUAN TRỌNG) ===
@@ -1967,6 +3305,51 @@ Ví dụ:
 - Câu hỏi "Đơn vị nào có nhiều hệ thống?" → Tasks: "Group by đơn vị", "Sắp xếp theo số lượng"
 KHÔNG dùng: "Phân tích yêu cầu", "Xây dựng SQL", "Tổng hợp kết quả" (quá chung chung)
 
+=== 🎯 POLICY: LUÔN FETCH SYSTEM LIST ĐỂ VISUALIZATION CÓ DATA (BẮT BUỘC) ===
+**NGUYÊN TẮC QUAN TRỌNG NHẤT**:
+Bất kỳ câu hỏi nào liên quan đến hệ thống (systems), SQL query PHẢI:
+
+1. **LUÔN trả về danh sách systems** thay vì chỉ aggregate (COUNT, SUM, AVG)
+2. **LUÔN bao gồm các trường sau để tạo hyperlinks trong visualization**:
+   - `s.id AS system_id` (hoặc `s.id`) - REQUIRED cho link
+   - `s.system_name` - REQUIRED cho display
+   - `s.system_code` - Optional nhưng recommended
+   - `s.status` - Optional nhưng recommended
+   - `o.id AS org_id` (hoặc `o.id`) - REQUIRED nếu có join organizations
+   - `o.name AS organization_name` - REQUIRED nếu có join organizations
+
+3. **Ví dụ cụ thể**:
+   ❌ SAI: `SELECT COUNT(*) FROM systems WHERE ...`
+   ✅ ĐÚNG: `SELECT s.id, s.system_name, s.system_code, s.status, o.id AS org_id, o.name AS organization_name FROM systems s JOIN organizations o ON s.org_id = o.id WHERE ... AND s.is_deleted = false`
+
+4. **Áp dụng cho TẤT CẢ các loại câu hỏi**:
+   - "Có bao nhiêu hệ thống?" → Trả về list systems (không chỉ COUNT)
+   - "Hệ thống nào đang hoạt động?" → Trả về list với id/name/org
+   - "Top 5 hệ thống..." → Trả về list với full details
+   - "Đơn vị nào có nhiều hệ thống?" → GROUP BY nhưng vẫn join để lấy system details
+
+5. **Mục đích**: Để D3.js visualization có thể:
+   - Hiển thị interactive table với clickable links
+   - Navigate to system detail page (id)
+   - Navigate to org dashboard (org_id)
+   - Show meaningful data instead of just numbers
+
+=== VÍ DỤ CỤ THỂ CHO CÂU HỎI THƯỜNG GẶP ===
+
+**Câu hỏi: "Có bao nhiêu hệ thống?"**
+❌ CŨ (SAI): SELECT COUNT(*) AS count FROM systems WHERE is_deleted = false
+✅ MỚI (ĐÚNG): SELECT s.id, s.system_name, s.system_code, s.status, o.id AS org_id, o.name AS organization_name FROM systems s JOIN organizations o ON s.org_id = o.id WHERE s.is_deleted = false LIMIT 100
+
+**Câu hỏi: "Đơn vị nào có nhiều hệ thống nhất?"**
+❌ CŨ (SAI): SELECT o.name, COUNT(*) as count FROM systems s JOIN organizations o ON s.org_id = o.id WHERE s.is_deleted = false GROUP BY o.name ORDER BY count DESC LIMIT 10
+✅ MỚI (ĐÚNG): SELECT s.id, s.system_name, s.system_code, s.status, o.id AS org_id, o.name AS organization_name FROM systems s JOIN organizations o ON s.org_id = o.id WHERE s.is_deleted = false ORDER BY o.name LIMIT 100
+
+**Câu hỏi: "Top 5 hệ thống có nhiều người dùng nhất?"**
+❌ CŨ (SAI): SELECT system_name, users_total FROM systems WHERE is_deleted = false ORDER BY users_total DESC LIMIT 5
+✅ MỚI (ĐÚNG): SELECT s.id, s.system_name, s.system_code, s.status, s.users_total, o.id AS org_id, o.name AS organization_name FROM systems s JOIN organizations o ON s.org_id = o.id WHERE s.is_deleted = false ORDER BY s.users_total DESC NULLS LAST LIMIT 5
+
+**LƯU Ý**: LUÔN JOIN với organizations để có org_id và organization_name cho hyperlinks!
+
 === QUY TẮC SQL ===
 1. LUÔN lọc is_deleted = false khi query bảng systems
 2. Tên bảng đúng: systems, organizations, system_architecture, system_assessment, system_operations, system_integration, system_security, system_cost, system_data_info, system_infrastructure, system_vendor
@@ -1974,12 +3357,8 @@ KHÔNG dùng: "Phân tích yêu cầu", "Xây dựng SQL", "Tổng hợp kết q
 4. Join qua system_id (primary key và foreign key của các bảng one-to-one)
 5. Chỉ SELECT queries, KHÔNG UPDATE/DELETE/DROP/INSERT
 6. LUÔN trả về JSON hợp lệ
-7. **QUAN TRỌNG**: Khi query liệt kê hệ thống, LUÔN bao gồm s.system_name (tên hệ thống) trong SELECT, KHÔNG chỉ trả về id
-8. Khi query liên quan đến đơn vị, LUÔN bao gồm o.name (tên đơn vị) thay vì chỉ org_id
-9. **BẮT BUỘC VỚI CÂU HỎI VỀ SỐ LƯỢNG**: Khi câu hỏi hỏi về số lượng hệ thống (VD: "có bao nhiêu hệ thống...", "số lượng hệ thống...", "danh sách hệ thống..."), SQL PHẢI:
-   - Trả về DANH SÁCH các hệ thống đó, KHÔNG chỉ COUNT(*)
-   - LUÔN bao gồm: s.id, s.system_name, o.name (để frontend tạo link)
-   - Ví dụ: SELECT s.id, s.system_name, o.name FROM systems s JOIN organizations o ON s.org_id = o.id WHERE ... AND s.is_deleted = false
+7. **LUÔN JOIN với organizations** để lấy org_id và organization_name cho hyperlinks
+8. **LIMIT kết quả hợp lý**: Nếu không có LIMIT trong câu hỏi, mặc định LIMIT 100 để tránh quá tải
 
 === DATA TYPES ===
 - performance_rating: INTEGER (1-5)
@@ -2017,7 +3396,6 @@ Kết quả SQL (JSON):
         "strategic_insight": "Ý nghĩa chiến lược: phân tích xu hướng, rủi ro, hoặc cơ hội từ dữ liệu (1-2 câu)",
         "recommended_action": "Đề xuất hành động cụ thể cho lãnh đạo (1 câu)",
         "details": null,
-        "system_list_markdown": "Nếu data chứa danh sách hệ thống, tạo markdown table. Nếu không thì null",
         "follow_up_suggestions": [
             "Câu hỏi về rủi ro/bảo mật?",
             "Câu hỏi về ngân sách/nguồn lực?",
@@ -2032,10 +3410,7 @@ Kết quả SQL (JSON):
 - strategic_insight phải có giá trị cho việc ra quyết định
 - recommended_action phải là hành động cụ thể, khả thi
 - follow_up_suggestions phải CHIẾN LƯỢC (rủi ro, ưu tiên, ngân sách, lộ trình)
-- **BẮT BUỘC**: Khi có danh sách hệ thống, tạo system_list_markdown với format:
-  | STT | Tên hệ thống | Đơn vị |
-  |-----|--------------|--------|
-  | 1 | Tên hệ thống A | Tên đơn vị |"""
+- **CHỈ TRẢ VỀ CÁC FIELD TRONG RESPONSE FORMAT** - KHÔNG thêm chart_type, chart_config, system_list_markdown hay bất kỳ field nào khác"""
 
         # Build conversation for Phase 1
         conversation = [{'role': 'user', 'content': query}]
@@ -2070,8 +3445,6 @@ Kết quả SQL (JSON):
                 # Extract thinking and SQL
                 thinking = phase1_data.get('thinking', {'plan': '', 'tasks': [], 'sql_queries': []})
                 sql_query = phase1_data.get('sql')
-                chart_type = phase1_data.get('chart_type')
-                chart_config = phase1_data.get('chart_config', {})
 
                 # If no SQL, return without data
                 if not sql_query:
@@ -2082,15 +3455,49 @@ Kết quả SQL (JSON):
                             'greeting': 'Báo cáo anh/chị,',
                             'main_answer': 'Xin lỗi, tôi không thể tạo câu truy vấn cho yêu cầu này.',
                             'details': None,
-                            'chart_type': None,
-                            'chart_config': None,
-                            'follow_up_suggestions': []
+                            'follow_up_suggestions': [],
+                            'visualization_html': None
                         },
                         'data': None,
                     })
 
                 # Execute SQL
                 query_result, sql_error = validate_and_execute_sql(sql_query)
+
+                if query_result is not None:
+                    # 🎯 POST-PROCESS: If query is just COUNT, also fetch system list for visualization
+                    sql_upper = sql_query.upper()
+                    is_count_only = (
+                        'COUNT(*)' in sql_upper and
+                        'FROM SYSTEMS' in sql_upper and
+                        len(query_result.get('columns', [])) == 1 and
+                        query_result.get('columns', [None])[0].lower() == 'count'
+                    )
+
+                    if is_count_only:
+                        logger.info("[POLICY] Detected COUNT-only query, fetching system list for visualization...")
+                        # Fetch system list with IDs for visualization
+                        supplementary_sql = """
+                        SELECT
+                            s.id,
+                            s.system_name,
+                            s.system_code,
+                            s.status,
+                            o.id AS org_id,
+                            o.name AS organization_name
+                        FROM systems s
+                        JOIN organizations o ON s.org_id = o.id
+                        WHERE s.is_deleted = false
+                        LIMIT 100
+                        """
+                        system_list, list_error = validate_and_execute_sql(supplementary_sql)
+
+                        if system_list is not None:
+                            logger.info(f"[POLICY] Fetched {len(system_list.get('rows', []))} systems for visualization")
+                            # Replace query_result with system list for better visualization
+                            query_result = system_list
+                        else:
+                            logger.warning(f"[POLICY] Failed to fetch system list: {list_error}")
 
                 if query_result is not None:
                     # ====== PHASE 2: Generate Response with actual data ======
@@ -2142,10 +3549,6 @@ Kết quả SQL (JSON):
                                 'details': None,
                                 'follow_up_suggestions': []
                             }
-
-                    # Add chart config from Phase 1
-                    response_content['chart_type'] = chart_type
-                    response_content['chart_config'] = chart_config
 
                     # ====== PHASE 3: Self-Review for Consistency (Max 2 retries) ======
                     MAX_REVIEW_RETRIES = 2
@@ -2217,7 +3620,6 @@ Viết lại câu trả lời CHÍNH XÁC với dữ liệu. Số liệu trong m
         "greeting": "Báo cáo anh/chị,",
         "main_answer": "Câu trả lời với SỐ LIỆU CHÍNH XÁC từ data",
         "details": null,
-        "system_list_markdown": "Markdown table nếu có danh sách hệ thống",
         "follow_up_suggestions": ["Câu hỏi 1", "Câu hỏi 2"]
                                     }}
 }}"""
@@ -2226,8 +3628,6 @@ Viết lại câu trả lời CHÍNH XÁC với dữ liệu. Số liệu trong m
                                         if retry_match:
                                             retry_data = json.loads(retry_match.group())
                                             response_content = retry_data.get('response', response_content)
-                                            response_content['chart_type'] = chart_type
-                                            response_content['chart_config'] = chart_config
                                             logger.info("Response regenerated after self-review")
                                     else:
                                         logger.warning("Max review retries reached, using current response")
@@ -2244,6 +3644,22 @@ Viết lại câu trả lời CHÍNH XÁC với dữ liệu. Số liệu trong m
 
                     # Add review status to thinking
                     thinking['review_passed'] = review_passed
+
+                    # STEP 2: Generate interactive visualization AFTER answer is ready
+                    # This 2-step approach ensures better quality
+                    visualization_html = generate_visualization(query_result, query, request)
+                    response_content['visualization_html'] = visualization_html
+
+                    # NEW: Also generate structured data for React components
+                    visualization_data = generate_visualization_data(query_result, query, request)
+                    response_content['visualization_data'] = visualization_data
+
+                    # Clean up: Remove old visualization fields (AI sometimes adds them despite instructions)
+                    logger.info(f"[CLEANUP] Before: {list(response_content.keys())}")
+                    response_content.pop('chart_type', None)
+                    response_content.pop('chart_config', None)
+                    response_content.pop('system_list_markdown', None)
+                    logger.info(f"[CLEANUP] After: {list(response_content.keys())}")
 
                     return Response({
                         'query': query,
@@ -2276,8 +3692,6 @@ Trả về JSON với SQL đã sửa."""
                             'greeting': 'Báo cáo anh/chị,',
                             'main_answer': FRIENDLY_ERROR_MESSAGE,
                             'details': None,
-                            'chart_type': None,
-                            'chart_config': None,
                             'follow_up_suggestions': []
                         },
                         'data': None,
@@ -2372,9 +3786,9 @@ Trả về JSON với SQL đã sửa."""
                 logger.warning(f"Failed to parse context: {e}")
 
         if mode == 'quick':
-            return self._quick_answer_stream(query, user, context)
+            return self._quick_answer_stream(query, user, context, request)
         else:
-            return self._deep_analysis_stream(query, user, context)
+            return self._deep_analysis_stream(query, user, context, request)
 
     def _get_critical_context(self):
         """
@@ -2427,7 +3841,7 @@ RULE: Khi user hỏi "Bộ KH&CN có bao nhiêu hệ thống?" hoặc "Bộ có 
             logger.warning(f"Failed to get improvement policies: {e}")
             return ""
 
-    def _quick_answer_stream(self, query, user, context=None):
+    def _quick_answer_stream(self, query, user, context=None, request=None):
         """
         Quick Mode: Single AI call + direct answer (~4-6s)
         context: Optional dict with previous_query, previous_answer, previous_sql for follow-up questions
@@ -2652,7 +4066,6 @@ User: "Bộ KH&CN có bao nhiêu hệ thống?"
 User: "Bộ có bao nhiêu hệ thống CNTT?"
 SQL: SELECT COUNT(*) as count FROM systems WHERE is_deleted = false
 Answer: "Bộ KH&CN hiện có {{{{count}}}} hệ thống CNTT."
-Chart: null
 Xử lý:
 - ĐÚNG: SELECT COUNT(*) FROM systems WHERE is_deleted = false
 - SAI: SELECT COUNT(*) FROM systems s JOIN organizations o ... WHERE o.name = 'Bộ KH&CN'
@@ -2663,44 +4076,38 @@ Example 2 - Thống kê theo nhóm:
 User: "Có bao nhiêu hệ thống dùng từng ngôn ngữ lập trình?"
 SQL: SELECT programming_language, COUNT(*) as count FROM systems WHERE is_deleted = false AND programming_language IS NOT NULL GROUP BY programming_language ORDER BY count DESC
 Answer: "Thống kê hệ thống theo ngôn ngữ lập trình"
-Chart: "bar"
-Xử lý: GROUP BY để thống kê, ORDER BY count DESC, chart_type="bar" để hiển thị biểu đồ
+Xử lý: GROUP BY để thống kê, ORDER BY count DESC
 
 Example 2b - Đếm theo ĐƠN VỊ CỤ THỂ (khi user chỉ rõ tên đơn vị):
 User: "Văn phòng Bộ có bao nhiêu hệ thống?"
 User: "Cục KHCN có bao nhiêu hệ thống?"
 SQL: SELECT COUNT(*) as count FROM systems s LEFT JOIN organizations o ON s.org_id = o.id WHERE s.is_deleted = false AND o.name ILIKE '%Văn phòng Bộ%'
 Answer: "Văn phòng Bộ có {{{{count}}}} hệ thống."
-Chart: null
 Xử lý: CHỈ KHI user chỉ rõ TÊN ĐƠN VỊ cụ thể thì mới JOIN với organizations và filter. Dùng ILIKE với % để tìm gần đúng
 
 Example 3 - Tổng/trung bình:
 User: "Tổng dung lượng dữ liệu của các hệ thống?"
 SQL: SELECT SUM(data_volume_gb) as total_gb, COUNT(*) as count FROM systems WHERE is_deleted = false AND data_volume_gb IS NOT NULL
 Answer: "Tổng dung lượng dữ liệu là {{{{total_gb}}}} GB từ {{{{count}}}} hệ thống."
-Chart: null
 Xử lý: Dùng data_volume_gb (NUMERIC) để tính SUM, KHÔNG dùng data_volume (TEXT)
 
 Example 4 - Tìm hệ thống theo điều kiện:
 User: "Hệ thống nào dùng Java và có MFA?"
 SQL: SELECT system_name, framework FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id WHERE s.is_deleted = false AND s.programming_language = 'Java' AND ss.has_mfa = true
 Answer: "Danh sách các hệ thống dùng Java và có MFA. Bảng hiển thị Tên hệ thống và Framework."
-Chart: "table"
-Xử lý: JOIN nhiều bảng, WHERE với điều kiện cụ thể, chart_type="table" để hiển thị danh sách
+Xử lý: JOIN nhiều bảng, WHERE với điều kiện cụ thể
 LƯU Ý: Trong answer, dùng "Tên hệ thống" và "Framework" (canonical names), KHÔNG viết "system_name" hay "framework" (database names)
 
 Example 5 - An toàn thông tin:
 User: "Có bao nhiêu hệ thống chưa có Firewall?"
 SQL: SELECT COUNT(*) as count FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id WHERE s.is_deleted = false AND (ss.has_firewall = false OR ss.has_firewall IS NULL)
 Answer: "Có {{{{count}}}} hệ thống chưa có Firewall."
-Chart: null
 Xử lý: JOIN với system_security, check has_firewall = false OR IS NULL
 
 Example 6 - Lọc theo trạng thái hoạt động:
 User: "Có bao nhiêu hệ thống đang hoạt động?"
 SQL: SELECT COUNT(*) as count FROM systems WHERE is_deleted = false AND status = 'operating'
 Answer: "Có {{{{count}}}} hệ thống đang hoạt động."
-Chart: null
 Xử lý: QUAN TRỌNG - "đang hoạt động" = status = 'operating', KHÔNG phải 'active' hay 'running'
 LƯU Ý: Các giá trị status: 'operating' (Đang vận hành), 'pilot' (Thí điểm), 'testing' (Đang thử nghiệm), 'stopped' (Dừng), 'replacing' (Sắp thay thế)
 
@@ -2708,7 +4115,6 @@ Example 7 - Tìm hệ thống theo tên (FULL-TEXT SEARCH):
 User: "Thông tin về hệ thống Portal"
 SQL: SELECT system_name, status, programming_language, organization FROM systems WHERE is_deleted = false AND system_name ILIKE '%Portal%'
 Answer: "Danh sách các hệ thống có tên chứa 'Portal'. Bảng hiển thị Tên hệ thống, Trạng thái, Ngôn ngữ lập trình, Đơn vị."
-Chart: "table"
 Xử lý: QUAN TRỌNG - Dùng ILIKE '%keyword%' để tìm kiếm gần đúng, KHÔNG dùng = 'exact name'
 Lý do: User thường không nhớ chính xác tên đầy đủ của hệ thống, ILIKE cho kết quả linh hoạt hơn
 VÍ DỤ SAI: system_name = 'Portal' (sẽ không tìm thấy 'Portal VNNIC' hay 'Portal Cục SHTT')
@@ -2734,7 +4140,6 @@ QUAN TRỌNG:
 - LUÔN có WHERE is_deleted = false khi query bảng systems
 - Dùng field _gb (NUMERIC) cho tính toán, field TEXT chỉ để hiển thị
 - Placeholder: {{{{column_name}}}} hoặc [column_name]
-- Chart type: "bar" (thống kê nhóm), "pie" (phần trăm), "table" (danh sách), null (số đơn)
 - **KHI VIẾT CÂU TRẢ LỜI: Dùng tên tiếng Việt (canonical name) của field, KHÔNG dùng database field name**
   VD: Viết "Tên hệ thống" thay vì "system_name", "Trạng thái" thay vì "status"
 - **KHI LỌC THEO TÊN HỆ THỐNG: Dùng ILIKE với % (full-text search), KHÔNG dùng = (exact match)**
@@ -2744,8 +4149,7 @@ QUAN TRỌNG:
 Trả về JSON:
 {{
     "sql": "SELECT query here",
-    "answer": "Câu trả lời với {{{{column_name}}}} placeholder",
-    "chart_type": "bar|pie|table|null"
+    "answer": "Câu trả lời với {{{{column_name}}}} placeholder"
 }}
 
 CHỈ trả về JSON."""
@@ -2756,14 +4160,13 @@ CHỈ trả về JSON."""
                 if json_match:
                     phase1_data = json.loads(json_match.group())
                 else:
-                    phase1_data = {'sql': None, 'answer': 'Không thể xử lý yêu cầu này.', 'chart_type': None}
+                    phase1_data = {'sql': None, 'answer': 'Không thể xử lý yêu cầu này.'}
 
                 sql_query = phase1_data.get('sql')
                 answer = phase1_data.get('answer')
-                chart_type = phase1_data.get('chart_type')
 
                 # Emit phase 1 complete with details (like Deep mode)
-                yield f"event: phase_complete\ndata: {json.dumps({'phase': 1, 'sql': sql_query, 'answer_template': answer, 'chart_type': chart_type})}\n\n"
+                yield f"event: phase_complete\ndata: {json.dumps({'phase': 1, 'sql': sql_query, 'answer_template': answer})}\n\n"
 
             except Exception as e:
                 logger.error(f"Quick mode phase 1 error: {e}")
@@ -2787,6 +4190,45 @@ CHỈ trả về JSON."""
             if query_result is None:
                 yield f"event: error\ndata: {json.dumps({'error': 'Lỗi truy vấn dữ liệu', 'detail': sql_error})}\n\n"
                 return
+
+            # 🎯 POST-PROCESS: If query is just COUNT, also fetch system list for visualization
+            # KEEP BOTH results: original for answer, system list for visualization
+            sql_upper = sql_query.upper()
+            is_count_only = (
+                'COUNT(*)' in sql_upper and
+                'FROM SYSTEMS' in sql_upper and
+                len(query_result.get('columns', [])) == 1 and
+                query_result.get('columns', [None])[0].lower() == 'count'
+            )
+
+            answer_data = query_result  # Original query result for answer generation
+            viz_data = query_result     # Will be replaced with system list if COUNT-only
+
+            if is_count_only:
+                logger.info("[POLICY-SSE] Detected COUNT-only query, fetching system list for visualization...")
+                # Fetch system list with IDs for visualization
+                supplementary_sql = """
+                SELECT
+                    s.id,
+                    s.system_name,
+                    s.system_code,
+                    s.status,
+                    o.id AS org_id,
+                    o.name AS organization_name
+                FROM systems s
+                JOIN organizations o ON s.org_id = o.id
+                WHERE s.is_deleted = false
+                LIMIT 100
+                """
+                system_list, list_error = validate_and_execute_sql_internal(supplementary_sql)
+
+                if system_list is not None:
+                    logger.info(f"[POLICY-SSE] Fetched {len(system_list.get('rows', []))} systems for visualization")
+                    # Keep original query_result for answer, use system_list for visualization
+                    viz_data = system_list
+                    logger.info(f"[POLICY-SSE] Using COUNT data for answer, system list for visualization")
+                else:
+                    logger.warning(f"[POLICY-SSE] Failed to fetch system list: {list_error}")
 
             # Check if result is empty (0 rows) - retry once with SQL review
             if query_result.get('total_rows', 0) == 0:
@@ -2907,7 +4349,8 @@ CHỈ trả về JSON."""
                 return result
 
             # Process answer to replace any template variables
-            processed_answer = replace_template_vars(answer, query_result)
+            # Use answer_data (original COUNT result) for answer generation
+            processed_answer = replace_template_vars(answer, answer_data)
 
             # Generate strategic follow-up suggestions based on query context
             def generate_strategic_suggestions(query_text, data):
@@ -2958,10 +4401,16 @@ CHỈ trả về JSON."""
 
                 return suggestions[:3]  # Return max 3 suggestions
 
-            strategic_suggestions = generate_strategic_suggestions(query, query_result)
+            # Generate strategic suggestions based on answer data
+            strategic_suggestions = generate_strategic_suggestions(query, answer_data)
 
-            # Generate interactive visualization
-            visualization_html = generate_visualization(query_result, query)
+            # STEP 2: Generate interactive visualization AFTER answer is ready
+            # This 2-step approach ensures better quality: answer first, then visualization
+            # Use viz_data (system list with IDs) for rich visualization with hyperlinks
+            visualization_html = generate_visualization(viz_data, query, request)
+
+            # NEW: Also generate structured data for React components
+            visualization_data = generate_visualization_data(viz_data, query, request)
 
             # Final result (no Phase 3, no Phase 4 for quick mode)
             final_response = {
@@ -2969,12 +4418,12 @@ CHỈ trả về JSON."""
                 'thinking': {'plan': 'Quick analysis', 'tasks': []},
                 'response': {
                     'greeting': '',
-                    'main_answer': processed_answer or answer or f'Tìm thấy **{query_result.get("total_rows", 0)}** kết quả.',
-                    'follow_up_suggestions': strategic_suggestions
+                    'main_answer': processed_answer or answer or f'Tìm thấy **{answer_data.get("total_rows", 0)}** kết quả.',
+                    'follow_up_suggestions': strategic_suggestions,
+                    'visualization_html': visualization_html,  # Legacy HTML visualization
+                    'visualization_data': visualization_data   # NEW: Structured data for React components
                 },
-                'data': query_result,
-                'chart_type': chart_type,
-                'visualization': visualization_html,
+                'data': viz_data,  # Use viz_data (system list) for rich display
                 'mode': 'quick'
             }
 
@@ -2996,7 +4445,7 @@ CHỈ trả về JSON."""
         response['Connection'] = 'keep-alive'
         return response
 
-    def _deep_analysis_stream(self, query, user, context=None):
+    def _deep_analysis_stream(self, query, user, context=None, request=None):
         """
         Deep Mode: Full 4-phase workflow (~12-20s)
         context: Optional dict with previous_query, previous_answer, previous_sql for follow-up questions
@@ -3177,28 +4626,24 @@ Example 1 - Phân tích tình trạng hệ thống:
 User: "Phân tích tình trạng hệ thống hiện tại"
 Thinking: {{"plan": "Lấy thống kê tổng quan về số lượng, trạng thái, công nghệ, an toàn thông tin", "tasks": ["Đếm tổng số hệ thống", "Thống kê theo trạng thái", "Phân tích công nghệ", "Kiểm tra ATTT"]}}
 SQL: SELECT s.status, COUNT(*) as count, COUNT(CASE WHEN ss.has_mfa = true THEN 1 END) as has_mfa_count, COUNT(CASE WHEN ss.has_firewall = true THEN 1 END) as has_firewall_count FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id WHERE s.is_deleted = false GROUP BY s.status
-Chart: "bar"
 Xử lý: Deep mode cần SQL phức tạp hơn với JOIN nhiều bảng, GROUP BY, CASE WHEN để phân tích sâu
 
 Example 2 - Hệ thống cần nâng cấp:
 User: "Hệ thống nào cần nâng cấp?"
 Thinking: {{"plan": "Tìm hệ thống có modernization_priority cao, technical_debt_level cao, needs_replacement = true", "tasks": ["Query bảng assessment", "JOIN với systems", "Filter theo điều kiện"]}}
 SQL: SELECT s.system_name, sa.technical_debt_level, sa.modernization_priority, sa.recommendation FROM systems s JOIN system_assessment sa ON s.id = sa.system_id WHERE s.is_deleted = false AND (sa.needs_replacement = true OR sa.modernization_priority IN ('high', 'critical') OR sa.technical_debt_level IN ('high', 'critical')) ORDER BY sa.modernization_priority DESC, sa.technical_debt_level DESC
-Chart: "table"
 Xử lý: JOIN system_assessment, multiple conditions trong WHERE, ORDER BY priority
 
 Example 3 - Đánh giá rủi ro ATTT:
 User: "Đánh giá rủi ro bảo mật?"
 Thinking: {{"plan": "Phân tích các hệ thống thiếu biện pháp ATTT: không có MFA, Firewall, WAF, mã hóa", "tasks": ["Query system_security", "Đếm hệ thống thiếu từng biện pháp", "Tính phần trăm"]}}
 SQL: SELECT COUNT(*) as total_systems, COUNT(CASE WHEN ss.has_mfa = false OR ss.has_mfa IS NULL THEN 1 END) as no_mfa, COUNT(CASE WHEN ss.has_firewall = false OR ss.has_firewall IS NULL THEN 1 END) as no_firewall, COUNT(CASE WHEN ss.has_waf = false OR ss.has_waf IS NULL THEN 1 END) as no_waf, COUNT(CASE WHEN ss.has_data_encryption_at_rest = false OR ss.has_data_encryption_at_rest IS NULL THEN 1 END) as no_encryption FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id WHERE s.is_deleted = false
-Chart: null
 Xử lý: Multiple CASE WHEN để đếm nhiều điều kiện, LEFT JOIN để bao gồm cả hệ thống chưa có security info
 
 Example 4 - Phân tích hệ thống theo tên (FULL-TEXT SEARCH):
 User: "Phân tích chi tiết các hệ thống Portal"
 Thinking: {{"plan": "Tìm tất cả hệ thống có chứa 'Portal' trong tên, JOIN các bảng để lấy thông tin chi tiết về công nghệ, ATTT, đánh giá", "tasks": ["Query systems với ILIKE", "JOIN security info", "JOIN assessment", "Aggregate data"]}}
 SQL: SELECT s.system_name, s.status, s.programming_language, s.organization, ss.has_mfa, ss.has_firewall, sa.technical_debt_level, sa.modernization_priority FROM systems s LEFT JOIN system_security ss ON s.id = ss.system_id LEFT JOIN system_assessment sa ON s.id = sa.system_id WHERE s.is_deleted = false AND s.system_name ILIKE '%Portal%' ORDER BY s.system_name
-Chart: "table"
 Xử lý: QUAN TRỌNG - Dùng ILIKE '%keyword%' để full-text search, KHÔNG dùng = 'exact name'. Multiple LEFT JOIN để lấy thông tin từ nhiều bảng
 Lý do: ILIKE linh hoạt hơn exact match, tìm được nhiều hệ thống liên quan
 VÍ DỤ: Câu hỏi "Portal" sẽ tìm được: "Portal VNNIC", "Portal Cục SHTT", "Portal thông tin", etc.
@@ -3231,11 +4676,20 @@ QUAN TRỌNG:
   VD: system_name ILIKE '%Portal%' thay vì system_name = 'Portal VNNIC'
   Lý do: Exact search rất khó vì user không nhớ chính xác tên đầy đủ
 
+🎯 **POLICY BẮT BUỘC: LUÔN FETCH SYSTEM LIST CHO VISUALIZATION**
+Bất kỳ câu hỏi nào liên quan đến hệ thống, SQL query PHẢI:
+1. **Trả về DANH SÁCH systems** (không chỉ COUNT/SUM/AVG)
+2. **LUÔN bao gồm để tạo hyperlinks**: s.id, s.system_name, s.system_code, s.status, o.id AS org_id, o.name AS organization_name
+3. **Ví dụ**:
+   ❌ SAI: SELECT COUNT(*) FROM systems
+   ✅ ĐÚNG: SELECT s.id, s.system_name, s.system_code, s.status, o.id AS org_id, o.name AS organization_name FROM systems s JOIN organizations o ON s.org_id = o.id WHERE s.is_deleted = false
+4. **Áp dụng cho mọi câu hỏi**: "Có bao nhiêu?", "Top 5", "Hệ thống nào", "Đơn vị nào" → đều trả về list với full details
+5. **Mục đích**: D3.js visualization cần id/name để tạo clickable links đến system detail và org dashboard
+
 Trả về JSON:
 {{
     "thinking": {{"plan": "Kế hoạch phân tích chi tiết", "tasks": ["task1", "task2", "..."]}},
-    "sql": "SELECT query here (có thể phức tạp với nhiều JOIN)",
-    "chart_type": "bar|pie|line|table|null"
+    "sql": "SELECT query here (có thể phức tạp với nhiều JOIN)"
 }}
 
 CHỈ trả về JSON."""
@@ -3257,7 +4711,6 @@ CHỈ trả về JSON."""
 
                 thinking = phase1_data.get('thinking', {})
                 sql_query = phase1_data.get('sql')
-                chart_type = phase1_data.get('chart_type')
 
                 yield f"event: phase_complete\ndata: {json.dumps({'phase': 1, 'thinking': thinking, 'sql': sql_query})}\n\n"
 
@@ -3501,8 +4954,6 @@ CHỈ trả về JSON."""
                 else:
                     response_content = {'greeting': 'Báo cáo anh/chị,', 'main_answer': phase2_content, 'follow_up_suggestions': []}
 
-                response_content['chart_type'] = chart_type
-
                 # Replace template variables in response with actual data
                 # AI might return "{{column_name}}" or "[column_name]" which needs to be replaced
                 def replace_template_vars(text, data):
@@ -3581,8 +5032,23 @@ Trả về JSON: {{"is_consistent": true/false, "issues": []}}"""
             # Stop keep-alive before final result
             stop_keep_alive.set()
 
-            # Generate interactive visualization
-            visualization_html = generate_visualization(query_result, query)
+            # STEP 2: Generate interactive visualization AFTER answer is ready
+            # This 2-step approach ensures better quality: answer first, then visualization
+            visualization_html = generate_visualization(query_result, query, request)
+
+            # NEW: Also generate structured data for React components
+            visualization_data = generate_visualization_data(query_result, query, request)
+
+            # Add visualization to response content
+            response_content['visualization_html'] = visualization_html
+            response_content['visualization_data'] = visualization_data
+
+            # Clean up: Remove old visualization fields (AI sometimes adds them despite instructions)
+            logger.info(f"[DEEP_SSE_CLEANUP] Before: {list(response_content.keys())}")
+            response_content.pop('chart_type', None)
+            response_content.pop('chart_config', None)
+            response_content.pop('system_list_markdown', None)
+            logger.info(f"[DEEP_SSE_CLEANUP] After: {list(response_content.keys())}")
 
             # Final result
             final_response = {
@@ -3590,7 +5056,6 @@ Trả về JSON: {{"is_consistent": true/false, "issues": []}}"""
                 'thinking': thinking,
                 'response': response_content,
                 'data': query_result,
-                'visualization': visualization_html,
                 'mode': 'deep'  # Mark as deep mode
             }
 

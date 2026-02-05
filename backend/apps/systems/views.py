@@ -50,6 +50,432 @@ AI_MODEL_PRICING = {
 }
 
 
+# ========================================
+# Interactive Data Visualization Generator
+# ========================================
+
+def generate_visualization(query_result, query_text=""):
+    """
+    Generate interactive HTML/JS visualization based on data type
+
+    Auto-detects best visualization:
+    - Table: For list/detailed data
+    - Bar Chart: For comparisons
+    - Pie Chart: For distributions
+    - Line Chart: For trends
+
+    Returns HTML string with embedded JavaScript
+    """
+    if not query_result or not query_result.get('rows'):
+        return None
+
+    rows = query_result.get('rows', [])
+    columns = query_result.get('columns', [])
+    total_rows = query_result.get('total_rows', 0)
+
+    if not rows or not columns:
+        return None
+
+    # Detect visualization type
+    viz_type = _detect_visualization_type(rows, columns, query_text)
+
+    if viz_type == 'table':
+        return _generate_interactive_table(rows, columns, query_text)
+    elif viz_type == 'bar':
+        return _generate_bar_chart(rows, columns, query_text)
+    elif viz_type == 'pie':
+        return _generate_pie_chart(rows, columns, query_text)
+    elif viz_type == 'line':
+        return _generate_line_chart(rows, columns, query_text)
+    else:
+        # Default to table
+        return _generate_interactive_table(rows, columns, query_text)
+
+
+def _detect_visualization_type(rows, columns, query_text):
+    """Detect best visualization type based on data shape and query"""
+    import re
+
+    query_lower = query_text.lower()
+
+    # Check for time series data
+    has_date_column = any('date' in str(col).lower() or 'time' in str(col).lower() or 'năm' in str(col).lower() or 'tháng' in str(col).lower() for col in columns)
+
+    # Check for numeric data
+    numeric_columns = []
+    for col in columns:
+        if rows and col in rows[0]:
+            try:
+                val = rows[0][col]
+                if isinstance(val, (int, float)) and not isinstance(val, bool):
+                    numeric_columns.append(col)
+            except:
+                pass
+
+    # Rules for visualization selection
+    if has_date_column and numeric_columns:
+        return 'line'  # Time series data
+
+    if len(rows) <= 10 and numeric_columns and any(word in query_lower for word in ['phân bố', 'tỷ lệ', 'phần trăm', '%', 'distribution']):
+        return 'pie'  # Small dataset with distribution
+
+    if len(rows) <= 20 and numeric_columns and any(word in query_lower for word in ['so sánh', 'nhiều nhất', 'nhiều', 'nhất', 'ít nhất', 'ít', 'top', 'compare', 'most', 'least']):
+        return 'bar'  # Comparison data
+
+    # Default to table for detailed data
+    return 'table'
+
+
+def _generate_interactive_table(rows, columns, query_text):
+    """Generate interactive table with clickable links"""
+    import html
+
+    # Limit to first 100 rows for performance
+    display_rows = rows[:100]
+    has_more = len(rows) > 100
+
+    # Detect entity columns for linking
+    system_col = None
+    org_col = None
+
+    for col in columns:
+        col_lower = str(col).lower()
+        if 'system' in col_lower or 'hệ thống' in col_lower:
+            system_col = col
+        elif 'org' in col_lower or 'đơn vị' in col_lower or 'tổ chức' in col_lower:
+            org_col = col
+
+    # Build HTML table
+    html_parts = []
+    html_parts.append('''
+    <div class="ai-visualization" style="margin-top: 16px;">
+        <style>
+            .ai-viz-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+                background: white;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                border-radius: 6px;
+                overflow: hidden;
+            }
+            .ai-viz-table thead {
+                background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+                color: white;
+            }
+            .ai-viz-table th {
+                padding: 10px 12px;
+                text-align: left;
+                font-weight: 600;
+                border-bottom: 2px solid #0050b3;
+            }
+            .ai-viz-table td {
+                padding: 8px 12px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            .ai-viz-table tbody tr:hover {
+                background-color: #e6f7ff;
+            }
+            .ai-viz-link {
+                color: #1890ff;
+                text-decoration: underline;
+                cursor: pointer;
+                font-weight: 500;
+            }
+            .ai-viz-link:hover {
+                color: #096dd9;
+            }
+            .ai-viz-footer {
+                margin-top: 8px;
+                text-align: right;
+                font-size: 12px;
+                color: #8c8c8c;
+            }
+        </style>
+        <table class="ai-viz-table">
+            <thead>
+                <tr>
+    ''')
+
+    # Table headers
+    for col in columns:
+        html_parts.append(f'<th>{html.escape(str(col))}</th>')
+
+    html_parts.append('</tr></thead><tbody>')
+
+    # Table rows
+    for row in display_rows:
+        html_parts.append('<tr>')
+        for col in columns:
+            value = row.get(col, '')
+
+            # Check if this should be a link
+            cell_html = html.escape(str(value)) if value is not None else ''
+
+            # Add link if it's a system or org column
+            if col == system_col and value:
+                # Try to find system ID
+                system_id = row.get('id') or row.get('system_id')
+                if system_id:
+                    cell_html = f'<a href="/systems/{system_id}" class="ai-viz-link" onclick="event.preventDefault(); window.navigateToSystem({system_id});">{html.escape(str(value))}</a>'
+            elif col == org_col and value:
+                # Try to find org ID
+                org_id = row.get('org_id') or row.get('organization_id')
+                if org_id:
+                    cell_html = f'<a href="/dashboard/unit?org={org_id}" class="ai-viz-link" onclick="event.preventDefault(); window.navigateToDashboard({org_id});">{html.escape(str(value))}</a>'
+
+            html_parts.append(f'<td>{cell_html}</td>')
+        html_parts.append('</tr>')
+
+    html_parts.append('</tbody></table>')
+
+    # Footer
+    if has_more:
+        html_parts.append(f'<div class="ai-viz-footer">Hiển thị 100/{len(rows)} kết quả</div>')
+    else:
+        html_parts.append(f'<div class="ai-viz-footer">Tổng: {len(rows)} kết quả</div>')
+
+    html_parts.append('</div>')
+
+    return ''.join(html_parts)
+
+
+def _generate_bar_chart(rows, columns, query_text):
+    """Generate interactive bar chart"""
+    import html
+
+    # Find label and value columns
+    label_col = columns[0]
+    value_col = None
+
+    for col in columns:
+        if col != label_col:
+            # Check if numeric
+            try:
+                if isinstance(rows[0].get(col), (int, float)):
+                    value_col = col
+                    break
+            except:
+                pass
+
+    if not value_col:
+        # Fallback to table
+        return _generate_interactive_table(rows, columns, query_text)
+
+    # Prepare data
+    chart_data = []
+    for row in rows[:20]:  # Limit to 20 bars
+        label = str(row.get(label_col, ''))
+        value = float(row.get(value_col, 0))
+        chart_data.append({'label': label, 'value': value})
+
+    # Generate Chart.js HTML
+    import json
+    chart_id = f"chart_{hash(query_text) % 10000}"
+
+    html_output = f'''
+    <div class="ai-visualization" style="margin-top: 16px;">
+        <canvas id="{chart_id}" style="max-height: 400px;"></canvas>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+        <script>
+        (function() {{
+            const ctx = document.getElementById('{chart_id}');
+            if (ctx) {{
+                new Chart(ctx, {{
+                    type: 'bar',
+                    data: {{
+                        labels: {json.dumps([d['label'] for d in chart_data])},
+                        datasets: [{{
+                            label: '{html.escape(str(value_col))}',
+                            data: {json.dumps([d['value'] for d in chart_data])},
+                            backgroundColor: 'rgba(24, 144, 255, 0.6)',
+                            borderColor: 'rgba(24, 144, 255, 1)',
+                            borderWidth: 2
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {{
+                            legend: {{
+                                display: true,
+                                position: 'top'
+                            }},
+                            title: {{
+                                display: true,
+                                text: '{html.escape(query_text)}'
+                            }}
+                        }},
+                        scales: {{
+                            y: {{
+                                beginAtZero: true
+                            }}
+                        }}
+                    }}
+                }});
+            }}
+        }})();
+        </script>
+    </div>
+    '''
+
+    return html_output
+
+
+def _generate_pie_chart(rows, columns, query_text):
+    """Generate interactive pie chart"""
+    import html
+    import json
+
+    # Find label and value columns
+    label_col = columns[0]
+    value_col = columns[1] if len(columns) > 1 else None
+
+    if not value_col:
+        return _generate_interactive_table(rows, columns, query_text)
+
+    # Prepare data
+    chart_data = []
+    colors = [
+        'rgba(24, 144, 255, 0.8)',
+        'rgba(82, 196, 26, 0.8)',
+        'rgba(250, 173, 20, 0.8)',
+        'rgba(245, 34, 45, 0.8)',
+        'rgba(114, 46, 209, 0.8)',
+        'rgba(19, 194, 194, 0.8)',
+        'rgba(250, 84, 28, 0.8)',
+        'rgba(250, 219, 20, 0.8)',
+    ]
+
+    for i, row in enumerate(rows[:8]):  # Limit to 8 slices
+        label = str(row.get(label_col, ''))
+        value = float(row.get(value_col, 0))
+        chart_data.append({'label': label, 'value': value, 'color': colors[i % len(colors)]})
+
+    chart_id = f"chart_{hash(query_text) % 10000}"
+
+    html_output = f'''
+    <div class="ai-visualization" style="margin-top: 16px;">
+        <canvas id="{chart_id}" style="max-height: 400px;"></canvas>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+        <script>
+        (function() {{
+            const ctx = document.getElementById('{chart_id}');
+            if (ctx) {{
+                new Chart(ctx, {{
+                    type: 'pie',
+                    data: {{
+                        labels: {json.dumps([d['label'] for d in chart_data])},
+                        datasets: [{{
+                            data: {json.dumps([d['value'] for d in chart_data])},
+                            backgroundColor: {json.dumps([d['color'] for d in chart_data])},
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {{
+                            legend: {{
+                                display: true,
+                                position: 'right'
+                            }},
+                            title: {{
+                                display: true,
+                                text: '{html.escape(query_text)}'
+                            }}
+                        }}
+                    }}
+                }});
+            }}
+        }})();
+        </script>
+    </div>
+    '''
+
+    return html_output
+
+
+def _generate_line_chart(rows, columns, query_text):
+    """Generate interactive line chart for time series"""
+    import html
+    import json
+
+    # Find date and value columns
+    date_col = None
+    value_col = None
+
+    for col in columns:
+        col_lower = str(col).lower()
+        if 'date' in col_lower or 'time' in col_lower or 'năm' in col_lower or 'tháng' in col_lower:
+            date_col = col
+        elif isinstance(rows[0].get(col), (int, float)):
+            value_col = col
+
+    if not date_col or not value_col:
+        return _generate_interactive_table(rows, columns, query_text)
+
+    # Prepare data
+    chart_data = []
+    for row in rows:
+        label = str(row.get(date_col, ''))
+        value = float(row.get(value_col, 0))
+        chart_data.append({'label': label, 'value': value})
+
+    chart_id = f"chart_{hash(query_text) % 10000}"
+
+    html_output = f'''
+    <div class="ai-visualization" style="margin-top: 16px;">
+        <canvas id="{chart_id}" style="max-height: 400px;"></canvas>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+        <script>
+        (function() {{
+            const ctx = document.getElementById('{chart_id}');
+            if (ctx) {{
+                new Chart(ctx, {{
+                    type: 'line',
+                    data: {{
+                        labels: {json.dumps([d['label'] for d in chart_data])},
+                        datasets: [{{
+                            label: '{html.escape(str(value_col))}',
+                            data: {json.dumps([d['value'] for d in chart_data])},
+                            borderColor: 'rgba(24, 144, 255, 1)',
+                            backgroundColor: 'rgba(24, 144, 255, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {{
+                            legend: {{
+                                display: true,
+                                position: 'top'
+                            }},
+                            title: {{
+                                display: true,
+                                text: '{html.escape(query_text)}'
+                            }}
+                        }},
+                        scales: {{
+                            y: {{
+                                beginAtZero: true
+                            }}
+                        }}
+                    }}
+                }});
+            }}
+        }})();
+        </script>
+    </div>
+    '''
+
+    return html_output
+
+
 def estimate_llm_cost(model_name: str, input_tokens: int, output_tokens: int) -> float:
     """
     Estimate cost for an LLM request in USD.
@@ -1455,7 +1881,7 @@ GROUP BY o.id, o.name;
                     rows = cursor.fetchall()
                     query_result = {
                         'columns': columns,
-                        'rows': [dict(zip(columns, row)) for row in rows[:100]],  # Limit 100 rows
+                        'rows': [dict(zip(columns, row)) for row in rows[:200]],  # Limit 200 rows (increased for detailed queries)
                         'total_rows': len(rows),
                     }
                     return query_result, None
@@ -1672,9 +2098,9 @@ Kết quả SQL (JSON):
 
                     # Prepare data summary for Phase 2
                     data_summary = json.dumps(query_result, ensure_ascii=False, indent=2, default=str)
-                    # Limit data size for prompt
-                    if len(data_summary) > 3000:
-                        data_summary = data_summary[:3000] + "\n... (truncated)"
+                    # Limit data size for prompt (increased to handle larger result sets)
+                    if len(data_summary) > 20000:
+                        data_summary = data_summary[:20000] + "\n... (truncated)"
 
                     phase2_prompt = phase2_prompt_template.format(
                         question=query,
@@ -2534,6 +2960,9 @@ CHỈ trả về JSON."""
 
             strategic_suggestions = generate_strategic_suggestions(query, query_result)
 
+            # Generate interactive visualization
+            visualization_html = generate_visualization(query_result, query)
+
             # Final result (no Phase 3, no Phase 4 for quick mode)
             final_response = {
                 'query': query,
@@ -2545,6 +2974,7 @@ CHỈ trả về JSON."""
                 },
                 'data': query_result,
                 'chart_type': chart_type,
+                'visualization': visualization_html,
                 'mode': 'quick'
             }
 
@@ -3021,8 +3451,8 @@ CHỈ trả về JSON."""
             yield f"event: phase_start\ndata: {json.dumps({'phase': 3, 'name': 'Tạo báo cáo', 'description': 'Đang tạo báo cáo chiến lược...'})}\n\n"
 
             data_summary = json.dumps(query_result, ensure_ascii=False, indent=2, default=str)
-            if len(data_summary) > 3000:
-                data_summary = data_summary[:3000] + "\n... (truncated)"
+            if len(data_summary) > 20000:
+                data_summary = data_summary[:20000] + "\n... (truncated)"
 
             # Updated Phase 2 prompt for executive style
             phase2_prompt = f"""Bạn là AI assistant báo cáo cho Lãnh đạo Bộ KH&CN.
@@ -3151,12 +3581,16 @@ Trả về JSON: {{"is_consistent": true/false, "issues": []}}"""
             # Stop keep-alive before final result
             stop_keep_alive.set()
 
+            # Generate interactive visualization
+            visualization_html = generate_visualization(query_result, query)
+
             # Final result
             final_response = {
                 'query': query,
                 'thinking': thinking,
                 'response': response_content,
                 'data': query_result,
+                'visualization': visualization_html,
                 'mode': 'deep'  # Mark as deep mode
             }
 

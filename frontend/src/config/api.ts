@@ -200,18 +200,18 @@ export const submitAIFeedback = async (data: {
   rating: 'positive' | 'negative';
   feedback_text?: string;
 }): Promise<AIResponseFeedback> => {
-  const response = await api.post('/systems/ai-feedback/', data);
+  const response = await api.post('/ai-feedback/', data);
   return response.data;
 };
 
 // Get active improvement policies
 export const getActivePolicies = async (): Promise<ImprovementPolicy[]> => {
-  const response = await api.get('/systems/ai-feedback/active_policies/');
+  const response = await api.get('/ai-feedback/active_policies/');
   return response.data;
 };
 
 // Get feedback statistics
 export const getFeedbackStats = async (): Promise<FeedbackStats> => {
-  const response = await api.get('/systems/ai-feedback/stats/');
+  const response = await api.get('/ai-feedback/stats/');
   return response.data;
 };

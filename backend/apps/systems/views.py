@@ -2197,8 +2197,15 @@ Lưu ý quan trọng:
 
 NGỮ CẢNH QUAN TRỌNG:
 Đây là hệ thống thống kê CNTT của Bộ Khoa học và Công nghệ (Bộ KH&CN).
-Khi user hỏi về "Bộ KH&CN" hoặc "Bộ" mà KHÔNG chỉ rõ đơn vị con cụ thể (như "Văn phòng Bộ", "Cục X", "Viện Y")
-→ Hiểu là hỏi về TOÀN BỘ hệ thống trong database, KHÔNG filter theo organization.
+Database chứa TOÀN BỘ hệ thống của Bộ KH&CN (từ tất cả các đơn vị: Văn phòng Bộ, các Cục, Viện, Trung tâm...).
+
+QUY TẮC XỬ LÝ CÂU HỎI VỀ "BỘ KH&CN":
+- "Bộ KH&CN có bao nhiêu hệ thống?" = Đếm TẤT CẢ hệ thống (COUNT(*) FROM systems WHERE is_deleted=false)
+- "Bộ có bao nhiêu hệ thống?" = Đếm TẤT CẢ hệ thống (COUNT(*) FROM systems WHERE is_deleted=false)
+- KHÔNG filter theo o.name ILIKE '%KH&CN%' hay '%Khoa học%' vì:
+  + Các đơn vị KHÔNG có chữ "KH&CN" trong tên (VD: Văn phòng Bộ, VNNIC, PTIT...)
+  + Nhưng TẤT CẢ đều thuộc Bộ KH&CN
+- CHỈ filter theo organization KHI user chỉ rõ TÊN ĐƠN VỊ cụ thể (VD: "Văn phòng Bộ có bao nhiêu hệ thống?")
 
 VÍ DỤ CÁCH XỬ LÝ:
 

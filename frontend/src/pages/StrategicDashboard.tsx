@@ -861,8 +861,12 @@ const StrategicDashboard = () => {
         console.log('[AI DEBUG] *** COMPLETE EVENT RECEIVED ***', e.data);
         const data = JSON.parse(e.data);
 
-        // Mark all tasks as completed
-        setAiProgressTasks(prev => prev.map(t => ({ ...t, status: 'completed' as const })));
+        // Mark all tasks as completed AND capture for saving
+        let completedTasks: any[] = [];
+        setAiProgressTasks(prev => {
+          completedTasks = prev.map(t => ({ ...t, status: 'completed' as const }));
+          return completedTasks;
+        });
 
         // Save to conversation
         const saveToConversation = async (conversation: AIConversation | null) => {
@@ -904,13 +908,14 @@ const StrategicDashboard = () => {
           // FIX Bug #1: Update the placeholder entry instead of adding new one
           // ALSO: Save progress tasks for this conversation
           // FIX Deep Mode Bug: Deep copy progress tasks to preserve detailed info
-          console.log('[SAVE] Current aiProgressTasks:', aiProgressTasks);
-          const savedProgressTasks = JSON.parse(JSON.stringify(aiProgressTasks));
+          // CRITICAL FIX: Use completedTasks captured from state update, NOT aiProgressTasks from closure!
+          console.log('[SAVE] Using completedTasks:', completedTasks);
+          const savedProgressTasks = JSON.parse(JSON.stringify(completedTasks));
           console.log('[SAVE] Saving conversation with', savedProgressTasks.length, 'progress tasks');
 
           // DEBUG: Log if tasks are empty
           if (savedProgressTasks.length === 0) {
-            console.error('[BUG] aiProgressTasks is EMPTY when saving! This will cause "AI PHÂN TÍCH" section to disappear.');
+            console.error('[BUG] completedTasks is EMPTY when saving! This will cause "AI PHÂN TÍCH" section to disappear.');
           }
 
           setConversationHistory(prev => {

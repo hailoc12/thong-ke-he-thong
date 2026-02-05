@@ -2907,7 +2907,8 @@ const StrategicDashboard = () => {
                                 )}
 
                                 {/* System List Table with Clickable Links */}
-                                {aiQueryResponse.data && aiQueryResponse.data.rows.length > 0 &&
+                                {/* DEPRECATED: Hide this old table when visualization_data is present (D3Table replaces it) */}
+                                {!aiQueryResponse.response?.visualization_data && aiQueryResponse.data && aiQueryResponse.data.rows.length > 0 &&
                                  aiQueryResponse.data.columns.some((col: string) =>
                                    ['system_name', 'tên hệ thống', 'ten_he_thong'].includes(col.toLowerCase())
                                  ) && (

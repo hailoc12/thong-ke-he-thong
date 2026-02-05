@@ -930,10 +930,11 @@ const StrategicDashboard = () => {
           });
 
           // Clear global progress tasks to prevent contamination in next query
+          // FIX: Use longer timeout to ensure state commit completes first
           setTimeout(() => {
             setAiProgressTasks([]);
             console.log('[CLEAR] Global progress tasks cleared');
-          }, 100);
+          }, 500); // Increased from 100ms to 500ms to avoid race condition
 
           console.log('[AI DEBUG] Setting aiQueryLoading to false');
           setAiQueryHistory(prev => [currentQuery, ...prev.filter(q => q !== currentQuery)].slice(0, 10));

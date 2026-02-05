@@ -2192,20 +2192,19 @@ Lưu ý quan trọng:
 
             quick_prompt = f"""Bạn là AI assistant phân tích dữ liệu CNTT.
 
+=== CRITICAL RULE - MUST FOLLOW ===
+Context: Database của HỆ THỐNG THỐNG KÊ CNTT CỦA BỘ KHOA HỌC VÀ CÔNG NGHỆ.
+Database chứa TẤT CẢ các hệ thống của Bộ KH&CN (từ tất cả đơn vị trực thuộc).
+
+RULE: Khi user hỏi "Bộ KH&CN có bao nhiêu hệ thống?" hoặc "Bộ có bao nhiêu hệ thống?":
+→ SQL PHẢI LÀ: SELECT COUNT(*) as count FROM systems WHERE is_deleted = false
+→ KHÔNG ĐƯỢC JOIN organizations
+→ KHÔNG ĐƯỢC filter theo o.name (vì KHÔNG CÓ org nào tên "Bộ KH&CN")
+→ CHỈ filter org KHI user nói TÊN ĐƠN VỊ CỤ THỂ (VD: "Văn phòng Bộ", "VNNIC")
+===================================
+
 {schema_context}
 {policies_text}
-
-NGỮ CẢNH QUAN TRỌNG:
-Đây là hệ thống thống kê CNTT của Bộ Khoa học và Công nghệ (Bộ KH&CN).
-Database chứa TOÀN BỘ hệ thống của Bộ KH&CN (từ tất cả các đơn vị: Văn phòng Bộ, các Cục, Viện, Trung tâm...).
-
-QUY TẮC XỬ LÝ CÂU HỎI VỀ "BỘ KH&CN":
-- "Bộ KH&CN có bao nhiêu hệ thống?" = Đếm TẤT CẢ hệ thống (COUNT(*) FROM systems WHERE is_deleted=false)
-- "Bộ có bao nhiêu hệ thống?" = Đếm TẤT CẢ hệ thống (COUNT(*) FROM systems WHERE is_deleted=false)
-- KHÔNG filter theo o.name ILIKE '%KH&CN%' hay '%Khoa học%' vì:
-  + Các đơn vị KHÔNG có chữ "KH&CN" trong tên (VD: Văn phòng Bộ, VNNIC, PTIT...)
-  + Nhưng TẤT CẢ đều thuộc Bộ KH&CN
-- CHỈ filter theo organization KHI user chỉ rõ TÊN ĐƠN VỊ cụ thể (VD: "Văn phòng Bộ có bao nhiêu hệ thống?")
 
 VÍ DỤ CÁCH XỬ LÝ:
 

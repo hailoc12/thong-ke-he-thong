@@ -118,7 +118,7 @@ export const D3Table: React.FC<D3TableProps> = ({
   }, [data.columns, sortable, baseUrl, onRowClick]);
 
   return (
-    <div className="d3-table-container" style={{ marginTop: 16 }}>
+    <div className="d3-table-container" style={{ marginTop: 16, width: '100%' }}>
       {/* Header with Title and Total */}
       <div style={{
         background: 'linear-gradient(135deg, #1677ff 0%, #0958d9 100%)',
@@ -160,7 +160,7 @@ export const D3Table: React.FC<D3TableProps> = ({
         </div>
       )}
 
-      {/* Table */}
+      {/* Table with horizontal scroll */}
       <Table
         columns={columns}
         dataSource={paginatedData}
@@ -168,6 +168,7 @@ export const D3Table: React.FC<D3TableProps> = ({
         loading={loading}
         rowKey={(record, index) => record._system_id || index || 0}
         size="middle"
+        scroll={{ x: 'max-content' }}
         style={{
           background: 'white',
         }}

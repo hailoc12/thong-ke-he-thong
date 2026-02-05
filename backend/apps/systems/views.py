@@ -3522,6 +3522,17 @@ Kết quả SQL (JSON):
                         if json_match2:
                             phase2_data = json.loads(json_match2.group())
                             response_content = phase2_data.get('response', {})
+
+                            # CRITICAL: Remove numbered lists from main_answer (AI ignores instructions and adds full lists)
+                            # This prevents duplicate visualization: table component shows data, main_answer should only have summary
+                            if 'main_answer' in response_content and response_content['main_answer']:
+                                main_text = response_content['main_answer']
+                                # Find where numbered list starts (pattern: newline + number + dot/closing-paren + space)
+                                list_match = re.search(r'\n\s*(\d+[\.\)])\s+', main_text)
+                                if list_match:
+                                    # Keep only text before the list
+                                    response_content['main_answer'] = main_text[:list_match.start()].strip()
+                                    logger.info(f"[CLEANUP] Removed numbered list from main_answer (was {len(main_text)} chars, now {len(response_content['main_answer'])} chars)")
                         else:
                             response_content = {
                                 'greeting': 'Báo cáo anh/chị,',
@@ -4952,6 +4963,17 @@ CHỈ trả về JSON."""
                 if json_match2:
                     phase2_data = json.loads(json_match2.group())
                     response_content = phase2_data.get('response', {})
+
+                    # CRITICAL: Remove numbered lists from main_answer (AI ignores instructions and adds full lists)
+                    # This prevents duplicate visualization: table component shows data, main_answer should only have summary
+                    if 'main_answer' in response_content and response_content['main_answer']:
+                        main_text = response_content['main_answer']
+                        # Find where numbered list starts (pattern: newline + number + dot/closing-paren + space)
+                        list_match = re.search(r'\n\s*(\d+[\.\)])\s+', main_text)
+                        if list_match:
+                            # Keep only text before the list
+                            response_content['main_answer'] = main_text[:list_match.start()].strip()
+                            logger.info(f"[DEEP_SSE_CLEANUP] Removed numbered list from main_answer (was {len(main_text)} chars, now {len(response_content['main_answer'])} chars)")
                 else:
                     response_content = {'greeting': 'Báo cáo anh/chị,', 'main_answer': phase2_content, 'follow_up_suggestions': []}
 

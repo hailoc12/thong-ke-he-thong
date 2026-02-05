@@ -2194,14 +2194,22 @@ Lưu ý quan trọng:
 
 {schema_context}
 {policies_text}
+
+NGỮ CẢNH QUAN TRỌNG:
+Đây là hệ thống thống kê CNTT của Bộ Khoa học và Công nghệ (Bộ KH&CN).
+Khi user hỏi về "Bộ KH&CN" hoặc "Bộ" mà KHÔNG chỉ rõ đơn vị con cụ thể (như "Văn phòng Bộ", "Cục X", "Viện Y")
+→ Hiểu là hỏi về TOÀN BỘ hệ thống trong database, KHÔNG filter theo organization.
+
 VÍ DỤ CÁCH XỬ LÝ:
 
-Example 1 - Đếm số lượng:
+Example 1 - Đếm số lượng TOÀN BỘ:
 User: "Có bao nhiêu hệ thống?"
+User: "Bộ KH&CN có bao nhiêu hệ thống?"
+User: "Bộ có bao nhiêu hệ thống CNTT?"
 SQL: SELECT COUNT(*) as count FROM systems WHERE is_deleted = false
-Answer: "Tổng số hệ thống là {{{{count}}}}."
+Answer: "Bộ KH&CN hiện có {{{{count}}}} hệ thống CNTT."
 Chart: null
-Xử lý: Dùng COUNT(*), LUÔN có WHERE is_deleted = false, placeholder {{{{count}}}} sẽ được replace bằng số thực tế
+Xử lý: Các câu hỏi này đều hỏi về TỔNG SỐ, KHÔNG filter theo org. Dùng COUNT(*) và WHERE is_deleted = false
 
 Example 2 - Thống kê theo nhóm:
 User: "Có bao nhiêu hệ thống dùng từng ngôn ngữ lập trình?"
@@ -2209,6 +2217,14 @@ SQL: SELECT programming_language, COUNT(*) as count FROM systems WHERE is_delete
 Answer: "Thống kê hệ thống theo ngôn ngữ lập trình"
 Chart: "bar"
 Xử lý: GROUP BY để thống kê, ORDER BY count DESC, chart_type="bar" để hiển thị biểu đồ
+
+Example 2b - Đếm theo ĐƠN VỊ CỤ THỂ (khi user chỉ rõ tên đơn vị):
+User: "Văn phòng Bộ có bao nhiêu hệ thống?"
+User: "Cục KHCN có bao nhiêu hệ thống?"
+SQL: SELECT COUNT(*) as count FROM systems s LEFT JOIN organizations o ON s.org_id = o.id WHERE s.is_deleted = false AND o.name ILIKE '%Văn phòng Bộ%'
+Answer: "Văn phòng Bộ có {{{{count}}}} hệ thống."
+Chart: null
+Xử lý: CHỈ KHI user chỉ rõ TÊN ĐƠN VỊ cụ thể thì mới JOIN với organizations và filter. Dùng ILIKE với % để tìm gần đúng
 
 Example 3 - Tổng/trung bình:
 User: "Tổng dung lượng dữ liệu của các hệ thống?"

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Table, Input, Typography, Pagination } from 'antd';
 import { SearchOutlined, LinkOutlined } from '@ant-design/icons';
 import type { ColumnType } from 'antd/es/table';
-import { D3TableProps, D3TableRow } from './types';
+import type { D3TableProps, D3TableRow } from './types';
 
 const { Text } = Typography;
 
@@ -158,7 +158,7 @@ export const D3Table: React.FC<D3TableProps> = ({
         dataSource={paginatedData}
         pagination={false}
         loading={loading}
-        rowKey={(record, index) => record._system_id || index}
+        rowKey={(record, index) => record._system_id || index || 0}
         size="middle"
         style={{
           background: 'white',

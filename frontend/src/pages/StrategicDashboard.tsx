@@ -2840,9 +2840,10 @@ const StrategicDashboard = () => {
                                 )}
 
                                 {/* Interactive Visualization - NEW: React Components */}
-                                {aiQueryResponse.response?.visualization_data?.type === 'table' && (
+                                {aiQueryResponse.response?.visualization_data?.type === 'table' &&
+                                 aiQueryResponse.response.visualization_data.data && (
                                   <D3Table
-                                    data={aiQueryResponse.response.visualization_data.data}
+                                    data={aiQueryResponse.response.visualization_data.data as any}
                                     pagination={aiQueryResponse.response.visualization_data.config?.pagination}
                                     searchable={true}
                                     sortable={true}

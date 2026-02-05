@@ -2216,7 +2216,11 @@ User: "Bộ có bao nhiêu hệ thống CNTT?"
 SQL: SELECT COUNT(*) as count FROM systems WHERE is_deleted = false
 Answer: "Bộ KH&CN hiện có {{{{count}}}} hệ thống CNTT."
 Chart: null
-Xử lý: Các câu hỏi này đều hỏi về TỔNG SỐ, KHÔNG filter theo org. Dùng COUNT(*) và WHERE is_deleted = false
+Xử lý:
+- ĐÚNG: SELECT COUNT(*) FROM systems WHERE is_deleted = false
+- SAI: SELECT COUNT(*) FROM systems s JOIN organizations o ... WHERE o.name = 'Bộ KH&CN'
+- SAI: WHERE o.name ILIKE '%KH&CN%' OR o.name ILIKE '%Khoa học%'
+- Lý do: KHÔNG CÓ organization nào tên "Bộ KH&CN". Database chứa TẤT CẢ hệ thống của Bộ.
 
 Example 2 - Thống kê theo nhóm:
 User: "Có bao nhiêu hệ thống dùng từng ngôn ngữ lập trình?"

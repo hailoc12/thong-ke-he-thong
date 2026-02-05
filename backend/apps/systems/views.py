@@ -14,7 +14,8 @@ import logging
 import time
 
 from apps.accounts.permissions import IsOrgUserOrAdmin, CanManageOrgSystems
-from .models import System, Attachment, AIConversation, AIMessage, AIRequestLog
+from .models import System, Attachment, AIConversation, AIMessage, AIRequestLog, AIResponseFeedback
+from .serializers_feedback import AIResponseFeedbackSerializer, FeedbackStatsSerializer, ImprovementPolicySerializer
 
 logger = logging.getLogger(__name__)
 
@@ -3825,8 +3826,6 @@ RULE: Khi user hỏi "Bộ KH&CN có bao nhiêu hệ thống?" hoặc "Bộ có 
         Returns empty string if no policies are active
         """
         try:
-            from .models import AIResponseFeedback
-
             policies = AIResponseFeedback.generate_improvement_policies()
 
             # Filter to high and medium priority only
@@ -5835,9 +5834,6 @@ class AIResponseFeedbackViewSet(viewsets.ModelViewSet):
     - GET /api/systems/ai-feedback/stats/ : Get feedback statistics (admin only)
     - GET /api/systems/ai-feedback/policies/ : Get generated improvement policies (admin only)
     """
-    from .models import AIResponseFeedback
-    from .serializers_feedback import AIResponseFeedbackSerializer, FeedbackStatsSerializer, ImprovementPolicySerializer
-
     queryset = AIResponseFeedback.objects.all()
     serializer_class = AIResponseFeedbackSerializer
     permission_classes = [IsAuthenticated]
@@ -5851,9 +5847,6 @@ class AIResponseFeedbackViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
     def stats(self, request):
         """Get feedback statistics (admin only)"""
-        from .models import AIResponseFeedback
-        from .serializers_feedback import FeedbackStatsSerializer
-        
         stats = AIResponseFeedback.get_feedback_stats()
         serializer = FeedbackStatsSerializer(stats)
         return Response(serializer.data)
@@ -5861,9 +5854,6 @@ class AIResponseFeedbackViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
     def policies(self, request):
         """Get generated improvement policies (admin only)"""
-        from .models import AIResponseFeedback
-        from .serializers_feedback import ImprovementPolicySerializer
-        
         policies = AIResponseFeedback.generate_improvement_policies()
         serializer = ImprovementPolicySerializer(policies, many=True)
         return Response(serializer.data)
@@ -5874,8 +5864,6 @@ class AIResponseFeedbackViewSet(viewsets.ModelViewSet):
         Get currently active policies that are being injected into system prompts
         Available to all authenticated users so they know what policies are in effect
         """
-        from .models import AIResponseFeedback
-        
         policies = AIResponseFeedback.generate_improvement_policies()
         
         # Filter to only high and medium priority policies

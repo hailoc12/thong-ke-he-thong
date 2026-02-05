@@ -68,32 +68,40 @@ export const D3Table: React.FC<D3TableProps> = ({
             }
           : undefined,
         render: (text, record) => {
-          // Special handling for system links
-          if (col.type === 'link' && record._system_id && baseUrl) {
-            const systemUrl = `${baseUrl}/systems/${record._system_id}/`;
-            return (
-              <a
-                href={systemUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  color: '#1677ff',
-                  textDecoration: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-                onClick={(e) => {
-                  if (onRowClick) {
-                    e.preventDefault();
-                    onRowClick(record);
-                  }
-                }}
-              >
-                <span>{text}</span>
-                <LinkOutlined style={{ fontSize: 12, opacity: 0.6 }} />
-              </a>
-            );
+          // Special handling for organization and system links
+          if (col.type === 'link' && baseUrl) {
+            // Priority: organization link first, then system link
+            const linkUrl = record._organization_id
+              ? `${baseUrl}/organizations/${record._organization_id}/`
+              : record._system_id
+              ? `${baseUrl}/systems/${record._system_id}/`
+              : null;
+
+            if (linkUrl) {
+              return (
+                <a
+                  href={linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: '#1677ff',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                  onClick={(e) => {
+                    if (onRowClick) {
+                      e.preventDefault();
+                      onRowClick(record);
+                    }
+                  }}
+                >
+                  <span>{text}</span>
+                  <LinkOutlined style={{ fontSize: 12, opacity: 0.6 }} />
+                </a>
+              );
+            }
           }
 
           // Number formatting

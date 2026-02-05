@@ -30,8 +30,8 @@ class IsOrgUserOrAdmin(permissions.BasePermission):
         if request.user.role == 'admin':
             return True
 
-        # Lanhdaobo can view all objects (read-only access for strategic overview)
-        if request.user.role == 'lanhdaobo':
+        # Leader/Lanhdaobo can view all objects (read-only access for strategic overview)
+        if request.user.role in ['leader', 'lanhdaobo']:
             # Only allow safe methods (GET, HEAD, OPTIONS)
             if request.method in permissions.SAFE_METHODS:
                 return True

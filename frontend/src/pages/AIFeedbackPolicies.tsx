@@ -125,7 +125,7 @@ const AIFeedbackPolicies: React.FC = () => {
   const loadActivePolicies = async () => {
     try {
       const response = await getActivePolicies();
-      setActivePolicies(response.policies || []);
+      setActivePolicies(response.active_policies || []);
     } catch (error) {
       console.error('Load active policies error:', error);
     }

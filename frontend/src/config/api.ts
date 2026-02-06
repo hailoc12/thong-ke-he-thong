@@ -207,7 +207,13 @@ export const submitAIFeedback = async (data: {
 };
 
 // Get active improvement policies
-export const getActivePolicies = async (): Promise<ImprovementPolicy[]> => {
+export const getActivePolicies = async (): Promise<{
+  active_policies: ImprovementPolicy[];
+  total_policies: number;
+  active_count: number;
+  auto_generated_count: number;
+  custom_count: number;
+}> => {
   const response = await api.get('/ai-feedback/active_policies/');
   return response.data;
 };

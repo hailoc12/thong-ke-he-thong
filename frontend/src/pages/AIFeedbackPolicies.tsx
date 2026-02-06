@@ -5,7 +5,6 @@ import {
   Col,
   Statistic,
   Alert,
-  Table,
   Tag,
   Button,
   Space,
@@ -44,7 +43,6 @@ import {
   updateCustomPolicy,
   deleteCustomPolicy,
   type ImprovementPolicy,
-  type CustomPolicy,
   type AIResponseFeedback,
 } from '../config/api';
 
@@ -79,7 +77,7 @@ const AIFeedbackPolicies: React.FC = () => {
   // Data state
   const [activePolicies, setActivePolicies] = useState<ImprovementPolicy[]>([]);
   const [policyStatus, setPolicyStatus] = useState<PolicyStatus | null>(null);
-  const [feedbacks, setFeedbacks] = useState<AIResponseFeedback[]>([]);
+  const [_feedbacks, setFeedbacks] = useState<AIResponseFeedback[]>([]);
   const [stats, setStats] = useState({
     total: 0,
     positive: 0,
@@ -127,7 +125,7 @@ const AIFeedbackPolicies: React.FC = () => {
   const loadActivePolicies = async () => {
     try {
       const response = await getActivePolicies();
-      setActivePolicies(response.active_policies || []);
+      setActivePolicies(response.policies || []);
     } catch (error) {
       console.error('Load active policies error:', error);
     }
@@ -187,7 +185,7 @@ const AIFeedbackPolicies: React.FC = () => {
   const handleCreatePolicy = async () => {
     try {
       const values = await createForm.validateFields();
-      const response = await createCustomPolicy(values);
+      await createCustomPolicy(values);
       message.success('✅ Policy created successfully!');
       createForm.resetFields();
       setCreatePolicyModalVisible(false);

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Policy Management API Tester</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1677ff;
+            border-bottom: 3px solid #1677ff;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #333;
+            margin-top: 30px;
+        }
+        .test-section {
+            background: #fafafa;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #1677ff;
+            border-radius: 4px;
+        }
+        button {
+            background: #1677ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0958d9;
+        }
+        button.danger {
+            background: #ff4d4f;
+        }
+        button.danger:hover {
+            background: #cf1322;
+        }
+        .result {
+            background: #f0f0f0;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+        }
+        .error {
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        select {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status.success {
+            background: #52c41a;
+            color: white;
+        }
+        .status.error {
+            background: #ff4d4f;
+            color: white;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Policy Management API Tester</h1>
+        <p><strong>Base URL:</strong> <span id="baseUrl"></span></p>
+        <p><strong>Status:</strong> <span id="status" class="status">Not Connected</span></p>
+
+        <!-- Test 1: Active Policies -->
+        <div class="test-section">
+            <h2>1️⃣ Get Active Policies (Public API)</h2>
+            <p>Endpoint: <code>GET /api/ai-feedback/active_policies/</code></p>
+            <button onclick="testActivePolicies()">Test Active Policies</button>
+            <div id="result1" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- Test 2: Policy Status -->
+        <div class="test-section">
+            <h2>2️⃣ Get Policy Status (Admin Only)</h2>
+            <p>Endpoint: <code>GET /api/ai-feedback/policy_status/</code></p>
+            <button onclick="testPolicyStatus()">Test Policy Status</button>
+            <div id="result2" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- Test 3: List Custom Policies -->
+        <div class="test-section">
+            <h2>3️⃣ List Custom Policies (Admin Only)</h2>
+            <p>Endpoint: <code>GET /api/custom-policies/</code></p>
+            <button onclick="testListPolicies()">Test List Policies</button>
+            <div id="result3" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- Test 4: Create Custom Policy -->
+        <div class="test-section">
+            <h2>4️⃣ Create Custom Policy (Admin Only)</h2>
+            <p>Endpoint: <code>POST /api/custom-policies/</code></p>
+
+            <label>Category:</label>
+            <select id="category">
+                <option value="accuracy">Accuracy</option>
+                <option value="clarity">Clarity</option>
+                <option value="completeness">Completeness</option>
+                <option value="performance">Performance</option>
+                <option value="custom">Custom</option>
+            </select>
+
+            <label>Priority:</label>
+            <select id="priority">
+                <option value="high">High</option>
+                <option value="medium" selected>Medium</option>
+                <option value="low">Low</option>
+            </select>
+
+            <label>Rule:</label>
+            <textarea id="rule" rows="3" placeholder="Enter policy rule...">Always verify SQL results before generating answer</textarea>
+
+            <label>Rationale:</label>
+            <textarea id="rationale" rows="2" placeholder="Why is this policy needed?">Users reported incorrect data multiple times</textarea>
+
+            <button onclick="testCreatePolicy()">Create Policy</button>
+            <div id="result4" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- Test 5: Regenerate Policies -->
+        <div class="test-section">
+            <h2>5️⃣ Regenerate Policies (Admin Only)</h2>
+            <p>Endpoint: <code>POST /api/ai-feedback/regenerate_policies/</code></p>
+            <button onclick="testRegeneratePolicies()">Regenerate Policies</button>
+            <div id="result5" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- Test 6: Update Policy -->
+        <div class="test-section">
+            <h2>6️⃣ Update Custom Policy (Admin Only)</h2>
+            <p>Endpoint: <code>PATCH /api/custom-policies/{id}/</code></p>
+
+            <label>Policy ID:</label>
+            <input type="number" id="updatePolicyId" placeholder="Enter policy ID from list above" min="1">
+
+            <label>New Priority:</label>
+            <select id="updatePriority">
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
+
+            <button onclick="testUpdatePolicy()">Update Policy</button>
+            <div id="result6" class="result" style="display:none;"></div>
+        </div>
+
+        <!-- Test 7: Delete Policy -->
+        <div class="test-section">
+            <h2>7️⃣ Delete Custom Policy (Admin Only)</h2>
+            <p>Endpoint: <code>DELETE /api/custom-policies/{id}/</code></p>
+
+            <label>Policy ID:</label>
+            <input type="number" id="deletePolicyId" placeholder="Enter policy ID to delete" min="1">
+
+            <button class="danger" onclick="testDeletePolicy()">Delete Policy</button>
+            <div id="result7" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Get base URL and token from current page
+        const baseUrl = window.location.origin;
+        const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+
+        document.getElementById('baseUrl').textContent = baseUrl;
+
+        if (token) {
+            document.getElementById('status').textContent = 'Connected';
+            document.getElementById('status').className = 'status success';
+        } else {
+            document.getElementById('status').textContent = 'No Token - Please Login First';
+            document.getElementById('status').className = 'status error';
+            alert('Please login to the system first to get JWT token!');
+        }
+
+        // Helper function to make API calls
+        async function apiCall(method, endpoint, body = null) {
+            const options = {
+                method,
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            };
+
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+
+            const response = await fetch(`${baseUrl}/api${endpoint}`, options);
+            const data = response.status === 204 ? null : await response.json();
+
+            return {
+                status: response.status,
+                ok: response.ok,
+                data
+            };
+        }
+
+        // Display result helper
+        function displayResult(resultId, response) {
+            const resultDiv = document.getElementById(resultId);
+            resultDiv.style.display = 'block';
+
+            if (response.ok) {
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✅ SUCCESS (${response.status})\n\n` +
+                    JSON.stringify(response.data, null, 2);
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ ERROR (${response.status})\n\n` +
+                    JSON.stringify(response.data, null, 2);
+            }
+        }
+
+        // Test functions
+        async function testActivePolicies() {
+            const response = await apiCall('GET', '/ai-feedback/active_policies/');
+            displayResult('result1', response);
+        }
+
+        async function testPolicyStatus() {
+            const response = await apiCall('GET', '/ai-feedback/policy_status/');
+            displayResult('result2', response);
+        }
+
+        async function testListPolicies() {
+            const response = await apiCall('GET', '/custom-policies/');
+            displayResult('result3', response);
+        }
+
+        async function testCreatePolicy() {
+            const body = {
+                category: document.getElementById('category').value,
+                priority: document.getElementById('priority').value,
+                rule: document.getElementById('rule').value,
+                rationale: document.getElementById('rationale').value
+            };
+            const response = await apiCall('POST', '/custom-policies/', body);
+            displayResult('result4', response);
+        }
+
+        async function testRegeneratePolicies() {
+            const response = await apiCall('POST', '/ai-feedback/regenerate_policies/');
+            displayResult('result5', response);
+        }
+
+        async function testUpdatePolicy() {
+            const id = document.getElementById('updatePolicyId').value;
+            if (!id) {
+                alert('Please enter a policy ID');
+                return;
+            }
+            const body = {
+                priority: document.getElementById('updatePriority').value
+            };
+            const response = await apiCall('PATCH', `/custom-policies/${id}/`, body);
+            displayResult('result6', response);
+        }
+
+        async function testDeletePolicy() {
+            const id = document.getElementById('deletePolicyId').value;
+            if (!id) {
+                alert('Please enter a policy ID');
+                return;
+            }
+            if (!confirm(`Are you sure you want to delete policy #${id}?`)) {
+                return;
+            }
+            const response = await apiCall('DELETE', `/custom-policies/${id}/`);
+            displayResult('result7', response);
+        }
+    </script>
+</body>
+</html>

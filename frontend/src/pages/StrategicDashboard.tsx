@@ -1128,7 +1128,7 @@ const StrategicDashboard = () => {
     setSubmittingFeedback(prev => new Set(prev).add(conversationIndex));
 
     try {
-      await submitAIFeedback({
+      const response = await submitAIFeedback({
         query: conv.query,
         mode: (conv.response as any).mode || aiMode,
         response_data: conv.response,
@@ -1151,7 +1151,16 @@ const StrategicDashboard = () => {
         return newSet;
       });
 
-      message.success(rating === 'positive' ? 'Cảm ơn đánh giá tích cực!' : 'Cảm ơn phản hồi! Chúng tôi sẽ cải thiện.');
+      // Show different message based on auto-generation status
+      if (response.auto_generate_triggered) {
+        message.success(
+          '✅ Đã ghi nhận phản hồi và tạo giải pháp tự động!\n' +
+          'Hệ thống sẽ phân tích và cải thiện trong vài giây.',
+          5
+        );
+      } else {
+        message.success(rating === 'positive' ? 'Cảm ơn đánh giá tích cực!' : 'Cảm ơn phản hồi! Chúng tôi sẽ cải thiện.');
+      }
     } catch (error) {
       console.error('Failed to submit feedback:', error);
       message.error('Không thể gửi đánh giá. Vui lòng thử lại.');

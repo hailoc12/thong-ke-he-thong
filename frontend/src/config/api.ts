@@ -175,6 +175,14 @@ export interface AIResponseFeedback {
   feedback_text?: string;
   created_at?: string;
   user_id?: number;
+  analyzed?: boolean;
+  policy_generated_at?: string;
+  generated_policies?: any;
+}
+
+export interface AIFeedbackSubmissionResponse extends AIResponseFeedback {
+  auto_generate_triggered?: boolean;
+  message?: string;
 }
 
 export interface ImprovementPolicy {
@@ -205,7 +213,7 @@ export const submitAIFeedback = async (data: {
   conversation_context?: any;
   rating: 'positive' | 'negative';
   feedback_text?: string;
-}): Promise<AIResponseFeedback> => {
+}): Promise<AIFeedbackSubmissionResponse> => {
   const response = await api.post('/ai-feedback/', data);
   return response.data;
 };

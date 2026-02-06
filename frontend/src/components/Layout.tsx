@@ -15,6 +15,7 @@ import {
   ApiOutlined,
   BookOutlined,
   FundOutlined,
+  CommentOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
@@ -89,6 +90,12 @@ const MainLayout = () => {
           key: '/dashboard/strategic',
           icon: <FundOutlined />,
           label: 'Dashboard Chiến lược',
+        }] : []),
+        // AI Feedback & Policies menu - only for lanhdaobo
+        ...(isLeader ? [{
+          key: '/ai-feedback',
+          icon: <CommentOutlined />,
+          label: 'AI Feedback & Policies',
         }] : []),
         // Unit Dashboard menu - only for non-admin users
         // Show "Dashboard Admin" for lanhdaobo, "Dashboard Đơn vị" for others

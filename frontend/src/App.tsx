@@ -23,6 +23,7 @@ import Benchmarking from './pages/Benchmarking';
 import Lifecycle from './pages/Lifecycle';
 import APICatalog from './pages/APICatalog';
 import StrategicDashboard from './pages/StrategicDashboard';
+import AIFeedbackPolicies from './pages/AIFeedbackPolicies';
 import MainLayout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
@@ -123,6 +124,7 @@ function App() {
             <Route path="dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
             <Route path="dashboard/strategic" element={<LeaderRoute><StrategicDashboard /></LeaderRoute>} />
             <Route path="dashboard/unit" element={<UnitDashboard />} />
+            <Route path="ai-feedback" element={<LeaderRoute><AIFeedbackPolicies /></LeaderRoute>} />
             <Route path="systems" element={<Systems />} />
             <Route path="systems/create" element={<SystemCreate />} />
             <Route path="systems/completion" element={<SystemCompletionList />} />

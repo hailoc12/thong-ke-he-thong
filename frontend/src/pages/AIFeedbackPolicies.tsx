@@ -39,7 +39,6 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import {
   getActivePolicies,
-  getPolicyStatus,
   getAllFeedbacks,
   regeneratePolicies,
   createCustomPolicy,
@@ -56,22 +55,6 @@ const { Panel } = Collapse;
 const { Option } = Select;
 const { Text, Paragraph } = Typography;
 
-interface PolicyStatus {
-  total_policies: number;
-  auto_generated: number;
-  custom: number;
-  active_policies: number;
-  injection_points: string[];
-  last_regeneration: string | null;
-  policies_breakdown: {
-    high: number;
-    medium: number;
-    low: number;
-  };
-  status: string;
-  message: string;
-}
-
 const AIFeedbackPolicies: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -79,7 +62,6 @@ const AIFeedbackPolicies: React.FC = () => {
 
   // Data state
   const [activePolicies, setActivePolicies] = useState<ImprovementPolicy[]>([]);
-  const [policyStatus, setPolicyStatus] = useState<PolicyStatus | null>(null);
   const [negativeFeedbacks, setNegativeFeedbacks] = useState<AIResponseFeedback[]>([]);
   const [stats, setStats] = useState({
     total: 0,
@@ -115,7 +97,6 @@ const AIFeedbackPolicies: React.FC = () => {
     try {
       await Promise.all([
         loadActivePolicies(),
-        loadPolicyStatus(),
         loadFeedbacks(),
       ]);
     } catch (error: any) {
@@ -131,15 +112,6 @@ const AIFeedbackPolicies: React.FC = () => {
       setActivePolicies(response.active_policies || []);
     } catch (error) {
       console.error('Load active policies error:', error);
-    }
-  };
-
-  const loadPolicyStatus = async () => {
-    try {
-      const response = await getPolicyStatus();
-      setPolicyStatus(response);
-    } catch (error) {
-      console.error('Load policy status error:', error);
     }
   };
 
@@ -244,6 +216,10 @@ const AIFeedbackPolicies: React.FC = () => {
       cancelText: 'Hủy',
       onOk: async () => {
         try {
+          if (!policy.id) {
+            message.error('Lỗi: Policy ID không hợp lệ');
+            return;
+          }
           await deleteCustomPolicy(policy.id);
           message.success('✅ Đã xóa giải pháp!');
           await loadData();
@@ -252,10 +228,6 @@ const AIFeedbackPolicies: React.FC = () => {
         }
       },
     });
-  };
-
-  const handleViewPrompt = () => {
-    setViewPromptModalVisible(true);
   };
 
   // Priority & Category labels

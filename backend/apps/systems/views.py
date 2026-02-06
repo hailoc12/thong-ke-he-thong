@@ -5848,6 +5848,45 @@ class AIResponseFeedbackViewSet(viewsets.ModelViewSet):
             return self.queryset
         return self.queryset.filter(user=self.request.user)
 
+    def perform_create(self, serializer):
+        """
+        Save feedback and auto-trigger policy generation for negative feedback
+        """
+        from .tasks import generate_policy_async
+
+        # Save feedback with current user
+        feedback = serializer.save(user=self.request.user)
+
+        # Auto-generate policy if negative feedback
+        if feedback.rating == 'negative' and not feedback.analyzed:
+            # Trigger async task
+            generate_policy_async.delay(feedback.id)
+            logger.info(f"Auto-triggered policy generation for feedback {feedback.id}")
+
+    def create(self, request, *args, **kwargs):
+        """
+        Override create to return additional info about auto-generation
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        feedback = serializer.instance
+        auto_generate_triggered = (
+            feedback.rating == 'negative' and not feedback.analyzed
+        )
+
+        headers = self.get_success_headers(serializer.data)
+        return Response({
+            **serializer.data,
+            'auto_generate_triggered': auto_generate_triggered,
+            'message': (
+                'Đã ghi nhận phản hồi và tạo giải pháp tự động'
+                if auto_generate_triggered
+                else 'Cảm ơn phản hồi của bạn'
+            )
+        }, status=status.HTTP_201_CREATED, headers=headers)
+
     @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
     def stats(self, request):
         """Get feedback statistics (admin only)"""

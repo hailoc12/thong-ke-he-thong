@@ -19,8 +19,11 @@ class AIResponseFeedbackSerializer(serializers.ModelSerializer):
             'rating',
             'feedback_text',
             'created_at',
+            'analyzed',
+            'policy_generated_at',
+            'generated_policies',
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'analyzed', 'policy_generated_at', 'generated_policies']
 
     def create(self, validated_data):
         # Automatically set user from request

@@ -71,8 +71,16 @@ class AIResponseFeedback(models.Model):
     # Policy generation tracking
     analyzed = models.BooleanField(
         default=False,
-        verbose_name='Analyzed for Policy',
-        help_text='Whether this feedback has been analyzed to generate policies'
+        verbose_name='Has Policy Generated',
+        help_text='Whether policy has been auto-generated from this feedback',
+        db_index=True,
+    )
+
+    policy_generated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Policy Generated At',
+        help_text='Timestamp when policy was auto-generated from this feedback'
     )
 
     generated_policies = models.JSONField(

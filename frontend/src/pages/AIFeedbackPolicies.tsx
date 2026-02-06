@@ -16,11 +16,10 @@ import {
   Collapse,
   Popconfirm,
   Spin,
-  Table,
-  Tabs,
+  List,
   Empty,
+  Divider,
 } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
 import {
   LikeOutlined,
   DislikeOutlined,
@@ -32,7 +31,7 @@ import {
   EyeOutlined,
   EditOutlined,
   DeleteOutlined,
-  SearchOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -54,7 +53,6 @@ dayjs.extend(relativeTime);
 const { TextArea } = Input;
 const { Panel } = Collapse;
 const { Option } = Select;
-const { TabPane } = Tabs;
 
 interface PolicyStatus {
   total_policies: number;
@@ -80,7 +78,7 @@ const AIFeedbackPolicies: React.FC = () => {
   // Data state
   const [activePolicies, setActivePolicies] = useState<ImprovementPolicy[]>([]);
   const [policyStatus, setPolicyStatus] = useState<PolicyStatus | null>(null);
-  const [_feedbacks, setFeedbacks] = useState<AIResponseFeedback[]>([]);
+  const [negativeFeedbacks, setNegativeFeedbacks] = useState<AIResponseFeedback[]>([]);
   const [stats, setStats] = useState({
     total: 0,
     positive: 0,
@@ -92,22 +90,16 @@ const AIFeedbackPolicies: React.FC = () => {
   const [createPolicyModalVisible, setCreatePolicyModalVisible] = useState(false);
   const [editPolicyModalVisible, setEditPolicyModalVisible] = useState(false);
   const [viewPromptModalVisible, setViewPromptModalVisible] = useState(false);
-  const [feedbackDetailModalVisible, setFeedbackDetailModalVisible] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<ImprovementPolicy | null>(null);
-  const [selectedFeedback, setSelectedFeedback] = useState<AIResponseFeedback | null>(null);
 
   // Forms
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
 
-  // Feedback filters
-  const [feedbackRatingFilter, setFeedbackRatingFilter] = useState<string>('all');
-
   // Check permissions
   const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
 
   useEffect(() => {
-    // Allow if user is leader (role='leader') OR is_staff
     if (user.role !== 'leader' && !user.is_staff) {
       message.error('Bạn không có quyền truy cập trang này');
       navigate('/dashboard');
@@ -151,13 +143,14 @@ const AIFeedbackPolicies: React.FC = () => {
 
   const loadFeedbacks = async () => {
     try {
-      const response = await getAllFeedbacks({ page_size: 1000 });
-      setFeedbacks(response.results || []);
+      const response = await getAllFeedbacks({ rating: 'negative', page_size: 100 });
+      setNegativeFeedbacks(response.results || []);
 
-      // Calculate stats
-      const total = response.count || 0;
-      const positive = response.results?.filter(f => f.rating === 'positive').length || 0;
-      const negative = response.results?.filter(f => f.rating === 'negative').length || 0;
+      // Load all for stats
+      const allResponse = await getAllFeedbacks({ page_size: 1000 });
+      const total = allResponse.count || 0;
+      const positive = allResponse.results?.filter(f => f.rating === 'positive').length || 0;
+      const negative = allResponse.results?.filter(f => f.rating === 'negative').length || 0;
 
       setStats({
         total,
@@ -173,8 +166,8 @@ const AIFeedbackPolicies: React.FC = () => {
   const handleRegeneratePolicies = async () => {
     Modal.confirm({
       title: 'Tạo lại Policies?',
-      content: 'Hệ thống sẽ phân tích lại tất cả feedback tiêu cực và tạo policies mới. Tiếp tục?',
-      okText: 'Có, tạo lại',
+      content: 'Hệ thống sẽ phân tích các phản hồi tiêu cực và tự động tạo policies mới để cải thiện A.I. Tiếp tục?',
+      okText: 'Tạo lại',
       cancelText: 'Hủy',
       onOk: async () => {
         setRegenerating(true);
@@ -183,7 +176,7 @@ const AIFeedbackPolicies: React.FC = () => {
           message.success(`✅ ${response.message || 'Đã tạo lại policies thành công!'}`);
           await loadData();
         } catch (error: any) {
-          message.error('Lỗi tạo lại policies: ' + (error.response?.data?.detail || error.message));
+          message.error('Lỗi: ' + (error.response?.data?.detail || error.message));
         } finally {
           setRegenerating(false);
         }
@@ -201,7 +194,7 @@ const AIFeedbackPolicies: React.FC = () => {
       await loadData();
     } catch (error: any) {
       if (error.errorFields) return;
-      message.error('Lỗi tạo policy: ' + (error.response?.data?.detail || error.message));
+      message.error('Lỗi: ' + (error.response?.data?.detail || error.message));
     }
   };
 
@@ -224,12 +217,12 @@ const AIFeedbackPolicies: React.FC = () => {
     try {
       const values = await editForm.validateFields();
       await updateCustomPolicy(selectedPolicy.id, values);
-      message.success('✅ Đã cập nhật policy thành công!');
+      message.success('✅ Đã cập nhật!');
       setEditPolicyModalVisible(false);
       await loadData();
     } catch (error: any) {
       if (error.errorFields) return;
-      message.error('Lỗi cập nhật: ' + (error.response?.data?.detail || error.message));
+      message.error('Lỗi: ' + (error.response?.data?.detail || error.message));
     }
   };
 
@@ -241,16 +234,11 @@ const AIFeedbackPolicies: React.FC = () => {
 
     try {
       await deleteCustomPolicy(policy.id);
-      message.success('✅ Đã xóa policy thành công!');
+      message.success('✅ Đã xóa!');
       await loadData();
     } catch (error: any) {
-      message.error('Lỗi xóa: ' + (error.response?.data?.detail || error.message));
+      message.error('Lỗi: ' + (error.response?.data?.detail || error.message));
     }
-  };
-
-  const handleViewFeedbackDetail = (feedback: AIResponseFeedback) => {
-    setSelectedFeedback(feedback);
-    setFeedbackDetailModalVisible(true);
   };
 
   const getPriorityColor = (priority: string) => {
@@ -282,77 +270,6 @@ const AIFeedbackPolicies: React.FC = () => {
     return mapping[category] || category;
   };
 
-  // Feedback table columns
-  const feedbackColumns: ColumnsType<AIResponseFeedback> = [
-    {
-      title: 'Thời gian',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 150,
-      render: (date: string) => dayjs(date).format('DD/MM/YYYY HH:mm'),
-      sorter: (a, b) => dayjs(a.created_at || '').unix() - dayjs(b.created_at || '').unix(),
-    },
-    {
-      title: 'Câu hỏi',
-      dataIndex: 'query',
-      key: 'query',
-      ellipsis: true,
-      render: (text: string) => (
-        <div style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {text}
-        </div>
-      ),
-    },
-    {
-      title: 'Rating',
-      dataIndex: 'rating',
-      key: 'rating',
-      width: 120,
-      filters: [
-        { text: 'Tích cực', value: 'positive' },
-        { text: 'Tiêu cực', value: 'negative' },
-      ],
-      onFilter: (value, record) => record.rating === value,
-      render: (rating: string) => (
-        <Tag color={rating === 'positive' ? 'green' : 'red'} icon={rating === 'positive' ? <LikeOutlined /> : <DislikeOutlined />}>
-          {rating === 'positive' ? 'Tích cực' : 'Tiêu cực'}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Feedback',
-      dataIndex: 'feedback_text',
-      key: 'feedback_text',
-      ellipsis: true,
-      render: (text: string) => text || <span style={{ color: '#999' }}>Không có</span>,
-    },
-    {
-      title: 'User',
-      dataIndex: 'user_id',
-      key: 'user_id',
-      width: 100,
-    },
-    {
-      title: 'Hành động',
-      key: 'actions',
-      width: 120,
-      render: (_: any, record: AIResponseFeedback) => (
-        <Button
-          type="link"
-          icon={<SearchOutlined />}
-          onClick={() => handleViewFeedbackDetail(record)}
-        >
-          Chi tiết
-        </Button>
-      ),
-    },
-  ];
-
-  // Filter feedbacks based on rating filter
-  const filteredFeedbacks = feedbackRatingFilter === 'all'
-    ? _feedbacks
-    : _feedbacks.filter(f => f.rating === feedbackRatingFilter);
-
   if (loading && !policyStatus) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0' }}>
@@ -362,137 +279,202 @@ const AIFeedbackPolicies: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div style={{ padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 600, margin: 0 }}>
           🤖 Tinh chỉnh Trợ lý A.I
         </h1>
         <p style={{ color: '#666', marginTop: 8 }}>
-          Theo dõi chất lượng AI Assistant thông qua phản hồi người dùng và quản lý các chính sách cải tiến
+          Giám sát chất lượng và cải thiện hiệu suất AI Assistant
         </p>
       </div>
 
-      <Tabs defaultActiveKey="1">
-        {/* Tab 1: Statistics & Policies */}
-        <TabPane tab="📈 Thống kê & Policies" key="1">
-          {/* Statistics Cards */}
-          <Row gutter={16} style={{ marginBottom: 24 }}>
-            <Col xs={24} sm={12} md={6}>
-              <Card>
-                <Statistic
-                  title="Phản hồi tích cực"
-                  value={stats.positive}
-                  prefix={<LikeOutlined />}
-                  valueStyle={{ color: '#3f8600' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Card>
-                <Statistic
-                  title="Phản hồi tiêu cực"
-                  value={stats.negative}
-                  prefix={<DislikeOutlined />}
-                  valueStyle={{ color: '#cf1322' }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Card>
-                <Statistic
-                  title="Tổng số phản hồi"
-                  value={stats.total}
-                  prefix={<MessageOutlined />}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Card>
-                <Statistic
-                  title="Tỷ lệ hài lòng"
-                  value={stats.positive_percentage}
-                  suffix="%"
-                  prefix={<RiseOutlined />}
-                  valueStyle={{ color: stats.positive_percentage >= 80 ? '#3f8600' : '#faad14' }}
-                />
-              </Card>
-            </Col>
-          </Row>
-
-          {/* Policy Injection Status Banner */}
-          {policyStatus && (
-            <Alert
-              type="info"
-              showIcon
-              message="Trạng thái Policy Injection"
-              description={
-                <Space direction="vertical" style={{ width: '100%' }}>
-                  <div>✅ Policies đang được tích hợp vào AI prompts</div>
-                  <div style={{ fontSize: 12, color: '#666' }}>
-                    <strong>Điểm tích hợp:</strong>{' '}
-                    {policyStatus.injection_points.map((point, idx) => (
-                      <Tag key={idx} color="blue" style={{ marginTop: 4 }}>
-                        {point}
-                      </Tag>
-                    ))}
-                  </div>
-                  {policyStatus.last_regeneration && (
-                    <div style={{ fontSize: 12, color: '#666' }}>
-                      Tạo lại gần nhất: {dayjs(policyStatus.last_regeneration).fromNow()}
-                    </div>
-                  )}
-                  <div style={{ fontSize: 12 }}>
-                    <Tag color="red">Cao: {policyStatus.policies_breakdown.high}</Tag>
-                    <Tag color="orange">Trung bình: {policyStatus.policies_breakdown.medium}</Tag>
-                    <Tag color="blue">Thấp: {policyStatus.policies_breakdown.low}</Tag>
-                  </div>
-                </Space>
-              }
-              style={{ marginBottom: 24 }}
+      {/* Key Metrics - Simple Cards */}
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title="Tỷ lệ hài lòng"
+              value={stats.positive_percentage}
+              suffix="%"
+              prefix={<RiseOutlined />}
+              valueStyle={{
+                color: stats.positive_percentage >= 80 ? '#3f8600' :
+                       stats.positive_percentage >= 60 ? '#faad14' : '#cf1322',
+                fontSize: 32,
+              }}
             />
-          )}
+            <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>
+              {stats.positive} tích cực / {stats.negative} tiêu cực
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title="Vấn đề cần xử lý"
+              value={negativeFeedbacks.length}
+              prefix={<WarningOutlined />}
+              valueStyle={{
+                color: negativeFeedbacks.length > 10 ? '#cf1322' :
+                       negativeFeedbacks.length > 5 ? '#faad14' : '#52c41a',
+                fontSize: 32,
+              }}
+            />
+            <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>
+              Phản hồi tiêu cực chưa xử lý
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title="Policies đang áp dụng"
+              value={activePolicies.length}
+              prefix={<BulbOutlined />}
+              valueStyle={{ color: '#1677ff', fontSize: 32 }}
+            />
+            <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>
+              {policyStatus?.policies_breakdown.high || 0} ưu tiên cao
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card>
+            <Statistic
+              title="Tổng phản hồi"
+              value={stats.total}
+              prefix={<MessageOutlined />}
+              valueStyle={{ fontSize: 32 }}
+            />
+            <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>
+              Từ người dùng hệ thống
+            </div>
+          </Card>
+        </Col>
+      </Row>
 
-          {/* Active Policies Card */}
+      {/* Main Content - 2 Columns */}
+      <Row gutter={16}>
+        {/* Left Column: Vấn đề cần xử lý */}
+        <Col xs={24} lg={12}>
           <Card
             title={
               <Space>
-                <BulbOutlined />
-                <span style={{ fontWeight: 600 }}>Các Policy Đang Hoạt Động</span>
-                <Tag color="blue">{activePolicies.length} Active</Tag>
+                <WarningOutlined style={{ color: '#faad14' }} />
+                <span style={{ fontWeight: 600 }}>Vấn đề cần xử lý ({negativeFeedbacks.length})</span>
               </Space>
             }
             extra={
+              <Button
+                type="primary"
+                icon={<ReloadOutlined spin={regenerating} />}
+                onClick={handleRegeneratePolicies}
+                loading={regenerating}
+                size="small"
+              >
+                Tự động tạo giải pháp
+              </Button>
+            }
+            style={{ marginBottom: 16, height: 'calc(100vh - 380px)', overflow: 'hidden' }}
+            bodyStyle={{ padding: 0, height: 'calc(100% - 57px)', overflow: 'auto' }}
+          >
+            {negativeFeedbacks.length === 0 ? (
+              <Empty
+                description="Không có vấn đề nào cần xử lý"
+                style={{ padding: '40px 0' }}
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              />
+            ) : (
+              <List
+                dataSource={negativeFeedbacks}
+                renderItem={(feedback) => (
+                  <List.Item
+                    style={{
+                      padding: '16px',
+                      borderBottom: '1px solid #f0f0f0',
+                      background: '#fafafa',
+                    }}
+                  >
+                    <div style={{ width: '100%' }}>
+                      <div style={{ marginBottom: 8 }}>
+                        <Tag color="red" icon={<DislikeOutlined />}>Tiêu cực</Tag>
+                        <span style={{ fontSize: 12, color: '#999' }}>
+                          {dayjs(feedback.created_at).format('DD/MM HH:mm')}
+                        </span>
+                      </div>
+                      <div style={{
+                        fontWeight: 500,
+                        marginBottom: 4,
+                        color: '#333',
+                      }}>
+                        {feedback.query || 'N/A'}
+                      </div>
+                      {feedback.feedback_text && (
+                        <div style={{
+                          fontSize: 13,
+                          color: '#666',
+                          padding: '8px 12px',
+                          background: '#fff',
+                          borderLeft: '3px solid #faad14',
+                          borderRadius: 4,
+                          marginTop: 8,
+                        }}>
+                          💬 {feedback.feedback_text}
+                        </div>
+                      )}
+                    </div>
+                  </List.Item>
+                )}
+              />
+            )}
+          </Card>
+        </Col>
+
+        {/* Right Column: Giải pháp đang áp dụng */}
+        <Col xs={24} lg={12}>
+          <Card
+            title={
               <Space>
+                <BulbOutlined style={{ color: '#52c41a' }} />
+                <span style={{ fontWeight: 600 }}>Giải pháp đang áp dụng ({activePolicies.length})</span>
+              </Space>
+            }
+            extra={
+              <Space size="small">
                 <Button
                   icon={<EyeOutlined />}
                   onClick={() => setViewPromptModalVisible(true)}
+                  size="small"
                 >
-                  Xem Prompt Hiện Tại
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<ReloadOutlined spin={regenerating} />}
-                  onClick={handleRegeneratePolicies}
-                  loading={regenerating}
-                >
-                  Tạo Lại Policies
+                  Xem Prompt
                 </Button>
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
                   onClick={() => setCreatePolicyModalVisible(true)}
+                  size="small"
                 >
-                  Tạo Policy Mới
+                  Thêm mới
                 </Button>
               </Space>
             }
-            style={{ marginBottom: 24 }}
+            style={{ marginBottom: 16, height: 'calc(100vh - 380px)', overflow: 'hidden' }}
+            bodyStyle={{ padding: 0, height: 'calc(100% - 57px)', overflow: 'auto' }}
           >
             {activePolicies.length === 0 ? (
-              <Empty description="Chưa có policy nào. Tạo mới hoặc tạo lại từ feedback." />
+              <Empty
+                description="Chưa có giải pháp nào"
+                style={{ padding: '40px 0' }}
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              />
             ) : (
-              <Collapse accordion>
+              <Collapse
+                accordion
+                bordered={false}
+                style={{ background: 'transparent' }}
+              >
                 {activePolicies.map((policy, idx) => (
                   <Panel
                     key={policy.id || idx}
@@ -508,7 +490,7 @@ const AIFeedbackPolicies: React.FC = () => {
                     }
                     extra={
                       policy.is_custom && (
-                        <Space onClick={(e) => e.stopPropagation()}>
+                        <Space onClick={(e) => e.stopPropagation()} size="small">
                           <Button
                             type="link"
                             size="small"
@@ -519,7 +501,6 @@ const AIFeedbackPolicies: React.FC = () => {
                           </Button>
                           <Popconfirm
                             title="Xóa policy này?"
-                            description="Bạn có chắc chắn muốn xóa policy này?"
                             onConfirm={() => handleDeletePolicy(policy)}
                             okText="Xóa"
                             cancelText="Hủy"
@@ -537,119 +518,91 @@ const AIFeedbackPolicies: React.FC = () => {
                       )
                     }
                   >
-                    <div style={{ padding: '8px 0' }}>
-                      <p><strong>Lý do:</strong> {policy.rationale}</p>
-                      {policy.evidence_count > 0 && (
-                        <p style={{ color: '#666', fontSize: 12 }}>
-                          📊 Dựa trên {policy.evidence_count} feedback
-                        </p>
-                      )}
-                    </div>
+                    {policy.rationale && (
+                      <div style={{ padding: '8px 0', color: '#666' }}>
+                        <strong>Lý do:</strong> {policy.rationale}
+                      </div>
+                    )}
+                    {policy.evidence_count > 0 && (
+                      <div style={{ fontSize: 12, color: '#999' }}>
+                        📊 Dựa trên {policy.evidence_count} phản hồi
+                      </div>
+                    )}
                   </Panel>
                 ))}
               </Collapse>
             )}
           </Card>
-        </TabPane>
+        </Col>
+      </Row>
 
-        {/* Tab 2: Feedback List */}
-        <TabPane tab={`💬 Danh sách Feedback (${_feedbacks.length})`} key="2">
-          <Card
-            title={
-              <Space>
-                <MessageOutlined />
-                <span>Danh sách phản hồi từ người dùng</span>
-              </Space>
-            }
-            extra={
-              <Select
-                value={feedbackRatingFilter}
-                onChange={setFeedbackRatingFilter}
-                style={{ width: 150 }}
-              >
-                <Option value="all">Tất cả</Option>
-                <Option value="positive">Tích cực</Option>
-                <Option value="negative">Tiêu cực</Option>
-              </Select>
-            }
-          >
-            <Table
-              columns={feedbackColumns}
-              dataSource={filteredFeedbacks}
-              rowKey={(record) => record.id?.toString() || record.created_at || ''}
-              pagination={{
-                pageSize: 20,
-                showSizeChanger: true,
-                showTotal: (total) => `Tổng ${total} feedback`,
-              }}
-              scroll={{ x: 1000 }}
-            />
-          </Card>
-        </TabPane>
-      </Tabs>
-
-      {/* Create Policy Modal */}
+      {/* Create Policy Modal - Simplified */}
       <Modal
-        title="Tạo Policy Mới"
+        title="Thêm giải pháp mới"
         open={createPolicyModalVisible}
         onOk={handleCreatePolicy}
         onCancel={() => {
           setCreatePolicyModalVisible(false);
           createForm.resetFields();
         }}
-        okText="Tạo Policy"
+        okText="Tạo"
         cancelText="Hủy"
         width={600}
       >
         <Form form={createForm} layout="vertical">
           <Form.Item
-            name="category"
-            label="Danh mục"
-            rules={[{ required: true, message: 'Vui lòng chọn danh mục' }]}
-          >
-            <Select>
-              <Option value="accuracy">Độ chính xác</Option>
-              <Option value="clarity">Độ rõ ràng</Option>
-              <Option value="completeness">Độ đầy đủ</Option>
-              <Option value="performance">Hiệu suất</Option>
-              <Option value="custom">Tùy chỉnh</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
             name="rule"
-            label="Quy tắc Policy"
-            rules={[{ required: true, message: 'Vui lòng nhập quy tắc' }]}
+            label="Giải pháp / Quy tắc"
+            rules={[{ required: true, message: 'Vui lòng nhập giải pháp' }]}
           >
-            <TextArea rows={3} placeholder="Ví dụ: Luôn kiểm tra kết quả SQL trước khi trả lời" />
-          </Form.Item>
-
-          <Form.Item
-            name="priority"
-            label="Độ ưu tiên"
-            rules={[{ required: true, message: 'Vui lòng chọn độ ưu tiên' }]}
-            initialValue="medium"
-          >
-            <Select>
-              <Option value="high">Cao</Option>
-              <Option value="medium">Trung bình</Option>
-              <Option value="low">Thấp</Option>
-            </Select>
+            <TextArea rows={3} placeholder="Ví dụ: Khi hỏi về số lượng user, luôn map sang cột total_users" />
           </Form.Item>
 
           <Form.Item
             name="rationale"
-            label="Lý do"
+            label="Lý do áp dụng"
             rules={[{ required: true, message: 'Vui lòng nhập lý do' }]}
           >
-            <TextArea rows={2} placeholder="Lý do tạo policy này" />
+            <TextArea rows={2} placeholder="Giải thích tại sao cần giải pháp này" />
           </Form.Item>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="priority"
+                label="Độ ưu tiên"
+                rules={[{ required: true }]}
+                initialValue="medium"
+              >
+                <Select>
+                  <Option value="high">Cao</Option>
+                  <Option value="medium">Trung bình</Option>
+                  <Option value="low">Thấp</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="category"
+                label="Danh mục"
+                rules={[{ required: true }]}
+                initialValue="accuracy"
+              >
+                <Select>
+                  <Option value="accuracy">Độ chính xác</Option>
+                  <Option value="clarity">Độ rõ ràng</Option>
+                  <Option value="completeness">Độ đầy đủ</Option>
+                  <Option value="custom">Khác</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
         </Form>
       </Modal>
 
-      {/* Edit Policy Modal */}
+      {/* Edit Policy Modal - Simplified */}
       <Modal
-        title="Sửa Policy"
+        title="Sửa giải pháp"
         open={editPolicyModalVisible}
         onOk={handleSaveEditPolicy}
         onCancel={() => {
@@ -658,23 +611,12 @@ const AIFeedbackPolicies: React.FC = () => {
         }}
         okText="Cập nhật"
         cancelText="Hủy"
-        width={600}
       >
         <Form form={editForm} layout="vertical">
-          <Form.Item name="category" label="Danh mục">
-            <Select disabled>
-              <Option value="accuracy">Độ chính xác</Option>
-              <Option value="clarity">Độ rõ ràng</Option>
-              <Option value="completeness">Độ đầy đủ</Option>
-              <Option value="performance">Hiệu suất</Option>
-              <Option value="custom">Tùy chỉnh</Option>
-            </Select>
-          </Form.Item>
-
           <Form.Item
             name="rule"
-            label="Quy tắc Policy"
-            rules={[{ required: true, message: 'Vui lòng nhập quy tắc' }]}
+            label="Giải pháp / Quy tắc"
+            rules={[{ required: true }]}
           >
             <TextArea rows={3} />
           </Form.Item>
@@ -682,7 +624,7 @@ const AIFeedbackPolicies: React.FC = () => {
           <Form.Item
             name="priority"
             label="Độ ưu tiên"
-            rules={[{ required: true, message: 'Vui lòng chọn độ ưu tiên' }]}
+            rules={[{ required: true }]}
           >
             <Select>
               <Option value="high">Cao</Option>
@@ -695,7 +637,7 @@ const AIFeedbackPolicies: React.FC = () => {
 
       {/* View Prompt Modal */}
       <Modal
-        title="System Prompt Hiện Tại"
+        title="System Prompt - Đang áp dụng cho A.I"
         open={viewPromptModalVisible}
         onCancel={() => setViewPromptModalVisible(false)}
         footer={[
@@ -705,79 +647,24 @@ const AIFeedbackPolicies: React.FC = () => {
         ]}
         width={800}
       >
+        <Alert
+          message="Đây là những hướng dẫn đang được tích hợp vào A.I Assistant"
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
         <div style={{ maxHeight: '60vh', overflow: 'auto', background: '#f5f5f5', padding: 16, borderRadius: 4 }}>
-          <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
-            {`Bạn là AI Assistant hỗ trợ tra cứu thông tin về hệ thống.
+          <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontSize: 13 }}>
+            {`HƯỚNG DẪN CẢI TIẾN:
 
-IMPROVEMENT GUIDELINES:
-${activePolicies.map((p, idx) => `${idx + 1}. [${getCategoryText(p.category)}] [${getPriorityText(p.priority)}] ${p.rule}
-   Lý do: ${p.rationale}`).join('\n\n')}
+${activePolicies.map((p, idx) => `${idx + 1}. [${getCategoryText(p.category)}] [Ưu tiên ${getPriorityText(p.priority)}]
+   ${p.rule}
+   ${p.rationale ? `→ Lý do: ${p.rationale}` : ''}`).join('\n\n')}
 
-Hãy tuân thủ các guidelines trên khi trả lời câu hỏi.`}
+---
+Tuân thủ các hướng dẫn trên khi trả lời câu hỏi.`}
           </pre>
         </div>
-      </Modal>
-
-      {/* Feedback Detail Modal */}
-      <Modal
-        title="Chi tiết Feedback"
-        open={feedbackDetailModalVisible}
-        onCancel={() => setFeedbackDetailModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setFeedbackDetailModalVisible(false)}>
-            Đóng
-          </Button>
-        ]}
-        width={800}
-      >
-        {selectedFeedback && (
-          <div>
-            <Space direction="vertical" style={{ width: '100%' }} size="large">
-              <div>
-                <Tag color={selectedFeedback.rating === 'positive' ? 'green' : 'red'}>
-                  {selectedFeedback.rating === 'positive' ? 'Tích cực' : 'Tiêu cực'}
-                </Tag>
-                <span style={{ color: '#666', marginLeft: 8 }}>
-                  {dayjs(selectedFeedback.created_at).format('DD/MM/YYYY HH:mm:ss')}
-                </span>
-              </div>
-
-              <div>
-                <h4>Câu hỏi:</h4>
-                <div style={{ background: '#f5f5f5', padding: 12, borderRadius: 4 }}>
-                  {selectedFeedback.query || selectedFeedback.question || 'N/A'}
-                </div>
-              </div>
-
-              <div>
-                <h4>Câu trả lời:</h4>
-                <div style={{ background: '#f5f5f5', padding: 12, borderRadius: 4, maxHeight: 300, overflow: 'auto' }}>
-                  {selectedFeedback.answer || (selectedFeedback.response_data ? JSON.stringify(selectedFeedback.response_data, null, 2) : 'N/A')}
-                </div>
-              </div>
-
-              {selectedFeedback.feedback_text && (
-                <div>
-                  <h4>Feedback từ user:</h4>
-                  <div style={{ background: '#fff7e6', padding: 12, borderRadius: 4, border: '1px solid #ffd591' }}>
-                    {selectedFeedback.feedback_text}
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <h4>Thông tin thêm:</h4>
-                <div style={{ fontSize: 12, color: '#666' }}>
-                  {selectedFeedback.user_id && <div>User ID: {selectedFeedback.user_id}</div>}
-                  <div>Mode: {selectedFeedback.mode}</div>
-                  {selectedFeedback.conversation_context && (
-                    <div>Context: Có {JSON.parse(selectedFeedback.conversation_context).length} messages</div>
-                  )}
-                </div>
-              </div>
-            </Space>
-          </div>
-        )}
       </Modal>
     </div>
   );

@@ -235,3 +235,20 @@ LOGGING = {
 OPENAI_API_KEY = env('OPENAI_API_KEY', default=None)
 ANTHROPIC_API_KEY = env('ANTHROPIC_API_KEY', default=None)
 CLAUDE_API_KEY = env('CLAUDE_API_KEY', default=None)  # For backward compatibility
+
+# Celery Configuration
+# Redis as message broker
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://redis:6379/0')
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://redis:6379/0')
+
+# Celery task settings
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes max per task
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # Soft limit at 25 minutes
+
+# Policy generation model (used by PolicyGenerator)
+POLICY_GENERATION_MODEL = env('POLICY_GENERATION_MODEL', default='gpt-4o-mini')

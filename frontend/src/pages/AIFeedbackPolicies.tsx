@@ -18,10 +18,8 @@ import {
   Spin,
   List,
   Empty,
-  Divider,
 } from 'antd';
 import {
-  LikeOutlined,
   DislikeOutlined,
   MessageOutlined,
   RiseOutlined,

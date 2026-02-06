@@ -290,12 +290,12 @@ const AIFeedbackPolicies: React.FC = () => {
       key: 'created_at',
       width: 150,
       render: (date: string) => dayjs(date).format('DD/MM/YYYY HH:mm'),
-      sorter: (a, b) => dayjs(a.created_at).unix() - dayjs(b.created_at).unix(),
+      sorter: (a, b) => dayjs(a.created_at || '').unix() - dayjs(b.created_at || '').unix(),
     },
     {
       title: 'Câu hỏi',
-      dataIndex: 'question',
-      key: 'question',
+      dataIndex: 'query',
+      key: 'query',
       ellipsis: true,
       render: (text: string) => (
         <div style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -576,7 +576,7 @@ const AIFeedbackPolicies: React.FC = () => {
             <Table
               columns={feedbackColumns}
               dataSource={filteredFeedbacks}
-              rowKey={(record) => record.id || record.created_at}
+              rowKey={(record) => record.id?.toString() || record.created_at || ''}
               pagination={{
                 pageSize: 20,
                 showSizeChanger: true,
@@ -745,14 +745,14 @@ Hãy tuân thủ các guidelines trên khi trả lời câu hỏi.`}
               <div>
                 <h4>Câu hỏi:</h4>
                 <div style={{ background: '#f5f5f5', padding: 12, borderRadius: 4 }}>
-                  {selectedFeedback.question}
+                  {selectedFeedback.query || selectedFeedback.question || 'N/A'}
                 </div>
               </div>
 
               <div>
                 <h4>Câu trả lời:</h4>
                 <div style={{ background: '#f5f5f5', padding: 12, borderRadius: 4, maxHeight: 300, overflow: 'auto' }}>
-                  {selectedFeedback.answer}
+                  {selectedFeedback.answer || (selectedFeedback.response_data ? JSON.stringify(selectedFeedback.response_data, null, 2) : 'N/A')}
                 </div>
               </div>
 
@@ -768,7 +768,7 @@ Hãy tuân thủ các guidelines trên khi trả lời câu hỏi.`}
               <div>
                 <h4>Thông tin thêm:</h4>
                 <div style={{ fontSize: 12, color: '#666' }}>
-                  <div>User ID: {selectedFeedback.user_id}</div>
+                  {selectedFeedback.user_id && <div>User ID: {selectedFeedback.user_id}</div>}
                   <div>Mode: {selectedFeedback.mode}</div>
                   {selectedFeedback.conversation_context && (
                     <div>Context: Có {JSON.parse(selectedFeedback.conversation_context).length} messages</div>

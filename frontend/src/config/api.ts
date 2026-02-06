@@ -166,12 +166,15 @@ export const updateConversation = async (id: number, title: string): Promise<AIC
 export interface AIResponseFeedback {
   id?: number;
   query: string;
+  question?: string; // Alias for query
+  answer?: string; // Extracted from response_data
   mode: 'quick' | 'deep';
   response_data: any;
   conversation_context?: any;
   rating: 'positive' | 'negative';
   feedback_text?: string;
   created_at?: string;
+  user_id?: number;
 }
 
 export interface ImprovementPolicy {
@@ -182,6 +185,7 @@ export interface ImprovementPolicy {
   evidence_count: number;
   is_custom?: boolean;
   examples?: string[];
+  rationale?: string;
 }
 
 export interface FeedbackStats {

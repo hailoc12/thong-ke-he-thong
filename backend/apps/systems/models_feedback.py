@@ -127,7 +127,7 @@ class AIResponseFeedback(models.Model):
         """
         negative_feedbacks = cls.objects.filter(
             rating='negative',
-            analyzed=False
+            analyzed__in=[True, False]
         ).exclude(
             feedback_text=''
         ).exclude(

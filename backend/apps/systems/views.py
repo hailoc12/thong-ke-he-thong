@@ -3828,12 +3828,50 @@ RULE: Khi user hỏi "Bộ KH&CN có bao nhiêu hệ thống?" hoặc "Bộ có 
         """
         Get active improvement policies and format as text to inject into system prompt
         Returns empty string if no policies are active
+        Includes: consolidated auto-generated, individual feedback policies, and custom policies
         """
         try:
-            policies = AIResponseFeedback.generate_improvement_policies()
+            from .models_feedback import CustomPolicy
+            
+            # Get consolidated auto-generated policies (static rules)
+            auto_policies = AIResponseFeedback.generate_improvement_policies()
+
+            # Get individual feedback policies (AI-generated per feedback)
+            individual_policies = []
+            feedbacks_with_policies = AIResponseFeedback.objects.filter(
+                rating='negative',
+                generated_policies__isnull=False
+            ).exclude(generated_policies={})
+            
+            for feedback in feedbacks_with_policies:
+                policy_data = feedback.generated_policies
+                if policy_data and not policy_data.get('skip', False):
+                    policy_dict = {
+                        'category': policy_data.get('category', 'custom'),
+                        'rule': policy_data.get('rule', ''),
+                        'priority': policy_data.get('priority', 'medium'),
+                        'evidence_count': 1,
+                        'rationale': policy_data.get('rationale', ''),
+                        'examples': policy_data.get('examples', []),
+                    }
+                    individual_policies.append(policy_dict)
+
+            # Get custom policies
+            custom_policies_objs = CustomPolicy.objects.filter(is_active=True)
+            custom_policies = []
+            for cp in custom_policies_objs:
+                custom_policies.append({
+                    'category': cp.category,
+                    'rule': cp.rule,
+                    'priority': cp.priority,
+                    'evidence_count': 1,
+                })
+
+            # Merge all three types
+            all_policies = auto_policies + individual_policies + custom_policies
 
             # Filter to high and medium priority only
-            active = [p for p in policies if p['priority'] in ['high', 'medium']]
+            active = [p for p in all_policies if p['priority'] in ['high', 'medium']]
 
             if not active:
                 return ""
@@ -3845,9 +3883,18 @@ RULE: Khi user hỏi "Bộ KH&CN có bao nhiêu hệ thống?" hoặc "Bộ có 
             for i, policy in enumerate(active, 1):
                 priority_icon = "🔴" if policy['priority'] == 'high' else "🟡"
                 policy_text += f"{i}. {priority_icon} [{policy['category'].upper()}] {policy['rule']}\n"
-                policy_text += f"   (Dựa trên {policy['evidence_count']} feedback)\n\n"
+                
+                # Add examples if available
+                if policy.get('examples'):
+                    policy_text += f"   Examples: {', '.join(policy['examples'][:2])}\n"
+                
+                # Add rationale if available (for individual policies)
+                if policy.get('rationale'):
+                    policy_text += f"   Rationale: {policy['rationale']}\n"
+                
+                policy_text += f"   (Evidence: {policy.get('evidence_count', 1)} feedback)\n\n"
 
-            policy_text += "Vui lòng tuân thủ các policies trên khi generate câu trả lời.\n"
+            policy_text += "⚠️ CRITICAL: Tuân thủ NGHIÊM NGẶT các policies trên khi generate SQL và answer.\n"
             policy_text += "=" * 70 + "\n"
 
             return policy_text
@@ -3855,7 +3902,6 @@ RULE: Khi user hỏi "Bộ KH&CN có bao nhiêu hệ thống?" hoặc "Bộ có 
         except Exception as e:
             logger.warning(f"Failed to get improvement policies: {e}")
             return ""
-
     def _quick_answer_stream(self, query, user, context=None, request=None):
         """
         Quick Mode: Single AI call + direct answer (~4-6s)
@@ -5906,27 +5952,52 @@ class AIResponseFeedbackViewSet(viewsets.ModelViewSet):
         """
         Get currently active policies that are being injected into system prompts
         Available to all authenticated users so they know what policies are in effect
-        Merges auto-generated policies with custom policies
+        Merges auto-generated policies with custom policies AND individual feedback policies
         """
         from .models_feedback import CustomPolicy
 
-        # Get auto-generated policies
+        # Get consolidated auto-generated policies (static rules)
         auto_policies = AIResponseFeedback.generate_improvement_policies()
+
+        # Get individual feedback policies (AI-generated per feedback)
+        individual_policies = []
+        feedbacks_with_policies = AIResponseFeedback.objects.filter(
+            rating='negative',
+            generated_policies__isnull=False
+        ).exclude(generated_policies={})
+        
+        for feedback in feedbacks_with_policies:
+            policy_data = feedback.generated_policies
+            if policy_data and not policy_data.get('skip', False):
+                # Add feedback ID and is_custom flag for identification
+                policy_dict = {
+                    'id': f'fb_{feedback.id}',  # Unique ID for frontend
+                    'category': policy_data.get('category', 'custom'),
+                    'rule': policy_data.get('rule', ''),
+                    'priority': policy_data.get('priority', 'medium'),
+                    'evidence_count': 1,
+                    'is_custom': False,
+                    'rationale': policy_data.get('rationale', ''),
+                    'examples': policy_data.get('examples', []),
+                    'feedback_id': feedback.id,
+                }
+                individual_policies.append(policy_dict)
 
         # Get custom policies
         custom_policies = CustomPolicy.get_active_policies()
 
-        # Merge both
-        all_policies = auto_policies + custom_policies
+        # Merge all three types
+        all_policies = auto_policies + individual_policies + custom_policies
 
-        # Filter to only high and medium priority policies
+        # Filter to only high and medium priority policies for active injection
         active = [p for p in all_policies if p['priority'] in ['high', 'medium']]
 
         return Response({
-            'active_policies': active,
+            'active_policies': all_policies,  # Return ALL, let frontend filter
             'total_policies': len(all_policies),
             'active_count': len(active),
             'auto_generated_count': len(auto_policies),
+            'individual_count': len(individual_policies),
             'custom_count': len(custom_policies),
         })
 
@@ -5997,6 +6068,35 @@ class AIResponseFeedbackViewSet(viewsets.ModelViewSet):
         })
 
 
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    def generate_policy(self, request, pk=None):
+        """
+        Manually trigger policy generation for a specific feedback
+        POST /api/ai-feedback/{id}/generate_policy/
+        Admin only
+        """
+        from .tasks import generate_policy_async
+
+        feedback = self.get_object()
+
+        # Check if already has policy
+        if feedback.generated_policies:
+            return Response({
+                'status': 'skipped',
+                'message': 'Feedback already has generated policy',
+                'policy': feedback.generated_policies
+            })
+
+        # Trigger async task
+        task = generate_policy_async.delay(feedback.id)
+
+        return Response({
+            'status': 'triggered',
+            'message': 'Policy generation task triggered',
+            'task_id': task.id,
+            'feedback_id': feedback.id
+        })
+
 
 class CustomPolicyViewSet(viewsets.ModelViewSet):
     """
@@ -6018,3 +6118,21 @@ class CustomPolicyViewSet(viewsets.ModelViewSet):
         """Set created_by to current user"""
         serializer.save(created_by=self.request.user)
 
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    def toggle_active(self, request, pk=None):
+        """
+        Toggle is_active status of a custom policy
+        POST /api/custom-policies/{id}/toggle_active/
+        Admin only
+        """
+        policy = self.get_object()
+        policy.is_active = not policy.is_active
+        policy.save(update_fields=['is_active'])
+
+        return Response({
+            'status': 'success',
+            'message': f'Policy {"activated" if policy.is_active else "deactivated"}',
+            'policy_id': policy.id,
+            'is_active': policy.is_active
+        })

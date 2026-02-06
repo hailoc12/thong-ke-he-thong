@@ -29,7 +29,7 @@ services:
       - media_data:/app/media
       - static_data:/app/staticfiles
     ports:
-      - "8000:8000"
+      - "9002:8000"
     env_file:
       - ./backend/.env
     environment:
@@ -51,7 +51,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     ports:
-      - "3000:80"
+      - "9003:80"
     depends_on:
       - backend
     healthcheck:
@@ -65,7 +65,7 @@ services:
     image: redis:7-alpine
     restart: always
     ports:
-      - "6379:6379"
+      - "9004:6379"
     volumes:
       - redis_data:/data
     healthcheck:

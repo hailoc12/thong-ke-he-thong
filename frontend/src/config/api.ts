@@ -192,6 +192,7 @@ export interface ImprovementPolicy {
   priority: 'high' | 'medium' | 'low';
   evidence_count: number;
   is_custom?: boolean;
+  is_active?: boolean;
   examples?: string[];
   rationale?: string;
 }
@@ -324,4 +325,15 @@ export const updateCustomPolicy = async (id: number, data: Partial<CustomPolicy>
 // Delete custom policy
 export const deleteCustomPolicy = async (id: number): Promise<void> => {
   await api.delete(`/custom-policies/${id}/`);
+};
+
+// Toggle custom policy active status
+export const toggleCustomPolicy = async (policyId: number): Promise<{
+  status: string;
+  message: string;
+  policy_id: number;
+  is_active: boolean;
+}> => {
+  const response = await api.post(`/custom-policies/${policyId}/toggle_active/`);
+  return response.data;
 };

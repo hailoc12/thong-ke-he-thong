@@ -149,7 +149,7 @@ class PolicyGenerator:
                     {
                         "role": "system",
                         "content": "You are an expert at analyzing AI query failures and generating improvement policies. "
-                                   "Your goal is to identify what database schema or domain knowledge was missing."
+                                   "Your goal is to identify what database schema or domain knowledge was missing. IMPORTANT: Output all policy text in Vietnamese for Vietnamese users."
                     },
                     {
                         "role": "user",
@@ -203,6 +203,8 @@ IMPORTANT INSTRUCTIONS:
 
 TASK:
 Identify the ROOT CAUSE of the wrong answer. What DATABASE/DOMAIN KNOWLEDGE was missing?
+
+**CRITICAL: Output ALL text fields (rule, rationale, examples, missing_knowledge, correct_mapping) in VIETNAMESE language for Vietnamese users.**
 
 OUTPUT FORMAT (JSON):
 {{

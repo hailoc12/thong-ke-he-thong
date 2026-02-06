@@ -20,6 +20,7 @@ import {
   Empty,
   Typography,
   Divider,
+  Switch,
 } from 'antd';
 import {
   DislikeOutlined,
@@ -44,9 +45,11 @@ import {
   createCustomPolicy,
   updateCustomPolicy,
   deleteCustomPolicy,
+  toggleCustomPolicy,
   type ImprovementPolicy,
   type AIResponseFeedback,
 } from '../config/api';
+import api from '../config/api';
 
 dayjs.extend(relativeTime);
 
@@ -156,6 +159,30 @@ const AIFeedbackPolicies: React.FC = () => {
         }
       },
     });
+  };
+
+  const handleGeneratePolicyForFeedback = async (feedbackId: number) => {
+    try {
+      await api.post(`/ai-feedback/${feedbackId}/generate_policy/`);
+      message.success('✅ Đã gửi yêu cầu tạo giải pháp. Vui lòng đợi vài giây...');
+      setTimeout(async () => {
+        await loadData();
+        message.info('Đã cập nhật dữ liệu');
+      }, 3000);
+    } catch (error: any) {
+      message.error('Lỗi: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
+  const handleTogglePolicy = async (policy: ImprovementPolicy, event: any) => {
+    event.stopPropagation();
+    try {
+      const response = await toggleCustomPolicy(policy.id!);
+      message.success(response.message);
+      await loadData();
+    } catch (error: any) {
+      message.error('Lỗi: ' + (error.response?.data?.detail || error.message));
+    }
   };
 
   const handleCreatePolicy = async () => {
@@ -517,6 +544,52 @@ const AIFeedbackPolicies: React.FC = () => {
                           </>
                         )}
 
+
+                        {/* Generated Policy (if exists) */}
+                        {feedback.generated_policies && (
+                          <>
+                            <Text strong style={{ fontSize: 13 }}>💡 Giải pháp đính kèm:</Text>
+                            <div style={{
+                              marginTop: 8,
+                              padding: '12px',
+                              background: '#f6ffed',
+                              borderLeft: '3px solid #52c41a',
+                              borderRadius: 4,
+                              fontSize: 13,
+                              marginBottom: 16,
+                            }}>
+                              <div style={{ marginBottom: 8 }}>
+                                <Tag color={feedback.generated_policies.priority === 'high' ? 'red' : feedback.generated_policies.priority === 'medium' ? 'orange' : 'blue'}>
+                                  {feedback.generated_policies.priority?.toUpperCase()}
+                                </Tag>
+                                <Tag color="cyan">{feedback.generated_policies.category}</Tag>
+                              </div>
+                              <div style={{ marginBottom: 8 }}>
+                                <strong>Quy tắc:</strong> {feedback.generated_policies.rule}
+                              </div>
+                              {feedback.generated_policies.rationale && (
+                                <div style={{ fontSize: 12, color: '#666' }}>
+                                  <strong>Lý do:</strong> {feedback.generated_policies.rationale}
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Generate Policy Button (if no policy exists) */}
+                        {!feedback.generated_policies && (
+                          <div style={{ marginBottom: 16 }}>
+                            <Button
+                              type="dashed"
+                              icon={<BulbOutlined />}
+                              size="small"
+                              onClick={() => handleGeneratePolicyForFeedback(feedback.id!)}
+                            >
+                              Sinh giải pháp
+                            </Button>
+                          </div>
+                        )}
+
                         {/* AI Response details */}
                         {renderResponseSteps(feedback.response_data)}
                       </div>
@@ -588,6 +661,11 @@ const AIFeedbackPolicies: React.FC = () => {
                       extra={
                         policy.is_custom ? (
                           <Space size="small" onClick={(e) => e.stopPropagation()}>
+                            <Switch
+                              size="small"
+                              checked={policy.is_active !== false}
+                              onChange={(event) => handleTogglePolicy(policy, event)}
+                            />
                             <Button
                               type="text"
                               size="small"

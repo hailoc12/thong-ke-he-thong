@@ -284,7 +284,7 @@ const AIFeedbackPolicies: React.FC = () => {
           🤖 Tinh chỉnh Trợ lý A.I
         </h1>
         <p style={{ color: '#666', marginTop: 8 }}>
-          Giám sát chất lượng và cải thiện hiệu suất AI Assistant
+          Cải thiện hoạt động của Trợ lý AI thông qua phân tích phản hồi
         </p>
       </div>
 

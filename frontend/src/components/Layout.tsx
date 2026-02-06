@@ -95,7 +95,7 @@ const MainLayout = () => {
         ...(isLeader ? [{
           key: '/ai-feedback',
           icon: <CommentOutlined />,
-          label: 'AI Feedback & Policies',
+          label: 'Tinh chỉnh Trợ lý A.I',
         }] : []),
         // Unit Dashboard menu - only for non-admin users
         // Show "Dashboard Admin" for lanhdaobo, "Dashboard Đơn vị" for others

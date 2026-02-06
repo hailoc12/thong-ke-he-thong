@@ -366,7 +366,7 @@ const AIFeedbackPolicies: React.FC = () => {
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 600, margin: 0 }}>
-          📊 Quản lý AI Feedback & Policies
+          🤖 Tinh chỉnh Trợ lý A.I
         </h1>
         <p style={{ color: '#666', marginTop: 8 }}>
           Theo dõi chất lượng AI Assistant thông qua phản hồi người dùng và quản lý các chính sách cải tiến

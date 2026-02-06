@@ -6,6 +6,7 @@ from .views import (
     UnitProgressDashboardView,
     AIConversationViewSet,
     AIResponseFeedbackViewSet,
+    CustomPolicyViewSet,
 )
 
 router = DefaultRouter()
@@ -13,6 +14,7 @@ router.register(r'systems', SystemViewSet, basename='system')
 router.register(r'attachments', AttachmentViewSet, basename='attachment')
 router.register(r'ai-conversations', AIConversationViewSet, basename='ai-conversation')
 router.register(r'ai-feedback', AIResponseFeedbackViewSet, basename='ai-feedback')
+router.register(r'custom-policies', CustomPolicyViewSet, basename='custom-policy')
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -175,11 +175,13 @@ export interface AIResponseFeedback {
 }
 
 export interface ImprovementPolicy {
+  id?: number;
   category: string;
   rule: string;
   priority: 'high' | 'medium' | 'low';
   evidence_count: number;
-  examples: string[];
+  is_custom?: boolean;
+  examples?: string[];
 }
 
 export interface FeedbackStats {
@@ -214,4 +216,94 @@ export const getActivePolicies = async (): Promise<ImprovementPolicy[]> => {
 export const getFeedbackStats = async (): Promise<FeedbackStats> => {
   const response = await api.get('/ai-feedback/stats/');
   return response.data;
+};
+
+// Get all feedbacks with pagination and filters
+export const getAllFeedbacks = async (params?: {
+  rating?: 'positive' | 'negative';
+  mode?: 'quick' | 'deep';
+  page?: number;
+  page_size?: number;
+}): Promise<{
+  count: number;
+  results: AIResponseFeedback[];
+}> => {
+  const response = await api.get('/ai-feedback/', { params });
+  return response.data;
+};
+
+// Regenerate all policies from feedback
+export const regeneratePolicies = async (): Promise<{
+  policies: ImprovementPolicy[];
+  count: number;
+  timestamp: string;
+  message: string;
+}> => {
+  const response = await api.post('/ai-feedback/regenerate_policies/');
+  return response.data;
+};
+
+// Get policy injection status
+export const getPolicyStatus = async (): Promise<{
+  total_policies: number;
+  auto_generated: number;
+  custom: number;
+  active_policies: number;
+  injection_points: string[];
+  last_regeneration: string | null;
+  policies_breakdown: {
+    high: number;
+    medium: number;
+    low: number;
+  };
+  status: string;
+  message: string;
+}> => {
+  const response = await api.get('/ai-feedback/policy_status/');
+  return response.data;
+};
+
+// ========================================
+// Custom Policy API
+// ========================================
+
+export interface CustomPolicy {
+  id?: number;
+  category: 'accuracy' | 'clarity' | 'completeness' | 'performance' | 'custom';
+  rule: string;
+  priority: 'high' | 'medium' | 'low';
+  rationale: string;
+  created_by?: number;
+  created_by_username?: string;
+  created_at?: string;
+  updated_at?: string;
+  is_active: boolean;
+}
+
+// Get all custom policies
+export const getCustomPolicies = async (): Promise<CustomPolicy[]> => {
+  const response = await api.get('/custom-policies/');
+  return response.data;
+};
+
+// Create custom policy
+export const createCustomPolicy = async (data: {
+  category: string;
+  rule: string;
+  priority: string;
+  rationale: string;
+}): Promise<CustomPolicy> => {
+  const response = await api.post('/custom-policies/', data);
+  return response.data;
+};
+
+// Update custom policy
+export const updateCustomPolicy = async (id: number, data: Partial<CustomPolicy>): Promise<CustomPolicy> => {
+  const response = await api.patch(`/custom-policies/${id}/`, data);
+  return response.data;
+};
+
+// Delete custom policy
+export const deleteCustomPolicy = async (id: number): Promise<void> => {
+  await api.delete(`/custom-policies/${id}/`);
 };

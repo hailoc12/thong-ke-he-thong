@@ -214,3 +214,92 @@ class AIResponseFeedback(models.Model):
             })
 
         return policies
+
+
+class CustomPolicy(models.Model):
+    """
+    Manually created policies by admin
+    These will be merged with auto-generated policies
+    """
+
+    CATEGORY_CHOICES = [
+        ('accuracy', 'Accuracy'),
+        ('clarity', 'Clarity'),
+        ('completeness', 'Completeness'),
+        ('performance', 'Performance'),
+        ('custom', 'Custom'),
+    ]
+
+    PRIORITY_CHOICES = [
+        ('high', 'High'),
+        ('medium', 'Medium'),
+        ('low', 'Low'),
+    ]
+
+    category = models.CharField(
+        max_length=50,
+        choices=CATEGORY_CHOICES,
+        verbose_name='Category'
+    )
+
+    rule = models.TextField(
+        verbose_name='Policy Rule',
+        help_text='Description of what the AI should or should not do'
+    )
+
+    priority = models.CharField(
+        max_length=20,
+        choices=PRIORITY_CHOICES,
+        verbose_name='Priority',
+        default='medium'
+    )
+
+    rationale = models.TextField(
+        verbose_name='Rationale',
+        help_text='Explanation of why this policy is needed'
+    )
+
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='custom_policies',
+        verbose_name='Created By'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Created At')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Updated At')
+
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='Active',
+        help_text='Whether this policy is currently being used'
+    )
+
+    class Meta:
+        db_table = 'systems_custom_policy'
+        verbose_name = 'Custom Policy'
+        verbose_name_plural = 'Custom Policies'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['is_active']),
+            models.Index(fields=['priority']),
+        ]
+
+    def __str__(self):
+        return f"[{self.priority.upper()}] {self.category}: {self.rule[:50]}"
+
+    @classmethod
+    def get_active_policies(cls):
+        """Get all active custom policies formatted like auto-generated ones"""
+        return [
+            {
+                'id': p.id,
+                'category': p.category,
+                'rule': p.rule,
+                'priority': p.priority,
+                'evidence_count': 0,  # Custom policies don't have evidence
+                'is_custom': True,
+            }
+            for p in cls.objects.filter(is_active=True)
+        ]

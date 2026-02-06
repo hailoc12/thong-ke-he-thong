@@ -5867,14 +5867,115 @@ class AIResponseFeedbackViewSet(viewsets.ModelViewSet):
         """
         Get currently active policies that are being injected into system prompts
         Available to all authenticated users so they know what policies are in effect
+        Merges auto-generated policies with custom policies
         """
-        policies = AIResponseFeedback.generate_improvement_policies()
-        
+        from .models_feedback import CustomPolicy
+
+        # Get auto-generated policies
+        auto_policies = AIResponseFeedback.generate_improvement_policies()
+
+        # Get custom policies
+        custom_policies = CustomPolicy.get_active_policies()
+
+        # Merge both
+        all_policies = auto_policies + custom_policies
+
         # Filter to only high and medium priority policies
-        active = [p for p in policies if p['priority'] in ['high', 'medium']]
-        
+        active = [p for p in all_policies if p['priority'] in ['high', 'medium']]
+
         return Response({
             'active_policies': active,
-            'total_policies': len(policies),
+            'total_policies': len(all_policies),
             'active_count': len(active),
+            'auto_generated_count': len(auto_policies),
+            'custom_count': len(custom_policies),
         })
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminUser])
+    def regenerate_policies(self, request):
+        """
+        Regenerate all policies from negative feedback
+        Returns: { policies: [...], count: X, timestamp: ... }
+        Admin only
+        """
+        from django.utils import timezone
+
+        # Regenerate policies
+        policies = AIResponseFeedback.generate_improvement_policies()
+
+        # Mark all analyzed feedback as analyzed
+        AIResponseFeedback.objects.filter(
+            rating='negative'
+        ).exclude(
+            feedback_text__isnull=True
+        ).exclude(
+            feedback_text=''
+        ).update(analyzed=True)
+
+        return Response({
+            'policies': policies,
+            'count': len(policies),
+            'timestamp': timezone.now().isoformat(),
+            'message': f'Successfully regenerated {len(policies)} policies from negative feedback'
+        })
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminUser])
+    def policy_status(self, request):
+        """
+        Get policy injection status and statistics
+        Returns info about where and how policies are being used
+        Admin only
+        """
+        from .models_feedback import CustomPolicy
+
+        auto_policies = AIResponseFeedback.generate_improvement_policies()
+        custom_policies = CustomPolicy.get_active_policies()
+        all_policies = auto_policies + custom_policies
+
+        # Get last analyzed feedback
+        last_analyzed = AIResponseFeedback.objects.filter(
+            analyzed=True
+        ).order_by('-created_at').values_list('created_at', flat=True).first()
+
+        return Response({
+            'total_policies': len(all_policies),
+            'auto_generated': len(auto_policies),
+            'custom': len(custom_policies),
+            'active_policies': len([p for p in all_policies if p['priority'] in ['high', 'medium']]),
+            'injection_points': [
+                'Quick Mode Prompt (Line 4074)',
+                'Deep Mode Phase 1 Prompt (Line 4637)',
+                'Deep Mode Enhancement Prompt (Line 4935)'
+            ],
+            'last_regeneration': last_analyzed.isoformat() if last_analyzed else None,
+            'policies_breakdown': {
+                'high': len([p for p in all_policies if p['priority'] == 'high']),
+                'medium': len([p for p in all_policies if p['priority'] == 'medium']),
+                'low': len([p for p in all_policies if p['priority'] == 'low']),
+            },
+            'status': 'active',
+            'message': 'Policies are currently being injected into AI prompts'
+        })
+
+
+
+class CustomPolicyViewSet(viewsets.ModelViewSet):
+    """
+    CRUD API for Custom Policies
+    - GET /api/custom-policies/ : List all custom policies
+    - POST /api/custom-policies/ : Create new custom policy
+    - PATCH /api/custom-policies/{id}/ : Update custom policy
+    - DELETE /api/custom-policies/{id}/ : Delete custom policy
+    Admin only
+    """
+    from .models_feedback import CustomPolicy
+    from .serializers_feedback import CustomPolicySerializer
+
+    queryset = CustomPolicy.objects.all()
+    serializer_class = CustomPolicySerializer
+    permission_classes = [IsAdminUser]
+
+    def perform_create(self, serializer):
+        """Set created_by to current user"""
+        serializer.save(created_by=self.request.user)
+

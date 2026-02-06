@@ -2,7 +2,7 @@
 AI Response Feedback Serializers
 """
 from rest_framework import serializers
-from .models import AIResponseFeedback
+from .models_feedback import AIResponseFeedback, CustomPolicy
 
 
 class AIResponseFeedbackSerializer(serializers.ModelSerializer):
@@ -44,3 +44,31 @@ class ImprovementPolicySerializer(serializers.Serializer):
     rule = serializers.CharField()
     priority = serializers.CharField()
     evidence_count = serializers.IntegerField()
+    is_custom = serializers.BooleanField(default=False, required=False)
+    id = serializers.IntegerField(required=False)
+
+
+class CustomPolicySerializer(serializers.ModelSerializer):
+    """Serializer for custom policies"""
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+
+    class Meta:
+        model = CustomPolicy
+        fields = [
+            'id',
+            'category',
+            'rule',
+            'priority',
+            'rationale',
+            'created_by',
+            'created_by_username',
+            'created_at',
+            'updated_at',
+            'is_active',
+        ]
+        read_only_fields = ['id', 'created_by', 'created_by_username', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        # Automatically set created_by from request
+        validated_data['created_by'] = self.context['request'].user
+        return super().create(validated_data)

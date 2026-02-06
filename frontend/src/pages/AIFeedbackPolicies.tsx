@@ -99,7 +99,8 @@ const AIFeedbackPolicies: React.FC = () => {
   const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
 
   useEffect(() => {
-    if (user.role !== 'lanhdaobo' && !user.is_staff) {
+    // Allow if user is leader (role='leader') OR is_staff
+    if (user.role !== 'leader' && !user.is_staff) {
       message.error('Bạn không có quyền truy cập trang này');
       navigate('/dashboard');
     } else {
